@@ -1,19 +1,8 @@
-Let's make the 
+
+-
 
 
-
-Have a look at this files:
-i have renamed that with a _ in front to make it appear first and together in a folder, tell me if there is a better way to do so or in case it's ok make sure that inside the files they are pointing each other correctly (expecially the comfig file to be created/associated that now will be _wedge_config.json).
-
-
-Make sure when we open the .py file it reads the folder where it is located for config files and workflows available. Make load automatically all the API workflows and also select the path where the file was opened in the path field.
-When we open the .py it should automatically detect where it is located, change the workflow path in the field and load automatically the API workflows.
-
-
-wedge_studio_online.html it's a file that will live in a github page, that's why has as option to load the .py and bat. (Make sure the .py and .bat are not written in the html itself, let them download from the repository: https://github.com/Gerry-Malta/AI_LAB/tree/main/wedge_studio . 
-
-
-_wedge_config.json must store the information of the "comfy_path": "", the timeout, and the chain info. Make sure that when we press RUN to generate in the .py it also override the _wedge_config.json with the new info (comfy path, timeout, and chained workflows). 
+Make the district zero LOGO A LINK TO https://thedistrictzero.com/
 
 
 The .py tools shows [PLANNING MODE - COMFYUI OFFLINE], keep only [COMFYUI OFFLINE]

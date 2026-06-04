@@ -589,10 +589,6 @@ body { padding-bottom: 32px; }
         &nbsp;·&nbsp; <span id="bannerMsg">ComfyUI not detected. Build your plan, then download to run locally.</span>
     </div>
     <div style="display:flex;gap:8px;align-items:center;flex-shrink:0;">
-        <div id="corsHint" style="display:none;align-items:center;gap:8px;">
-            <code id="corsCmd" style="font-size:10px;background:var(--bg-tertiary);border:1px solid var(--border-secondary);padding:5px 10px;border-radius:3px;color:var(--accent-gold);letter-spacing:0.05em;white-space:nowrap;">python main.py --enable-cors-header "*"</code>
-            <button class="btn btn-sm" onclick="copyCorsCMD()" id="copyBtn">Copy</button>
-        </div>
         <button class="btn btn-sm btn-primary" id="downloadBtn" onclick="downloadZip()">↓ Download for local use</button>
     </div>
 </div>
@@ -765,7 +761,12 @@ let dragIdx = null;
 let comfyOnline = false;
 let folderName = 'wedge';
 let serverFolder = null;   // set when served from wedge_studio.py
-const WEDGE_SERVER = (location.protocol !== 'file:') ? location.origin : null;
+// Only treat as a local Wedge server when running on localhost/127.0.0.1.
+// On GitHub Pages or any external host, WEDGE_SERVER must be null so the
+// tool correctly enters planning mode rather than calling a non-existent server.
+const _isLocalServer = location.protocol !== 'file:' &&
+    (location.hostname === 'localhost' || location.hostname === '127.0.0.1');
+const WEDGE_SERVER = _isLocalServer ? location.origin : null;
 // when running from wedge_studio.py, proxy ComfyUI calls through our server
 // so browser never needs to make cross-origin requests to port 8188
 const comfyBase = () => WEDGE_SERVER ? WEDGE_SERVER + '/comfy_proxy' : base();
@@ -913,81 +914,21 @@ function clearTerminal(){
 function escapeHtml(s){ return String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-// ============ mode detection (local vs planning) ============
-async function checkComfy(){
-    const pill = document.getElementById('modePill');
+// ============ mode detection ============
+// This file is the online/GitHub Pages version — it is ALWAYS in planning mode.
+// We never attempt to reach ComfyUI from here: even if the user has ComfyUI
+// running locally, their browser could connect and falsely show "Local · online".
+// The download button (inside the planning banner) must always be visible.
+function checkComfy(){
+    const pill   = document.getElementById('modePill');
     const banner = document.getElementById('planningBanner');
-    const corsHint = document.getElementById('corsHint');
-    const bannerMsg = document.getElementById('bannerMsg');
-    const bannerTitle = document.getElementById('bannerTitle');
-    try {
-        const ctrl = new AbortController();
-        const t = setTimeout(() => ctrl.abort(), 3500);
-        const r = await fetch(comfyBase() + '/system_stats', {signal: ctrl.signal});
-        clearTimeout(t);
-        if (r.ok){
-            comfyOnline = true;
-            pill.className = 'mode-pill local-ok';
-            pill.textContent = '● Local · ComfyUI online';
-            banner.classList.add('hidden');  // always hide when online
-            corsHint.style.display = 'none';
-            updateRunButton();
-            return true;
-        }
-        // reachable but not ok — CORS likely blocked
-        throw new Error('cors');
-    } catch(e){
-        comfyOnline = false;
-        pill.className = 'mode-pill local-bad';
-        banner.classList.remove('hidden');
-        // distinguish: total failure (not running) vs CORS block (running but blocked)
-        const isCorsBlock = e.message !== 'cors' && !(e instanceof DOMException);
-        // Try a no-cors ping to see if server is up at all
-        let serverUp = false;
-        try {
-            await fetch(comfyBase() + '/system_stats', {mode:'no-cors', signal: AbortSignal.timeout(2000)});
-            serverUp = true; // got a response (even opaque)
-        } catch(e2){ serverUp = false; }
-        if (serverUp){
-            // Server is running but CORS is blocking
-            pill.textContent = '⚠ CORS blocked · start with flag';
-            bannerTitle.textContent = 'CORS Blocked';
-            bannerMsg.textContent = 'ComfyUI is running but CORS is not enabled. Start it with this command:';
-            corsHint.style.display = 'flex';
-            // only show banner if NOT running from wedge_studio.py server
-            if (!WEDGE_SERVER) banner.classList.remove('hidden');
-        } else {
-            // Server not running at all
-            pill.textContent = '○ Planning mode · ComfyUI offline';
-            bannerTitle.textContent = 'Planning Mode';
-            bannerMsg.textContent = 'ComfyUI not detected. Build your plan, then download to run locally.';
-            corsHint.style.display = 'none';
-            // only show planning banner when opened as a plain file (not from server)
-            if (!WEDGE_SERVER) banner.classList.remove('hidden');
-        }
-        updateRunButton();
-        return false;
-    }
+    comfyOnline  = false;
+    pill.className   = 'mode-pill planning';
+    pill.textContent = '○ Planning mode';
+    banner.classList.remove('hidden');
+    updateRunButton();
+    return false;
 }
-
-function copyCorsCMD(){
-    const cmd = document.getElementById('corsCmd').textContent;
-    navigator.clipboard.writeText(cmd).then(() => {
-        const btn = document.getElementById('copyBtn');
-        btn.textContent = 'Copied!';
-        setTimeout(() => btn.textContent = 'Copy', 2000);
-    }).catch(() => {
-        // fallback for non-https
-        const ta = document.createElement('textarea');
-        ta.value = cmd; document.body.appendChild(ta);
-        ta.select(); document.execCommand('copy');
-        document.body.removeChild(ta);
-        const btn = document.getElementById('copyBtn');
-        btn.textContent = 'Copied!';
-        setTimeout(() => btn.textContent = 'Copy', 2000);
-    });
-}
-setInterval(checkComfy, 6000);
 
 function updateRunButton(){
     const btn = document.getElementById('runBtn');
@@ -1216,7 +1157,10 @@ function colorNode(name, state, reused){
     });
 }
 
-// ============ download local copy with baked plan ============
+// ============ download local copy ============
+// _wedge_studio.py and _wedge_studio.bat are fetched live from the GitHub
+// repository — never embedded in this file.  Only _wedge_config.json (which
+// carries the current plan) is generated here.
 async function downloadLocalCopy(){ downloadZip(); }
 
 async function downloadZip(){
@@ -1224,76 +1168,52 @@ async function downloadZip(){
         alert('Build a plan first — drag your workflow folder and arrange the run order.');
         return;
     }
-    // build plan object
-    const plan = {
-        order: JSON.parse(JSON.stringify(order)),
-        server: document.getElementById('server').value.trim() || '127.0.0.1:8188',
-        timeout: parseFloat(document.getElementById('timeout').value) || 20,
-        workflows: {}
-    };
-    for (const [name, meta] of Object.entries(workflows)){
-        if (meta && meta.validApi && meta.wf) plan.workflows[name] = meta.wf;
-    }
-    // build wedge_config.json (plan + empty comfy_path for user to fill)
-    const configObj = {
-        comfy_path: '',
-        plan
-    };
 
     const stamp = new Date().toISOString().replace(/[:.]/g,'-').slice(0,19);
     const btn = document.getElementById('downloadBtn');
     const origLabel = btn ? btn.textContent : '';
-    if (btn){ btn.disabled = true; btn.textContent = 'Fetching...'; }
-    log('Fetching wedge_studio.py from GitHub...', 'muted');
+    if (btn){ btn.disabled = true; btn.textContent = 'Fetching…'; }
 
-    // fetch clean .py from GitHub (no baking needed — config carries the plan)
+    const REPO_RAW = 'https://raw.githubusercontent.com/Gerry-Malta/AI_LAB/main/wedge_studio/';
+
+    // ── fetch _wedge_studio.py ────────────────────────────────────────────────
+    log('Fetching _wedge_studio.py from GitHub…', 'muted');
     let pySrc = null;
     try {
-        const resp = await fetch('https://raw.githubusercontent.com/Gerry-Malta/AI_LAB/main/wedge_studio/wedge_studio.py');
-        if (resp.ok) pySrc = await resp.text();
+        const r = await fetch(REPO_RAW + '_wedge_studio.py');
+        if (r.ok) pySrc = await r.text();
     } catch(e){ console.error(e); }
 
     if (!pySrc){
         if (btn){ btn.disabled = false; btn.textContent = origLabel; }
-        log('Could not fetch wedge_studio.py — check your internet connection.', 'err');
-        alert('Could not download wedge_studio.py from GitHub.\nCheck your internet connection.');
+        log('Could not fetch _wedge_studio.py — check your internet connection.', 'err');
+        alert('Could not download _wedge_studio.py from GitHub.\nCheck your internet connection.');
         return;
     }
 
-    const batContent = [
-        '@echo off',
-        'cd /d "%~dp0"',
-        'title Wedge Studio -- District Zero',
-        '',
-        'set PYTHON=',
-        '',
-        'if exist "venv\\Scripts\\python.exe" (',
-        '    set PYTHON=venv\\Scripts\\python.exe',
-        '    goto :run',
-        ')',
-        'if exist "python_embeded\\python.exe" (',
-        '    set PYTHON=python_embeded\\python.exe',
-        '    goto :run',
-        ')',
-        'where python >nul 2>&1 && set PYTHON=python && goto :run',
-        'where python3 >nul 2>&1 && set PYTHON=python3 && goto :run',
-        '',
-        'echo Python not found. Install Python or run from your ComfyUI folder.',
-        'pause',
-        'exit /b 1',
-        '',
-        ':run',
-        'echo.',
-        'echo   Starting Wedge Studio...',
-        'echo   Browser will open automatically.',
-        'echo.',
-        '%PYTHON% wedge_studio.py %*',
-        'pause'
-    ].join('\r\n');
+    // ── fetch _wedge_studio.bat ───────────────────────────────────────────────
+    log('Fetching _wedge_studio.bat from GitHub…', 'muted');
+    let batSrc = null;
+    try {
+        const r = await fetch(REPO_RAW + '_wedge_studio.bat');
+        if (r.ok) batSrc = await r.text();
+    } catch(e){ console.warn('Could not fetch .bat:', e); }
 
+    if (!batSrc){
+        log('⚠ _wedge_studio.bat not found in repo — zip will contain .py and config only.', 'warn');
+    }
+
+    // ── build _wedge_config.json ──────────────────────────────────────────────
+    // Flat format — read natively by _wedge_studio.py at startup.
+    // comfy_path is left blank for the user to fill in after launch.
+    const configObj = {
+        comfy_path: '',
+        timeout: parseFloat(document.getElementById('timeout').value) || 20,
+        order: JSON.parse(JSON.stringify(order))
+    };
     const configJson = JSON.stringify(configObj, null, 2);
 
-    // load JSZip dynamically
+    // ── load JSZip dynamically ────────────────────────────────────────────────
     let JSZipClass = null;
     try {
         if (typeof JSZip !== 'undefined'){
@@ -1311,27 +1231,32 @@ async function downloadZip(){
 
     if (!JSZipClass){
         log('JSZip unavailable — downloading .py only.', 'warn');
-        browserDownload(pySrc, 'wedge_studio.py');
+        const blob = new Blob([pySrc], {type:'text/plain'});
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob); a.download = '_wedge_studio.py';
+        document.body.appendChild(a); a.click();
+        setTimeout(() => { a.remove(); URL.revokeObjectURL(a.href); }, 3000);
         if (btn){ btn.disabled = false; btn.textContent = origLabel; }
         return;
     }
 
     try {
         const zip = new JSZipClass();
-        zip.file('wedge_studio.py', pySrc);
-        zip.file('Launch Wedge Studio.bat', batContent);
-        zip.file('wedge_config.json', configJson);
+        zip.file('_wedge_studio.py', pySrc);
+        if (batSrc) zip.file('_wedge_studio.bat', batSrc);
+        zip.file('_wedge_config.json', configJson);
         const blob = await zip.generateAsync({type:'blob', compression:'DEFLATE'});
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
         a.download = 'wedge_studio_' + stamp + '.zip';
         document.body.appendChild(a); a.click();
         setTimeout(() => { a.remove(); URL.revokeObjectURL(a.href); }, 3000);
-        log('\u2713 Downloaded wedge_studio_' + stamp + '.zip', 'ok');
-        log('  Contains: wedge_studio.py + Launch Wedge Studio.bat + wedge_config.json', 'muted');
-        log('  1. Unzip into your ComfyUI folder', 'muted');
-        log('  2. Set comfy_path in wedge_config.json or in the header after launch', 'muted');
-        log('  3. Double-click Launch Wedge Studio.bat', 'muted');
+        const contents = '_wedge_studio.py' + (batSrc ? ' + _wedge_studio.bat' : '') + ' + _wedge_config.json';
+        log('✓ Downloaded wedge_studio_' + stamp + '.zip', 'ok');
+        log('  Contains: ' + contents, 'muted');
+        log('  1. Unzip into any folder (e.g. next to your ComfyUI workflows)', 'muted');
+        log('  2. Double-click _wedge_studio.bat  (or: python _wedge_studio.py)', 'muted');
+        log('  3. Set your ComfyUI folder path in the header and click ✓', 'muted');
     } catch(e){
         log('Zip failed: ' + e.message, 'err');
         alert('Zip failed: ' + e.message);
