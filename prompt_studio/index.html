@@ -1,0 +1,1403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>District Zero Prompt Studio</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #0a0a0a; color: #e8e4dc; font-family: 'DM Mono','Courier New',monospace; min-height: 100vh; font-size: 12px; }
+a { color: inherit; text-decoration: none; }
+::placeholder { color: #444; opacity: 1; }
+
+#header { border-bottom: 1px solid #1a1a1a; padding: 10px 22px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; background: #0a0a0a; z-index: 10; gap: 16px; }
+.logo-wrap { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+.logo-img { height: 30px; width: auto; }
+.logo-div { width: 1px; height: 20px; background: #2a2a2a; }
+.logo-sub { font-size: 10px; letter-spacing: 0.2em; color: #d18d1f; text-transform: uppercase; }
+#nav { display: flex; gap: 8px; }
+
+.btn { background: #141414; color: #e8e4dc; border: 1px solid #282828; padding: 7px 14px; border-radius: 4px; font-size: 10px; letter-spacing: 0.08em; cursor: pointer; text-transform: uppercase; font-family: inherit; display: inline-flex; align-items: center; gap: 5px; }
+.btn:hover { background: #1e1e1e; }
+.btn-p { background: #dedad2; color: #0a0a0a; border: none; padding: 7px 14px; border-radius: 4px; font-size: 10px; letter-spacing: 0.08em; cursor: pointer; text-transform: uppercase; font-family: inherit; }
+.btn-p:hover { background: #cec9c1; }
+.btn-p:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-d { background: #200a0a; color: #bb3333; border: 1px solid #2e1010; padding: 7px 14px; border-radius: 4px; font-size: 10px; cursor: pointer; text-transform: uppercase; font-family: inherit; }
+.btn-nav { background: transparent; border: 1px solid transparent; color: #666; padding: 6px 14px; border-radius: 4px; font-size: 10px; letter-spacing: 0.08em; cursor: pointer; text-transform: uppercase; font-family: inherit; }
+.btn-nav:hover, .btn-nav.add { color: #e8e4dc; }
+.btn-nav.active { background: #1a1a1a; border-color: #2a2a2a; color: #e8e4dc; }
+
+.body { padding: 18px 22px; }
+.narrow { padding: 18px 22px; max-width: 600px; }
+.narrow-wide { padding: 18px 22px; max-width: 680px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 10px; grid-auto-flow: dense; align-items: start; }
+.card { grid-column: span 3; } /* default: landscape spans 3 units ≈ 270px+ */
+.card.portrait { grid-column: span 1; } /* portrait spans 1 unit */
+.row { display: flex; gap: 10px; align-items: center; }
+.sec { margin-bottom: 14px; }
+.divider { border-top: 1px solid #181818; margin: 16px 0; }
+.lbl { font-size: 10px; letter-spacing: 0.12em; color: #e8e4dc; text-transform: uppercase; display: block; margin-bottom: 5px; }
+input, textarea, select { width: 100%; background: #0e0e0e; border: 1px solid #1e1e1e; border-radius: 6px; padding: 9px 11px; color: #e8e4dc; font-size: 12px; font-family: inherit; outline: none; box-sizing: border-box; }
+input:focus, textarea:focus, select:focus { border-color: #8a5c14; }
+textarea { resize: vertical; }
+
+.pbox { background: #0c0c0c; border: 1px solid #181818; border-radius: 6px; padding: 12px 14px; font-size: 12px; line-height: 1.8; color: #e8e4dc; white-space: pre-wrap; word-break: break-word; font-family: inherit; }
+.panel { background: #0c0c0c; border: 1px solid #181818; border-radius: 8px; padding: 16px; margin-bottom: 14px; }
+.panel-title { font-size: 10px; letter-spacing: 0.15em; color: #d18d1f; text-transform: uppercase; margin-bottom: 14px; }
+
+.card { position: relative; border: 1px solid #1a1a1a; border-radius: 8px; overflow: hidden; cursor: pointer; transition: border-color 0.2s; }
+.card:hover { border-color: #8a5c14; }
+.thumb { position: relative; width: 100%; padding-top: 62%; background: #080808; overflow: hidden; }
+.thumb img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.8; transition: opacity 0.3s, transform 0.4s; }
+.thumb.portrait { padding-top: 0; }
+.card:hover .thumb img { opacity: 1; transform: scale(1.03); }
+.thumb-empty { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 22px; opacity: 0.07; }
+.overlay { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(0,0,0,0.97) 60%, transparent); padding: 28px 12px 10px; transform: translateY(calc(100% - 30px)); transition: transform 0.3s ease; }
+.card:hover .overlay { transform: translateY(0); }
+.overlay-title { font-size: 12px; font-weight: 500; color: #e8e4dc; margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.overlay-tags { margin-bottom: 5px; opacity: 0; transition: opacity 0.15s 0.1s; }
+.card:hover .overlay-tags { opacity: 1; }
+.overlay-snippet { font-size: 10px; color: #aaa; line-height: 1.4; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; margin-bottom: 8px; opacity: 0; transition: opacity 0.15s 0.15s; }
+.card:hover .overlay-snippet { opacity: 1; }
+.overlay-btn { opacity: 0; transition: opacity 0.15s 0.2s; }
+.card:hover .overlay-btn { opacity: 1; }
+
+.tag { display: inline-block; font-size: 9px; padding: 2px 7px; border-radius: 3px; border: 1px solid; margin-right: 5px; text-transform: uppercase; letter-spacing: 0.08em; }
+.tag-n { border-color: #2a2a2a; color: #e8e4dc; }
+.tag-a { border-color: #3a2a0a; color: #d18d1f; }
+.tag-s { border-color: #2a2a5a; color: #9a9aff; }
+.tag-t { border-color: #1a3a1a; color: #5aaa5a; }
+
+.chip { display: inline-block; font-size: 9px; padding: 2px 7px; border-radius: 3px; margin-right: 4px; margin-bottom: 4px; border: 1px solid; }
+.chip-l { border-color: #3e1a1a; color: #cc6060; }
+.chip-s { border-color: #1a3e1a; color: #60cc60; }
+
+.shot-block { background: #0a0a0a; border: 1px solid #1e1e1e; border-radius: 6px; margin-bottom: 10px; overflow: hidden; }
+.shot-h { display: flex; justify-content: space-between; align-items: center; padding: 8px 14px; border-bottom: 1px solid #161616; }
+.shot-label { font-size: 9px; letter-spacing: 0.12em; color: #d18d1f; text-transform: uppercase; }
+.shot-body { padding: 12px 14px; font-size: 12px; line-height: 1.8; color: #e8e4dc; white-space: pre-wrap; word-break: break-word; font-family: inherit; }
+.shot-field { background: #0a0a0a; border: 1px solid #1e1e1e; border-radius: 6px; padding: 12px; margin-bottom: 8px; }
+.shot-fl { font-size: 9px; letter-spacing: 0.12em; color: #d18d1f; text-transform: uppercase; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; }
+.shot-remove { background: none; border: none; color: #5a2020; font-size: 10px; cursor: pointer; font-family: inherit; }
+.shot-remove:hover { color: #bb3333; }
+
+.file-block { background: #0a0a0a; border: 1px solid #1e1e1e; border-radius: 6px; margin-bottom: 8px; overflow: hidden; }
+.file-h { display: flex; justify-content: space-between; align-items: center; padding: 8px 14px; border-bottom: 1px solid #161616; }
+.file-name { font-size: 11px; color: #d18d1f; font-family: monospace; }
+.file-body { padding: 10px 14px; font-size: 11px; color: #e8e4dc; white-space: pre-wrap; word-break: break-word; font-family: monospace; line-height: 1.6; max-height: 180px; overflow-y: auto; }
+
+.type-toggle { display: flex; border: 1px solid #1e1e1e; border-radius: 6px; overflow: hidden; margin-bottom: 14px; }
+.type-btn { flex: 1; background: transparent; border: none; color: #666; padding: 8px; font-size: 10px; cursor: pointer; font-family: inherit; text-transform: uppercase; }
+.type-btn.active { background: #1e1e1e; color: #e8e4dc; }
+
+.empty { text-align: center; padding: 50px 0; }
+.empty-icon { font-size: 24px; opacity: 0.15; margin-bottom: 10px; color: #d18d1f; }
+.empty-label { font-size: 11px; letter-spacing: 0.12em; }
+.empty-sub { font-size: 10px; color: #555; margin-top: 6px; }
+.count { font-size: 10px; margin-bottom: 12px; letter-spacing: 0.1em; }
+
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 100; display: flex; align-items: center; justify-content: center; padding: 20px; }
+.modal { background: #0e0e0e; border: 1px solid #2a2a2a; border-radius: 10px; padding: 28px; max-width: 460px; width: 100%; }
+.modal-icon { font-size: 20px; margin-bottom: 12px; opacity: 0.4; }
+.modal-title { font-size: 13px; font-weight: 500; margin-bottom: 10px; }
+.modal-body { font-size: 11px; color: #aaa; line-height: 1.8; margin-bottom: 20px; }
+
+.view { display: none; }
+.view.active { display: block; }
+.hint-ok { color: #4aaa4a; font-size: 10px; margin-top: 4px; }
+.hint-err { color: #cc4444; font-size: 10px; margin-top: 4px; }
+.btn-save { background: #1a1a0a; color: #d18d1f; border: 1px solid #3a2a0a; padding: 6px 14px; border-radius: 4px; font-size: 10px; letter-spacing: 0.08em; cursor: pointer; text-transform: uppercase; font-family: inherit; transition: background 0.15s; }
+.btn-save:hover { background: #2a2a0a; }
+.btn-save.saving { opacity: 0.6; cursor: not-allowed; }
+#save-status { font-size: 9px; color: #5aaa5a; letter-spacing: 0.08em; margin-left: 2px; opacity: 0; transition: opacity 0.3s; }
+#save-status.visible { opacity: 1; }
+</style>
+</head>
+<body>
+
+<div id="header">
+  <div class="logo-wrap">
+    <a href="https://thedistrictzero.com/" target="_blank">
+      <img class="logo-img" id="logo-img" src="" alt="District Zero" onerror="this.style.display='none'">
+    </a>
+    <div class="logo-div"></div>
+    <span class="logo-sub">Prompt Studio</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px">
+    <div id="nav"></div>
+    <span id="save-status">✓ Saved</span>
+    <button class="btn-save" id="save-btn" onclick="saveToFolder()" title="Save library.json, projects.json, tools.json to your local folder">↓ Save</button>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div id="add-modal" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-icon">◎</div>
+    <div class="modal-title">Your presets are saved locally</div>
+    <div class="modal-body">
+      Presets are saved in <strong style="color:#e8e4dc">your browser only</strong>.<br>
+      Go to <strong style="color:#e8e4dc">Settings → Export JSON</strong> to back them up.<br><br>
+      <span style="color:#d18d1f">Want to be featured?</span><br>
+      This tool is growing with the District Zero community. Send your best presets to <a href="mailto:districtzerovfx@gmail.com" style="color:#d18d1f">districtzerovfx@gmail.com</a> and your work will be featured in the public library — credited with your name for everyone to see.
+    </div>
+    <div class="row">
+      <button class="btn-p" onclick="closeModal();goAddPreset()">Continue</button>
+      <button class="btn" onclick="closeModal();showView('settings')">Settings</button>
+      <button class="btn" onclick="closeModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- LIBRARY -->
+<div id="view-library" class="view active">
+  <div class="body">
+    <div class="row" style="margin-bottom:16px;gap:10px;flex-wrap:wrap">
+      <input id="search" style="flex:3;min-width:0" placeholder="Search..." oninput="renderGrid()">
+      <select id="tool-filter" style="flex:1;min-width:110px;max-width:160px" onchange="renderGrid()">
+        <option value="All">All tools</option>
+        <option>Seedance</option><option>Kling</option><option>ComfyUI</option><option>Other</option>
+      </select>
+      <select id="author-filter" style="flex:1;min-width:110px;max-width:160px" onchange="renderGrid()">
+        <option value="All">All creators</option>
+      </select>
+    </div>
+    <div id="preset-count" class="count"></div>
+    <div id="preset-grid" class="grid"></div>
+    <div id="preset-empty" class="empty" style="display:none">
+      <div class="empty-icon">◎</div>
+      <div class="empty-label" id="empty-label">NO PRESETS YET</div>
+      <div class="empty-sub" id="empty-sub">Hit + Add to save your first prompt</div>
+    </div>
+  </div>
+</div>
+
+<!-- TOOLS -->
+<div id="view-tools" class="view">
+  <div class="body">
+    <div class="row" style="margin-bottom:16px;gap:10px;flex-wrap:wrap">
+      <input id="tool-search" style="flex:3;min-width:0" placeholder="Search tools..." oninput="renderToolsGrid()">
+      <select id="tools-category-filter" style="flex:1;min-width:110px;max-width:160px" onchange="renderToolsGrid()">
+        <option value="All">All tools</option>
+        <option>ComfyUI</option><option>Claude</option><option>ChatGPT</option><option>Griptape</option><option>Other</option>
+      </select>
+      <select id="tools-author-filter" style="flex:1;min-width:110px;max-width:160px" onchange="renderToolsGrid()">
+        <option value="All">All creators</option>
+      </select>
+    </div>
+    <div id="tools-count" class="count"></div>
+    <div id="tools-grid" class="grid"></div>
+    <div id="tools-empty" class="empty" style="display:none">
+      <div class="empty-icon">⚙</div>
+      <div class="empty-label">NO TOOLS YET</div>
+    </div>
+  </div>
+</div>
+
+<!-- PROJECTS -->
+<div id="view-projects" class="view">
+  <div class="body">
+    <div class="row" style="margin-bottom:16px;gap:10px;flex-wrap:wrap">
+      <input id="projects-search" style="flex:3;min-width:0" placeholder="Search projects..." oninput="renderProjectsGrid()">
+      <select id="projects-author-filter" style="flex:1;min-width:110px;max-width:160px" onchange="renderProjectsGrid()">
+        <option value="All">All creators</option>
+      </select>
+    </div>
+    <div id="projects-count" class="count"></div>
+    <div id="projects-grid" class="grid"></div>
+    <div id="projects-empty" class="empty" style="display:none">
+      <div class="empty-icon">◈</div>
+      <div class="empty-label">NO PROJECTS YET</div>
+      <div class="empty-sub">Open a Library card and click "Use as Base" to start a project</div>
+    </div>
+  </div>
+</div>
+
+<!-- PROJECT EDIT -->
+<div id="view-project-edit" class="view">
+  <div class="narrow" id="project-edit-form"></div>
+</div>
+
+<!-- PROJECT DETAIL -->
+<div id="view-project-detail" class="view">
+  <div class="narrow-wide" id="project-detail-content"></div>
+</div>
+
+<!-- ADD PRESET -->
+<div id="view-add-preset" class="view">
+  <div class="narrow" id="add-preset-form"></div>
+</div>
+
+<!-- EDIT PRESET -->
+<div id="view-edit-preset" class="view">
+  <div class="narrow" id="edit-preset-form"></div>
+</div>
+
+<!-- PRESET DETAIL -->
+<div id="view-detail" class="view">
+  <div class="narrow-wide" id="detail-content"></div>
+</div>
+
+<!-- ADD TOOL -->
+<div id="view-tool-add" class="view">
+  <div class="narrow" id="tool-add-form"></div>
+</div>
+
+<!-- EDIT TOOL -->
+<div id="view-tool-edit" class="view">
+  <div class="narrow" id="tool-edit-form"></div>
+</div>
+
+<!-- TOOL DETAIL -->
+<div id="view-tool-detail" class="view">
+  <div class="narrow-wide" id="tool-detail-content"></div>
+</div>
+
+<!-- SETTINGS -->
+<div id="view-settings" class="view">
+  <div class="narrow">
+    <div class="panel">
+      <div class="panel-title">Anthropic API Key</div>
+      <p style="font-size:11px;color:#aaa;margin-bottom:12px;line-height:1.6">Required for Adapt Prompt. Get one at <a href="https://console.anthropic.com" target="_blank" style="color:#d18d1f">console.anthropic.com</a>. Stored in your browser only.</p>
+      <div class="row">
+        <input type="password" id="api-key-input" placeholder="sk-ant-..." style="flex:1">
+        <button class="btn-p" onclick="saveApiKey()">Save</button>
+        <button class="btn" onclick="clearApiKey()">Clear</button>
+      </div>
+      <div id="api-key-status" style="font-size:10px;margin-top:6px"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">Local File Save</div>
+      <p style="font-size:11px;color:#aaa;margin-bottom:12px;line-height:1.6">
+        The <strong style="color:#d18d1f">↓ Save</strong> button saves <code style="color:#d18d1f">library.json</code>, <code style="color:#d18d1f">projects.json</code> and <code style="color:#d18d1f">tools.json</code> directly to a folder on your computer.<br><br>
+        <strong style="color:#e8e4dc">Chrome / Edge only.</strong> On Firefox or Safari, use the Export buttons below and replace the files manually.
+      </p>
+      <button class="btn-save" onclick="saveToFolder()" style="font-size:11px;padding:8px 16px">↓ Save all files now</button>
+    </div>
+    <div class="panel">
+      <div class="panel-title">Export / Import Library</div>
+      <div class="row">
+        <button class="btn-p" onclick="exportPresets()">Export JSON</button>
+        <label class="btn" style="cursor:pointer">Import JSON<input type="file" accept=".json" onchange="importPresets(event)" style="display:none;width:auto"></label>
+      </div>
+      <div id="import-status" style="font-size:10px;margin-top:6px"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">Export / Import Projects</div>
+      <div class="row">
+        <button class="btn-p" onclick="exportProjectsData()">Export JSON</button>
+        <label class="btn" style="cursor:pointer">Import JSON<input type="file" accept=".json" onchange="importProjectsData(event)" style="display:none;width:auto"></label>
+      </div>
+      <div id="projects-import-status" style="font-size:10px;margin-top:6px"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">Export / Import Tools</div>
+      <div class="row">
+        <button class="btn-p" onclick="exportTools()">Export JSON</button>
+        <label class="btn" style="cursor:pointer">Import JSON<input type="file" accept=".json" onchange="importTools(event)" style="display:none;width:auto"></label>
+      </div>
+      <div id="tools-import-status" style="font-size:10px;margin-top:6px"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── CONSTANTS ────────────────────────────────────────────────────
+const isLocal = location.protocol === 'file:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+const GIF_BASE = isLocal
+  ? './gifs/'
+  : 'https://cdn.jsdelivr.net/gh/Gerry-Malta/Prompt_Studio@main/gifs/';
+const LOGO_URL = isLocal
+  ? './DZ_logo_color_transparent_s.png'
+  : 'https://cdn.jsdelivr.net/gh/Gerry-Malta/Prompt_Studio@main/DZ_logo_color_transparent_s.png';
+const PRESETS_URL = 'https://cdn.jsdelivr.net/gh/Gerry-Malta/Prompt_Studio@main/library.json';
+const PROJECTS_URL = 'https://cdn.jsdelivr.net/gh/Gerry-Malta/Prompt_Studio@main/projects.json';
+const TOOLS_URL = 'https://cdn.jsdelivr.net/gh/Gerry-Malta/Prompt_Studio@main/tools.json';
+const TC = { Seedance:'#1D9E75', Kling:'#7F77DD', ComfyUI:'#378ADD', Other:'#d18d1f' };
+const SHOTS = ['Wide','Close-up','POV','Aerial','Tracking','Static','Handheld','Other'];
+const TOOLS_LIST = ['Seedance','Kling','ComfyUI','Other'];
+
+let allPresets = [];
+let allTools = [];
+let allProjects = [];
+let currentPreset = null;
+let currentTool = null;
+let currentProject = null;
+let currentView = 'library';
+let pForm = {};
+let tForm = {};
+
+// ── HELPERS ──────────────────────────────────────────────────────
+const gifUrl = (f) => !f ? null : f.startsWith('http') ? f : GIF_BASE + f;
+const esc = (s) => (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const tagColor = (tool) => TC[tool] || '#888';
+
+// ── STORAGE ──────────────────────────────────────────────────────
+function loadData() {
+  try { allPresets = JSON.parse(localStorage.getItem('dzps_presets') || '[]'); } catch { allPresets = []; }
+  try { allTools = JSON.parse(localStorage.getItem('dzps_tools') || '[]'); } catch { allTools = []; }
+  try { allProjects = JSON.parse(localStorage.getItem('dzps_projects') || '[]'); } catch { allProjects = []; }
+}
+function savePresets() { localStorage.setItem('dzps_presets', JSON.stringify(allPresets)); populateAuthorFilters(); }
+function saveTools() { localStorage.setItem('dzps_tools', JSON.stringify(allTools)); populateAuthorFilters(); }
+function saveProjects() { localStorage.setItem('dzps_projects', JSON.stringify(allProjects)); populateAuthorFilters(); }
+
+// ── API KEY ──────────────────────────────────────────────────────
+function getApiKey() { return localStorage.getItem('dzps_api_key') || ''; }
+function saveApiKey() {
+  const k = document.getElementById('api-key-input').value.trim();
+  if (!k) return;
+  localStorage.setItem('dzps_api_key', k);
+  document.getElementById('api-key-status').innerHTML = '<span class="hint-ok">✓ Saved</span>';
+}
+function clearApiKey() {
+  localStorage.removeItem('dzps_api_key');
+  document.getElementById('api-key-input').value = '';
+  document.getElementById('api-key-status').innerHTML = '<span class="hint-err">Cleared</span>';
+}
+
+// ── VIEWS ────────────────────────────────────────────────────────
+function showView(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-' + name).classList.add('active');
+  currentView = name;
+  renderNav();
+  if (name === 'library') renderGrid();
+  if (name === 'tools') renderToolsGrid();
+  if (name === 'projects') renderProjectsGrid();
+  if (name === 'settings') {
+    const k = getApiKey();
+    if (k) { document.getElementById('api-key-input').value = k; document.getElementById('api-key-status').innerHTML = '<span class="hint-ok">✓ Saved</span>'; }
+  }
+}
+
+function renderNav() {
+  const nav = document.getElementById('nav');
+  const isMain = ['library','tools','projects'].includes(currentView);
+  if (isMain) {
+    nav.innerHTML = `
+      <button class="btn-nav ${currentView==='library'?'active':''}" onclick="showView('library')">Library</button>
+      <button class="btn-nav ${currentView==='tools'?'active':''}" onclick="showView('tools')">Tools</button>
+      <button class="btn-nav ${currentView==='projects'?'active':''}" onclick="showView('projects')">Projects</button>
+      <button class="btn-nav add" onclick="${currentView==='tools'?'openToolAdd()':currentView==='projects'?'':' openAddModal()'}">+ Add</button>
+      <button class="btn-nav ${currentView==='settings'?'active':''}" onclick="showView('settings')">Settings</button>`;
+  } else {
+    const back = ['tool-detail','tool-add','tool-edit'].includes(currentView) ? 'tools'
+      : ['project-detail','project-edit'].includes(currentView) ? 'projects'
+      : 'library';
+    nav.innerHTML = `<button class="btn-nav" onclick="showView('${back}')">← Back</button>`;
+  }
+}
+
+// ── MODAL ────────────────────────────────────────────────────────
+function openAddModal() { document.getElementById('add-modal').style.display = 'flex'; }
+function closeModal() { document.getElementById('add-modal').style.display = 'none'; }
+
+// ── CARD HTML ────────────────────────────────────────────────────
+function checkGifRatio(img) {
+  if (!img || !img.naturalWidth || !img.naturalHeight) return;
+  const ratio = img.naturalHeight / img.naturalWidth;
+  if (ratio <= 1.2) return;
+  setTimeout(() => {
+    const card = img.closest('.card');
+    const thumb = img.closest('.thumb');
+    if (!card || !thumb) return;
+    // Add portrait class — grid handles the width via span 1
+    card.classList.add('portrait');
+    card.style.width = '';
+    card.style.minWidth = '';
+    card.style.maxWidth = '';
+    // Fix thumb height to match landscape card height
+    const cardW = card.offsetWidth || 90;
+    const height16x9 = Math.round(cardW * (16/9)); // portrait: height = width * 16/9
+    thumb.style.paddingTop = '0';
+    thumb.style.height = height16x9 + 'px';
+  }, 100);
+}
+
+function cardHTML(item, isTool) {
+  const gif = gifUrl(item.gifFilename);
+  const snippet = isTool ? (item.description||'')
+    : item.type === 'sequence' ? (item.shots?.[0]?.prompt || item.shots?.[0] || '')
+    : (item.prompt || '');
+  const thumbContent = gif
+    ? `<img src="${esc(gif)}" alt="" onload="checkGifRatio(this)" onerror="this.style.display='none'" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;opacity:0.8;transition:opacity 0.3s,transform 0.4s">`
+    : `<img src="${isTool?'./No-preview-tools.jpg':'./No-preview-library.jpg'}" alt="" onerror="this.style.display='none'" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;opacity:0.6">`;
+  const tagsHTML = isTool
+    ? `<span class="tag tag-t">Tool</span>${item.category ? `<span class="tag tag-n">${esc(item.category)}</span>` : ''}`
+    : `<span class="tag" style="border-color:${tagColor(item.tool)}44;color:${tagColor(item.tool)}">${esc(item.tool)}</span>`;
+  const seqTag = item.type === 'sequence' ? `<span class="tag tag-s">Seq</span>` : '';
+  const authTag = item.author ? `<span class="tag tag-a">by ${esc(item.author)}</span>` : '';
+  const openFn = isTool ? `openToolDetail('${item.id}')` : `openDetail('${item.id}')`;
+  return `
+    <div class="card" onclick="${openFn}">
+      <div class="thumb">${thumbContent}</div>
+      <div class="overlay">
+        <div class="overlay-title">${esc(item.title)}</div>
+        <div class="overlay-tags">${tagsHTML}${seqTag}${authTag}</div>
+        <div class="overlay-snippet">${esc(snippet)}</div>
+        <div class="overlay-btn">
+          <button class="btn-p" style="width:100%;display:flex;justify-content:center;padding:6px 0" onclick="event.stopPropagation();${openFn}">${isTool?'View Tool':'Use Preset'}</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+// ── GRID ─────────────────────────────────────────────────────────
+function renderGrid() {
+  const search = (document.getElementById('search')?.value || '').toLowerCase();
+  const tool = document.getElementById('tool-filter')?.value || 'All';
+  const author = document.getElementById('author-filter')?.value || 'All';
+  const filtered = allPresets.filter(p => {
+    const txt = ((p.title||'')+' '+(p.prompt||'')+' '+(p.shots||[]).map(s=>s.prompt||s).join(' ')).toLowerCase();
+    return txt.includes(search) && (tool === 'All' || p.tool === tool) && (author === 'All' || (p.author||'') === author);
+  });
+  const grid = document.getElementById('preset-grid');
+  const empty = document.getElementById('preset-empty');
+  const count = document.getElementById('preset-count');
+  if (filtered.length === 0) {
+    grid.innerHTML = '';
+    empty.style.display = 'block';
+    count.textContent = '';
+    document.getElementById('empty-label').textContent = allPresets.length === 0 ? 'NO PRESETS YET' : 'NO RESULTS';
+    document.getElementById('empty-sub').textContent = allPresets.length === 0 ? 'Hit + Add to save your first prompt' : '';
+  } else {
+    empty.style.display = 'none';
+    count.textContent = filtered.length + ' PRESET' + (filtered.length !== 1 ? 'S' : '');
+    grid.innerHTML = filtered.map(p => cardHTML(p, false)).join('');
+  }
+}
+
+function renderToolsGrid() {
+  const search = (document.getElementById('tool-search')?.value || '').toLowerCase();
+  const author = document.getElementById('tools-author-filter')?.value || 'All';
+  const category = document.getElementById('tools-category-filter')?.value || 'All';
+  const filtered = allTools.filter(t =>
+    ((t.title||'')+' '+(t.description||'')).toLowerCase().includes(search) &&
+    (author === 'All' || (t.author||'') === author) &&
+    (category === 'All' || (t.category||'') === category)
+  );
+  const grid = document.getElementById('tools-grid');
+  const empty = document.getElementById('tools-empty');
+  const count = document.getElementById('tools-count');
+  if (filtered.length === 0) {
+    grid.innerHTML = '';
+    empty.style.display = 'block';
+    count.textContent = '';
+  } else {
+    empty.style.display = 'none';
+    count.textContent = filtered.length + ' TOOL' + (filtered.length !== 1 ? 'S' : '');
+    grid.innerHTML = filtered.map(t => cardHTML(t, true)).join('');
+  }
+}
+
+// ── PRESET FORM ──────────────────────────────────────────────────
+function emptyPreset() {
+  return { title:'', tool:'Seedance', gifFilename:'', youtubeUrl:'', instagramUrl:'', refImage:'', notes:'', author:'', type:'single', shots:[{prompt:'',refImage:''}] };
+}
+
+function renderPresetForm(containerId, onSave, onCancel, isEdit) {
+  const f = pForm;
+  const isSeq = f.type === 'sequence';
+  const toolOpts = TOOLS_LIST.map(t => `<option${t===f.tool?' selected':''}>${t}</option>`).join('');
+  const shotsHTML = f.shots.map((sh, i) => `
+    <div class="shot-field" id="sf-${i}">
+      <div class="shot-fl">
+        <span>${isSeq ? 'Shot ' + String(i+1).padStart(2,'0') : ''}</span>
+        ${isSeq && i > 0 ? `<button class="shot-remove" onclick="removeShot(${i})">✕ Remove</button>` : ''}
+      </div>
+      <textarea style="min-height:90px" placeholder="${isSeq?'Shot '+(i+1)+' prompt...':'Paste your prompt here...'}" oninput="pForm.shots[${i}].prompt=this.value">${esc(sh.prompt||'')}</textarea>
+      ${isSeq ? `<div style="margin-top:8px"><div style="font-size:9px;letter-spacing:0.1em;color:#d18d1f;text-transform:uppercase;margin-bottom:4px">@image_${i+1}</div>
+        <input placeholder="Reference image for this shot..." value="${esc(sh.refImage||'')}" oninput="pForm.shots[${i}].refImage=this.value"></div>` : ''}
+    </div>`).join('');
+
+  document.getElementById(containerId).innerHTML = `
+    <div class="sec"><label class="lbl">Title</label><input id="pf-title" value="${esc(f.title)}" placeholder="e.g. Freefall through Valletta" oninput="pForm.title=this.value"></div>
+    <div class="sec"><label class="lbl">Tool</label><select onchange="pForm.tool=this.value">${toolOpts}</select></div>
+    <div class="sec">
+      <label class="lbl">Card type</label>
+      <div class="type-toggle">
+        <button class="type-btn${!isSeq?' active':''}" onclick="setPresetType('single')">Single</button>
+        <button class="type-btn${isSeq?' active':''}" onclick="setPresetType('sequence')">Sequence</button>
+      </div>
+    </div>
+    <div class="sec">
+      <label class="lbl">${isSeq ? 'Shots' : 'Prompt'}</label>
+      <div id="shots-container">${shotsHTML}</div>
+      ${isSeq ? '<button class="btn" style="font-size:10px" onclick="addShot()">+ Add Shot</button>' : ''}
+    </div>
+    ${!isSeq ? `<div class="sec"><label class="lbl">Reference image</label><input placeholder="Describe the reference image..." value="${esc(f.refImage||'')}" oninput="pForm.refImage=this.value"></div>` : ''}
+    <div class="sec"><label class="lbl">GIF filename <span style="color:#555">(optional)</span></label><input placeholder="e.g. valletta.gif" value="${esc(f.gifFilename||'')}" oninput="pForm.gifFilename=this.value"></div>
+    <div class="sec"><label class="lbl">YouTube URL <span style="color:#555">(optional)</span></label><input placeholder="https://youtu.be/..." value="${esc(f.youtubeUrl||'')}" oninput="pForm.youtubeUrl=this.value"></div>
+    <div class="sec"><label class="lbl">Instagram URL <span style="color:#555">(optional)</span></label><input placeholder="https://www.instagram.com/p/..." value="${esc(f.instagramUrl||'')}" oninput="pForm.instagramUrl=this.value"></div>
+    <div class="sec"><label class="lbl">Notes <span style="color:#555">(optional)</span></label><textarea style="min-height:60px" placeholder="Settings, observations..." oninput="pForm.notes=this.value">${esc(f.notes||'')}</textarea></div>
+    <div class="sec"><label class="lbl">Author <span style="color:#555">(optional)</span></label><input placeholder="e.g. Gerardo" value="${esc(f.author||'')}" maxlength="20" oninput="pForm.author=this.value.slice(0,20)"></div>
+    <div class="row">
+      <button class="btn-p" onclick="${onSave}">${isEdit?'Save Changes':'Save Preset'}</button>
+      <button class="btn" onclick="${onCancel}">Cancel</button>
+    </div>`;
+}
+
+function setPresetType(type) {
+  pForm.type = type;
+  if (type === 'single') pForm.shots = pForm.shots.slice(0,1);
+  const isEdit = currentView === 'edit-preset';
+  renderPresetForm(isEdit ? 'edit-preset-form' : 'add-preset-form', isEdit ? 'saveEditPreset()' : 'saveNewPreset()', isEdit ? "showView('detail')" : "showView('library')", isEdit);
+}
+
+function addShot() {
+  pForm.shots.push({ prompt:'', refImage:'' });
+  const isEdit = currentView === 'edit-preset';
+  renderPresetForm(isEdit ? 'edit-preset-form' : 'add-preset-form', isEdit ? 'saveEditPreset()' : 'saveNewPreset()', isEdit ? "showView('detail')" : "showView('library')", isEdit);
+}
+
+function removeShot(i) {
+  pForm.shots.splice(i, 1);
+  const isEdit = currentView === 'edit-preset';
+  renderPresetForm(isEdit ? 'edit-preset-form' : 'add-preset-form', isEdit ? 'saveEditPreset()' : 'saveNewPreset()', isEdit ? "showView('detail')" : "showView('library')", isEdit);
+}
+
+function goAddPreset() {
+  pForm = emptyPreset();
+  renderPresetForm('add-preset-form', 'saveNewPreset()', "showView('library')", false);
+  showView('add-preset');
+}
+
+function saveNewPreset() {
+  if (!pForm.title.trim()) return alert('Title is required.');
+  const isSeq = pForm.type === 'sequence' && pForm.shots.length > 1;
+  const p = { ...pForm, id: Date.now().toString(), createdAt: new Date().toISOString(),
+    type: isSeq ? 'sequence' : 'single',
+    prompt: isSeq ? null : pForm.shots[0]?.prompt,
+    shots: isSeq ? pForm.shots : null,
+    refImage: isSeq ? null : pForm.shots[0]?.refImage,
+  };
+  allPresets.unshift(p); savePresets(); showView('library');
+}
+
+function openEditPreset() {
+  const p = currentPreset;
+  pForm = { ...p, shots: p.type === 'sequence' ? p.shots : [{ prompt:p.prompt||'', refImage:p.refImage||'' }] };
+  renderPresetForm('edit-preset-form', 'saveEditPreset()', "showView('detail')", true);
+  showView('edit-preset');
+}
+
+function saveEditPreset() {
+  if (!pForm.title.trim()) return alert('Title is required.');
+  const isSeq = pForm.type === 'sequence' && pForm.shots.length > 1;
+  const p = { ...currentPreset, ...pForm,
+    type: isSeq ? 'sequence' : 'single',
+    prompt: isSeq ? null : pForm.shots[0]?.prompt,
+    shots: isSeq ? pForm.shots : null,
+    refImage: isSeq ? null : pForm.shots[0]?.refImage,
+  };
+  allPresets = allPresets.map(x => x.id === p.id ? p : x);
+  savePresets(); currentPreset = p; openDetail(p.id);
+}
+
+// ── PRESET DETAIL ────────────────────────────────────────────────
+function openDetail(id) {
+  currentPreset = allPresets.find(x => x.id === id);
+  if (!currentPreset) return;
+  const p = currentPreset;
+  const isSeq = p.type === 'sequence' && p.shots?.length > 1;
+  const gif = gifUrl(p.gifFilename);
+  const ytId = p.youtubeUrl?.match(/(?:youtu\.be\/|watch\?v=|shorts\/)([a-zA-Z0-9_-]{11})/)?.[1];
+
+  let html = '';
+
+  // Preview
+  if (gif || ytId) {
+    const imgSrc = gif || `https://img.youtube.com/vi/${ytId}/hqdefault.jpg`;
+    html += `<div style="position:relative;width:100%;padding-top:56.25%;background:#080808;border-radius:8px;overflow:hidden;margin-bottom:14px">
+      <img src="${esc(imgSrc)}" alt="" onerror="this.style.display='none'" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover${gif?'':';opacity:0.6'}">
+      ${ytId ? `<a href="${esc(p.youtubeUrl)}" target="_blank" style="position:absolute;bottom:10px;right:10px;display:flex;align-items:center;gap:6px;background:rgba(0,0,0,0.78);border:1px solid rgba(255,255,255,0.12);border-radius:16px;padding:6px 14px;color:rgba(255,255,255,0.7);font-size:10px;letter-spacing:0.1em;text-transform:uppercase"><span style="color:#cc3333">▶</span> YouTube</a>` : ''}
+      ${p.instagramUrl ? `<a href="${esc(p.instagramUrl)}" target="_blank" style="position:absolute;bottom:10px;left:10px;display:flex;align-items:center;gap:6px;background:rgba(0,0,0,0.78);border:1px solid rgba(255,255,255,0.12);border-radius:16px;padding:6px 14px;color:rgba(255,255,255,0.7);font-size:10px;letter-spacing:0.1em;text-transform:uppercase"><span style="color:#d18d1f">◈</span> Instagram</a>` : ''}
+    </div>`;
+  }
+
+  // Meta
+  html += `<div style="margin-bottom:12px">
+    <span class="tag" style="border-color:${tagColor(p.tool)}44;color:${tagColor(p.tool)}">${esc(p.tool)}</span>
+    
+    ${isSeq ? '<span class="tag tag-s">Sequence</span>' : ''}
+    ${p.author ? `<span class="tag tag-a">by ${esc(p.author)}</span>` : ''}
+    <span style="font-size:10px;color:#666">${new Date(p.createdAt).toLocaleDateString()}</span>
+  </div>`;
+
+  // Prompts
+  if (isSeq) {
+    const allText = p.shots.map(s => s.prompt||s).join('\n\n---\n\n');
+    html += `<div class="sec">
+      <div class="row" style="margin-bottom:8px;justify-content:space-between">
+        <span class="lbl" style="margin:0">Sequence — ${p.shots.length} shots</span>
+        <button class="btn" style="padding:4px 10px;font-size:9px" onclick="copyText(${JSON.stringify(allText)},'copy-all')"><span id="copy-all">Copy All</span></button>
+      </div>
+      ${p.shots.map((sh,i) => {
+        const pt = sh.prompt||sh; const img = sh.refImage||'';
+        return `<div class="shot-block">
+          <div class="shot-h">
+            <span class="shot-label">Shot ${String(i+1).padStart(2,'0')}</span>
+            <button class="btn" style="padding:3px 10px;font-size:9px" onclick="copyText(${JSON.stringify(pt)},'copy-sh-${i}')"><span id="copy-sh-${i}">Copy</span></button>
+          </div>
+          ${img ? `<div style="padding:6px 14px 0;font-size:9px;color:#d18d1f;letter-spacing:0.1em;text-transform:uppercase">@image_${i+1} <span style="color:#e8e4dc;font-size:10px;letter-spacing:0;text-transform:none">— ${esc(img)}</span></div>` : ''}
+          <div class="shot-body">${esc(pt)}</div>
+        </div>`;
+      }).join('')}
+    </div>`;
+  } else {
+    html += `<div class="sec">
+      <div class="row" style="margin-bottom:8px;justify-content:space-between">
+        <span class="lbl" style="margin:0">Prompt</span>
+        <button class="btn" style="padding:4px 10px;font-size:9px" onclick="copyText(${JSON.stringify(p.prompt||'')},'copy-prompt')"><span id="copy-prompt">Copy</span></button>
+      </div>
+      <div class="pbox">${esc(p.prompt||'')}</div>
+    </div>`;
+  }
+
+  if (p.refImage) html += `<div class="sec"><span class="lbl">Reference image</span><div class="pbox" style="font-size:11px">${esc(p.refImage)}</div></div>`;
+  if (p.notes) html += `<div class="sec"><span class="lbl">Notes</span><div class="pbox" style="font-size:11px">${esc(p.notes)}</div></div>`;
+
+  html += `<div class="divider"></div>
+  <div class="panel" style="border-color:#1a2a1a;background:#0a0f0a">
+    <div class="panel-title" style="color:#5aaa5a">Use as Base</div>
+    <p style="font-size:11px;color:#aaa;line-height:1.6;margin-bottom:14px">Creates a copy of this preset in Projects where you can adapt and modify it freely. The Library card stays untouched.</p>
+    <button class="btn-p" onclick="useAsBase('${p.id}')">Use as Base → Open in Projects</button>
+  </div>
+  <div class="divider"></div>
+  <div class="row">
+    <button class="btn-d" id="del-btn" onclick="showDeleteConfirm()">Delete</button>
+    <span id="del-confirm" style="display:none;align-items:center;gap:8px">
+      <span style="font-size:11px;color:#bb3333">Sure?</span>
+      <button class="btn-d" onclick="deletePreset()">Yes</button>
+      <button class="btn" onclick="hideDeleteConfirm()">Cancel</button>
+    </span>
+  </div>`;
+
+  document.getElementById('detail-content').innerHTML = html;
+  showView('detail');
+}
+
+function showDeleteConfirm() {
+  document.getElementById('del-btn').style.display = 'none';
+  document.getElementById('del-confirm').style.display = 'inline-flex';
+}
+function hideDeleteConfirm() {
+  document.getElementById('del-btn').style.display = 'inline-flex';
+  document.getElementById('del-confirm').style.display = 'none';
+}
+function deletePreset() {
+  allPresets = allPresets.filter(x => x.id !== currentPreset.id);
+  savePresets(); currentPreset = null; showView('library');
+}
+
+// ── ADAPT PROMPT ─────────────────────────────────────────────────
+async function adaptPrompt() {
+  const changes = document.getElementById('mod-changes').value.trim();
+  const refImage = document.getElementById('mod-refimage').value.trim();
+  const apiKey = getApiKey();
+  if (!changes || !apiKey) return;
+  const btn = document.getElementById('adapt-btn');
+  btn.textContent = 'Adapting...'; btn.disabled = true;
+  document.getElementById('mod-result').style.display = 'none';
+  const isSeq = currentPreset.type === 'sequence' && currentPreset.shots?.length > 1;
+  const shotIdx = isSeq ? parseInt(document.getElementById('mod-shot-idx')?.value || '0') : 0;
+  const src = isSeq ? (currentPreset.shots[shotIdx]?.prompt || '') : (currentPreset.prompt || '');
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:1000,
+        system:'You are a video prompt adapter. LOCKED: shot structure, output format, technical parameters. SWAPPABLE: subject, environment, lighting/mood, color palette, action/movement. Output ONLY the adapted prompt, no preamble.',
+        messages:[{ role:'user', content:`ORIGINAL:\n${src}\n\nREF IMAGE:\n${refImage||'Not specified'}\n\nCHANGES:\n${changes}` }]
+      })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+    const text = data.content?.map(b => b.text||'').join('') || 'Error.';
+    document.getElementById('mod-result-text').textContent = text;
+    document.getElementById('mod-result').style.display = 'block';
+  } catch(e) {
+    document.getElementById('mod-result-text').textContent = 'Error: ' + e.message;
+    document.getElementById('mod-result').style.display = 'block';
+  }
+  btn.textContent = 'Adapt Prompt →'; btn.disabled = false;
+}
+
+// ── COPY ─────────────────────────────────────────────────────────
+function copyText(text, btnId) {
+  navigator.clipboard?.writeText(text);
+  const el = document.getElementById(btnId);
+  if (!el) return;
+  const orig = el.textContent;
+  el.textContent = 'Copied!';
+  setTimeout(() => el.textContent = orig, 2000);
+}
+
+// ── TOOL FORM ────────────────────────────────────────────────────
+function emptyTool() {
+  return { title:'', category:'', description:'', howTo:'', gifFilename:'', author:'', files:[{name:'',content:''}] };
+}
+
+function renderToolForm(containerId, onSave, onCancel, isEdit) {
+  const f = tForm;
+  const filesHTML = f.files.map((file, i) => `
+    <div class="shot-field" id="tf-${i}">
+      <div class="shot-fl">
+        <span>File ${String(i+1).padStart(2,'0')}</span>
+        ${i > 0 ? `<button class="shot-remove" onclick="removeToolFile(${i})">✕ Remove</button>` : ''}
+      </div>
+      <div class="sec"><label class="lbl" style="margin-bottom:4px">Filename</label><input placeholder="e.g. batch_flux2.py" value="${esc(file.name||'')}" oninput="tForm.files[${i}].name=this.value"></div>
+      <div><label class="lbl" style="margin-bottom:4px">Content</label><textarea style="min-height:100px;font-family:monospace" placeholder="Paste file content here..." oninput="tForm.files[${i}].content=this.value">${esc(file.content||'')}</textarea></div>
+    </div>`).join('');
+
+  const catOpts = ['','ComfyUI','Claude','ChatGPT','Griptape','Other'].map(c => `<option value="${c}"${(f.category||'')=== c?' selected':''}>${c||'— Select category —'}</option>`).join('');
+
+  document.getElementById(containerId).innerHTML = `
+    <div class="sec"><label class="lbl">Title</label><input value="${esc(f.title||'')}" placeholder="e.g. Batch Flux2 Processor" oninput="tForm.title=this.value"></div>
+    <div class="sec"><label class="lbl">Category</label><select onchange="tForm.category=this.value">${catOpts}</select></div>
+    <div class="sec"><label class="lbl">Description</label><textarea style="min-height:70px" placeholder="What does this tool do?" oninput="tForm.description=this.value">${esc(f.description||'')}</textarea></div>
+    <div class="sec"><label class="lbl">How to use</label><textarea style="min-height:90px" placeholder="Step by step instructions..." oninput="tForm.howTo=this.value">${esc(f.howTo||'')}</textarea></div>
+    <div class="sec"><label class="lbl">GIF filename <span style="color:#555">(optional)</span></label><input value="${esc(f.gifFilename||'')}" placeholder="e.g. tool-preview.gif" oninput="tForm.gifFilename=this.value"></div>
+    <div class="sec"><label class="lbl">Author <span style="color:#555">(optional)</span></label><input value="${esc(f.author||'')}" placeholder="e.g. Gerardo" maxlength="20" oninput="tForm.author=this.value.slice(0,20)"></div>
+    <div class="sec">
+      <label class="lbl">Files</label>
+      <div id="tool-files-container">${filesHTML}</div>
+      <button class="btn" style="font-size:10px;margin-top:8px" onclick="addToolFile()">+ Add File</button>
+    </div>
+    <div class="row">
+      <button class="btn-p" onclick="${onSave}">${isEdit?'Save Changes':'Save Tool'}</button>
+      <button class="btn" onclick="${onCancel}">Cancel</button>
+    </div>`;
+}
+
+function addToolFile() {
+  tForm.files.push({ name:'', content:'' });
+  const isEdit = currentView === 'tool-edit';
+  renderToolForm(isEdit ? 'tool-edit-form' : 'tool-add-form', isEdit ? 'saveEditTool()' : 'saveNewTool()', isEdit ? "showView('tool-detail')" : "showView('tools')", isEdit);
+}
+
+function removeToolFile(i) {
+  tForm.files.splice(i, 1);
+  const isEdit = currentView === 'tool-edit';
+  renderToolForm(isEdit ? 'tool-edit-form' : 'tool-add-form', isEdit ? 'saveEditTool()' : 'saveNewTool()', isEdit ? "showView('tool-detail')" : "showView('tools')", isEdit);
+}
+
+function openToolAdd() {
+  tForm = emptyTool();
+  renderToolForm('tool-add-form', 'saveNewTool()', "showView('tools')", false);
+  showView('tool-add');
+}
+
+function saveNewTool() {
+  if (!tForm.title.trim()) return alert('Title is required.');
+  const t = { ...tForm, id: Date.now().toString(), createdAt: new Date().toISOString() };
+  allTools.unshift(t); saveTools(); showView('tools');
+}
+
+function openEditTool() {
+  tForm = { ...currentTool };
+  renderToolForm('tool-edit-form', 'saveEditTool()', "showView('tool-detail')", true);
+  showView('tool-edit');
+}
+
+function saveEditTool() {
+  if (!tForm.title.trim()) return alert('Title is required.');
+  const t = { ...currentTool, ...tForm };
+  allTools = allTools.map(x => x.id === t.id ? t : x);
+  saveTools(); currentTool = t; openToolDetail(t.id);
+}
+
+// ── TOOL DETAIL ──────────────────────────────────────────────────
+function openToolDetail(id) {
+  currentTool = allTools.find(x => x.id === id);
+  if (!currentTool) return;
+  const t = currentTool;
+  const gif = gifUrl(t.gifFilename);
+
+  let html = '';
+  if (gif) html += `<div style="position:relative;width:100%;padding-top:56.25%;background:#080808;border-radius:8px;overflow:hidden;margin-bottom:14px">
+    <img src="${esc(gif)}" alt="" onerror="this.style.display='none'" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
+  </div>`;
+
+  html += `<div style="margin-bottom:12px">
+    <span class="tag tag-t">Tool</span>
+    ${t.category ? `<span class="tag tag-n">${esc(t.category)}</span>` : ''}
+    ${t.author ? `<span class="tag tag-a">by ${esc(t.author)}</span>` : ''}
+    <span style="font-size:10px;color:#666">${new Date(t.createdAt).toLocaleDateString()}</span>
+  </div>`;
+
+  if (t.description) html += `<div class="sec"><span class="lbl">Description</span><div class="pbox">${esc(t.description)}</div></div>`;
+  if (t.howTo) html += `<div class="sec"><span class="lbl">How to use</span><div class="pbox">${esc(t.howTo)}</div></div>`;
+
+  if (t.files?.length > 0) {
+    html += `<div class="sec"><span class="lbl">${t.files.length} File${t.files.length>1?'s':''}</span>`;
+    html += t.files.map((f,i) => `
+      <div class="file-block">
+        <div class="file-h">
+          <span class="file-name">${esc(f.name)}</span>
+          <button class="btn" style="padding:3px 10px;font-size:9px" onclick="downloadFile('${esc(f.name)}',${i})">↓ Download</button>
+        </div>
+        <div class="file-body">${esc(f.content.substring(0,800))}${f.content.length>800?'\n...':''}</div>
+      </div>`).join('');
+    html += '</div>';
+  }
+
+  html += `<div class="divider"></div>
+  <div class="row">
+    <button class="btn" onclick="openEditTool()">Edit</button>
+    <button class="btn-d" id="tool-del-btn" onclick="showToolDeleteConfirm()">Delete</button>
+    <span id="tool-del-confirm" style="display:none;align-items:center;gap:8px">
+      <span style="font-size:11px;color:#bb3333">Sure?</span>
+      <button class="btn-d" onclick="deleteTool()">Yes</button>
+      <button class="btn" onclick="hideToolDeleteConfirm()">Cancel</button>
+    </span>
+  </div>`;
+
+  document.getElementById('tool-detail-content').innerHTML = html;
+  showView('tool-detail');
+}
+
+function downloadFile(name, idx) {
+  const content = currentTool.files[idx].content;
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([content], { type:'text/plain' }));
+  a.download = name; a.click();
+}
+
+function showToolDeleteConfirm() {
+  document.getElementById('tool-del-btn').style.display = 'none';
+  document.getElementById('tool-del-confirm').style.display = 'inline-flex';
+}
+function hideToolDeleteConfirm() {
+  document.getElementById('tool-del-btn').style.display = 'inline-flex';
+  document.getElementById('tool-del-confirm').style.display = 'none';
+}
+function deleteTool() {
+  allTools = allTools.filter(x => x.id !== currentTool.id);
+  saveTools(); currentTool = null; showView('tools');
+}
+
+// ── EXPORT / IMPORT ──────────────────────────────────────────────
+function exportPresets() {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(allPresets,null,2)],{type:'application/json'}));
+  a.download = 'library.json'; a.click();
+}
+function exportProjectsData() {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(allProjects,null,2)],{type:'application/json'}));
+  a.download = 'projects.json'; a.click();
+}
+function importProjectsData(e) {
+  const f = e.target.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = ev => {
+    try {
+      const d = JSON.parse(ev.target.result);
+      if (!Array.isArray(d)) throw new Error('Invalid');
+      const existing = new Set(allProjects.map(p => p.id));
+      const newOnes = d.filter(p => !existing.has(p.id));
+      allProjects = [...newOnes, ...allProjects];
+      saveProjects();
+      document.getElementById('projects-import-status').innerHTML = `<span class="hint-ok">✓ Imported ${newOnes.length} projects</span>`;
+    } catch { document.getElementById('projects-import-status').innerHTML = '<span class="hint-err">✗ Import failed</span>'; }
+  };
+  r.readAsText(f);
+}
+function exportTools() {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(allTools,null,2)],{type:'application/json'}));
+  a.download = 'tools.json'; a.click();
+}
+function importPresets(e) {
+  const f = e.target.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = ev => {
+    try {
+      const d = JSON.parse(ev.target.result);
+      if (!Array.isArray(d)) throw new Error('Invalid');
+      const existing = new Set(allPresets.map(p => p.id));
+      const newOnes = d.filter(p => !existing.has(p.id));
+      allPresets = [...newOnes, ...allPresets];
+      savePresets();
+      document.getElementById('import-status').innerHTML = `<span class="hint-ok">✓ Imported ${newOnes.length} presets</span>`;
+    } catch { document.getElementById('import-status').innerHTML = '<span class="hint-err">✗ Import failed</span>'; }
+  };
+  r.readAsText(f);
+}
+function importTools(e) {
+  const f = e.target.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = ev => {
+    try {
+      const d = JSON.parse(ev.target.result);
+      if (!Array.isArray(d)) throw new Error('Invalid');
+      const existing = new Set(allTools.map(t => t.id));
+      const newOnes = d.filter(t => !existing.has(t.id));
+      allTools = [...newOnes, ...allTools];
+      saveTools();
+      document.getElementById('tools-import-status').innerHTML = `<span class="hint-ok">✓ Imported ${newOnes.length} tools</span>`;
+    } catch { document.getElementById('tools-import-status').innerHTML = '<span class="hint-err">✗ Import failed</span>'; }
+  };
+  r.readAsText(f);
+}
+
+// ── GITHUB SYNC ──────────────────────────────────────────────────
+async function syncFromGitHub() {
+  try {
+    const res = await fetch(PRESETS_URL + '?t=' + Date.now());
+    if (!res.ok) return;
+    const remote = await res.json();
+    if (!Array.isArray(remote)) return;
+    const existing = new Set(allPresets.map(p => p.id));
+    const newOnes = remote.filter(p => !existing.has(p.id));
+    if (newOnes.length > 0) {
+      allPresets = [...allPresets, ...newOnes];
+      savePresets();
+      if (currentView === 'library') renderGrid();
+    }
+  } catch {}
+}
+async function syncProjectsFromGitHub() {
+  try {
+    const res = await fetch(PROJECTS_URL + '?t=' + Date.now());
+    if (!res.ok) return;
+    const remote = await res.json();
+    if (!Array.isArray(remote)) return;
+    const existing = new Set(allProjects.map(p => p.id));
+    const newOnes = remote.filter(p => !existing.has(p.id));
+    if (newOnes.length > 0) {
+      allProjects = [...allProjects, ...newOnes];
+      saveProjects();
+      if (currentView === 'projects') renderProjectsGrid();
+    }
+  } catch {}
+}
+async function syncToolsFromGitHub() {
+  try {
+    const res = await fetch(TOOLS_URL + '?t=' + Date.now());
+    if (!res.ok) return;
+    const remote = await res.json();
+    if (!Array.isArray(remote)) return;
+    const existing = new Set(allTools.map(t => t.id));
+    const newOnes = remote.filter(t => !existing.has(t.id));
+    if (newOnes.length > 0) {
+      allTools = [...newOnes, ...allTools];
+      saveTools();
+      if (currentView === 'tools') renderToolsGrid();
+    }
+  } catch {}
+}
+
+// ── PROJECTS ─────────────────────────────────────────────────────
+function useAsBase(presetId) {
+  const src = allPresets.find(x => x.id === presetId);
+  if (!src) return;
+  const project = {
+    id: Date.now().toString(),
+    sourceId: src.id,
+    sourceTitle: src.title,
+    title: '',
+    tool: src.tool,
+    type: src.type,
+    prompt: src.prompt,
+    shots: src.shots ? JSON.parse(JSON.stringify(src.shots)) : null,
+    refImage: src.refImage,
+    notes: '',
+    author: src.author || '',
+    gifFilename: '',
+    youtubeUrl: '',
+    instagramUrl: src.instagramUrl || '',
+    createdAt: new Date().toISOString()
+  };
+  allProjects.unshift(project);
+  saveProjects();
+  openProjectDetail(project.id);
+}
+
+function renderProjectsGrid() {
+  const search = (document.getElementById('projects-search')?.value || '').toLowerCase();
+  const author = document.getElementById('projects-author-filter')?.value || 'All';
+  const filtered = allProjects.filter(p => {
+    const txt = ((p.title||'')+(p.sourceTitle||'')+(p.prompt||'')+' '+(p.shots||[]).map(s=>s.prompt||s).join(' ')).toLowerCase();
+    return txt.includes(search) && (author === 'All' || (p.author||'') === author);
+  });
+  const grid = document.getElementById('projects-grid');
+  const empty = document.getElementById('projects-empty');
+  const count = document.getElementById('projects-count');
+  if (filtered.length === 0) {
+    grid.innerHTML = '';
+    empty.style.display = 'block';
+    count.textContent = '';
+  } else {
+    empty.style.display = 'none';
+    count.textContent = filtered.length + ' PROJECT' + (filtered.length !== 1 ? 'S' : '');
+    grid.innerHTML = filtered.map(p => projectCardHTML(p)).join('');
+  }
+}
+
+function projectCardHTML(p) {
+  const displayTitle = p.title || `Based on: ${esc(p.sourceTitle||'Untitled')}`;
+  const snippet = p.type === 'sequence'
+    ? (p.shots?.[0]?.prompt || p.shots?.[0] || '')
+    : (p.prompt || '');
+  const tagsHTML = `<span class="tag" style="border-color:${tagColor(p.tool)}44;color:${tagColor(p.tool)}">${esc(p.tool)}</span>`;
+  const seqTag = p.type === 'sequence' ? '<span class="tag tag-s">Seq</span>' : '';
+  const authTag = p.author ? `<span class="tag tag-a">by ${esc(p.author)}</span>` : '';
+  const projTag = '<span class="tag" style="border-color:#2a1a3a;color:#aa88cc">Project</span>';
+  return `
+    <div class="card" onclick="openProjectDetail('${p.id}')">
+      <div class="thumb">
+        <div class="thumb-empty" style="flex-direction:column;gap:6px">
+          <span style="font-size:20px;opacity:0.15">◈</span>
+          ${p.sourceTitle ? `<span style="font-size:9px;color:#555;letter-spacing:0.08em;text-align:center;padding:0 12px">${esc(p.sourceTitle)}</span>` : ''}
+        </div>
+      </div>
+      <div class="overlay">
+        <div class="overlay-title">${displayTitle}</div>
+        <div class="overlay-tags">${projTag}${tagsHTML}${seqTag}${authTag}</div>
+        <div class="overlay-snippet">${esc(snippet)}</div>
+        <div class="overlay-btn">
+          <button class="btn-p" style="width:100%;display:flex;justify-content:center;padding:6px 0" onclick="event.stopPropagation();openProjectDetail('${p.id}')">Open Project</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+function openProjectDetail(id) {
+  currentProject = allProjects.find(x => x.id === id);
+  if (!currentProject) return;
+  const p = currentProject;
+  const isSeq = p.type === 'sequence' && p.shots?.length > 1;
+  const displayTitle = p.title || `Based on: ${p.sourceTitle||'Untitled'}`;
+
+  let html = '';
+
+  // Source link
+  const srcExists = allPresets.find(x => x.id === p.sourceId);
+  html += `<div style="margin-bottom:14px;padding:10px 14px;background:#0c0c10;border:1px solid #2a1a3a;border-radius:6px;display:flex;align-items:center;justify-content:space-between">
+    <span style="font-size:10px;color:#aa88cc;letter-spacing:0.1em;text-transform:uppercase">◈ Project</span>
+    ${srcExists ? `<button class="btn" style="padding:4px 10px;font-size:9px;border-color:#2a1a3a;color:#aa88cc" onclick="openDetail('${p.sourceId}')">← View original</button>` : '<span style="font-size:10px;color:#555">Original deleted</span>'}
+  </div>`;
+
+  // Meta
+  html += `<div style="margin-bottom:12px">
+    <span class="tag" style="border-color:${tagColor(p.tool)}44;color:${tagColor(p.tool)}">${esc(p.tool)}</span>
+    
+    ${isSeq ? '<span class="tag tag-s">Sequence</span>' : ''}
+    ${p.author ? `<span class="tag tag-a">by ${esc(p.author)}</span>` : ''}
+    <span style="font-size:10px;color:#666">${new Date(p.createdAt).toLocaleDateString()}</span>
+  </div>`;
+
+  // Title
+  html += `<div class="sec"><span class="lbl">Project title</span>
+    <div style="font-size:13px;font-weight:500;color:#e8e4dc">${esc(displayTitle)}</div>
+  </div>`;
+
+  // Prompts
+  if (isSeq) {
+    const allText = p.shots.map(s => s.prompt||s).join('\n\n---\n\n');
+    html += `<div class="sec">
+      <div class="row" style="margin-bottom:8px;justify-content:space-between">
+        <span class="lbl" style="margin:0">Sequence — ${p.shots.length} shots</span>
+        <button class="btn" style="padding:4px 10px;font-size:9px" onclick="copyText(${JSON.stringify(allText)},'proj-copy-all')"><span id="proj-copy-all">Copy All</span></button>
+      </div>
+      ${p.shots.map((sh,i) => {
+        const pt = sh.prompt||sh; const img = sh.refImage||'';
+        return `<div class="shot-block">
+          <div class="shot-h">
+            <span class="shot-label">Shot ${String(i+1).padStart(2,'0')}</span>
+            <button class="btn" style="padding:3px 10px;font-size:9px" onclick="copyText(${JSON.stringify(pt)},'proj-sh-${i}')"><span id="proj-sh-${i}">Copy</span></button>
+          </div>
+          ${img ? `<div style="padding:6px 14px 0;font-size:9px;color:#d18d1f;letter-spacing:0.1em;text-transform:uppercase">@image_${i+1} <span style="color:#e8e4dc;font-size:10px;letter-spacing:0;text-transform:none">— ${esc(img)}</span></div>` : ''}
+          <div class="shot-body">${esc(pt)}</div>
+        </div>`;
+      }).join('')}
+    </div>`;
+  } else {
+    html += `<div class="sec">
+      <div class="row" style="margin-bottom:8px;justify-content:space-between">
+        <span class="lbl" style="margin:0">Prompt</span>
+        <button class="btn" style="padding:4px 10px;font-size:9px" onclick="copyText(${JSON.stringify(p.prompt||'')},'proj-copy-prompt')"><span id="proj-copy-prompt">Copy</span></button>
+      </div>
+      <div class="pbox">${esc(p.prompt||'')}</div>
+    </div>`;
+  }
+  if (p.refImage) html += `<div class="sec"><span class="lbl">Reference image</span><div class="pbox" style="font-size:11px">${esc(p.refImage)}</div></div>`;
+  if (p.notes) html += `<div class="sec"><span class="lbl">Notes</span><div class="pbox" style="font-size:11px">${esc(p.notes)}</div></div>`;
+
+  html += `<div class="divider"></div>`;
+
+  // Modifier
+  const shotSelectHTML = isSeq ? `<div class="sec"><label class="lbl">Which shot?</label>
+    <select id="proj-mod-shot-idx" style="margin-bottom:12px">${p.shots.map((_,i)=>`<option value="${i}">Shot ${String(i+1).padStart(2,'0')}</option>`).join('')}</select></div>` : '';
+  const apiKey = getApiKey();
+  html += `<div class="panel">
+    <div class="panel-title">Prompt Modifier</div>
+    ${!apiKey ? `<div style="background:#0f0f0f;border:1px solid #2e1212;border-radius:6px;padding:10px 12px;font-size:11px;color:#7a3030;line-height:1.6;margin-bottom:14px">API key required. <a href="#" onclick="showView('settings');return false" style="color:#cc5555">→ Add in Settings</a></div>` : ''}
+    <div style="margin-bottom:10px">
+      <div style="font-size:9px;color:#888;letter-spacing:0.1em;margin-bottom:5px">LOCKED</div>
+      <span class="chip chip-l">shot structure</span><span class="chip chip-l">output format</span><span class="chip chip-l">technical parameters</span>
+    </div>
+    <div style="margin-bottom:14px">
+      <div style="font-size:9px;color:#888;letter-spacing:0.1em;margin-bottom:5px">SWAPPABLE</div>
+      <span class="chip chip-s">subject</span><span class="chip chip-s">environment</span><span class="chip chip-s">lighting/mood</span><span class="chip chip-s">color palette</span><span class="chip chip-s">action/movement</span>
+    </div>
+    ${shotSelectHTML}
+    <div class="sec"><label class="lbl">New reference image</label><input id="proj-mod-refimage" placeholder="Describe your reference image..."></div>
+    <div class="sec"><label class="lbl">What to change?</label><textarea id="proj-mod-changes" style="min-height:72px" placeholder="e.g. Change subject to a surfer, swap environment to tropical ocean..."></textarea></div>
+    <button class="btn-p" id="proj-adapt-btn" onclick="adaptProjectPrompt()" style="opacity:${apiKey?1:0.4}" ${!apiKey?'disabled':''}>Adapt Prompt →</button>
+    <div id="proj-mod-result" style="display:none;margin-top:16px">
+      <div class="row" style="margin-bottom:8px;justify-content:space-between">
+        <span class="lbl" style="margin:0;color:#4aaa4a">Adapted prompt</span>
+        <button class="btn" style="padding:4px 10px;font-size:9px" onclick="copyText(document.getElementById('proj-mod-result-text').textContent,'proj-copy-mod')"><span id="proj-copy-mod">Copy</span></button>
+      </div>
+      <div class="pbox" id="proj-mod-result-text" style="border-color:#182018"></div>
+    </div>
+  </div>
+  <div class="divider"></div>
+  <div class="row">
+    <button class="btn" onclick="openEditProject()">Edit</button>
+    <button class="btn-d" id="proj-del-btn" onclick="showProjectDeleteConfirm()">Delete</button>
+    <span id="proj-del-confirm" style="display:none;align-items:center;gap:8px">
+      <span style="font-size:11px;color:#bb3333">Sure?</span>
+      <button class="btn-d" onclick="deleteProject()">Yes</button>
+      <button class="btn" onclick="hideProjectDeleteConfirm()">Cancel</button>
+    </span>
+  </div>`;
+
+  document.getElementById('project-detail-content').innerHTML = html;
+  showView('project-detail');
+}
+
+async function adaptProjectPrompt() {
+  const changes = document.getElementById('proj-mod-changes').value.trim();
+  const refImage = document.getElementById('proj-mod-refimage').value.trim();
+  const apiKey = getApiKey();
+  if (!changes || !apiKey) return;
+  const btn = document.getElementById('proj-adapt-btn');
+  btn.textContent = 'Adapting...'; btn.disabled = true;
+  document.getElementById('proj-mod-result').style.display = 'none';
+  const p = currentProject;
+  const isSeq = p.type === 'sequence' && p.shots?.length > 1;
+  const shotIdx = isSeq ? parseInt(document.getElementById('proj-mod-shot-idx')?.value || '0') : 0;
+  const src = isSeq ? (p.shots[shotIdx]?.prompt || '') : (p.prompt || '');
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:1000,
+        system:'You are a video prompt adapter. LOCKED: shot structure, output format, technical parameters. SWAPPABLE: subject, environment, lighting/mood, color palette, action/movement. Output ONLY the adapted prompt, no preamble.',
+        messages:[{ role:'user', content:`ORIGINAL:\n${src}\n\nREF IMAGE:\n${refImage||'Not specified'}\n\nCHANGES:\n${changes}` }]
+      })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+    const text = data.content?.map(b => b.text||'').join('') || 'Error.';
+    document.getElementById('proj-mod-result-text').textContent = text;
+    document.getElementById('proj-mod-result').style.display = 'block';
+  } catch(e) {
+    document.getElementById('proj-mod-result-text').textContent = 'Error: ' + e.message;
+    document.getElementById('proj-mod-result').style.display = 'block';
+  }
+  btn.textContent = 'Adapt Prompt →'; btn.disabled = false;
+}
+
+function openEditProject() {
+  const p = currentProject;
+  pForm = { ...p, shots: p.type === 'sequence' ? p.shots : [{ prompt:p.prompt||'', refImage:p.refImage||'' }] };
+  const f = pForm;
+  const isSeq = f.type === 'sequence';
+  const toolOpts = ['Seedance','Kling','ComfyUI','Other'].map(t => `<option${t===f.tool?' selected':''}>${t}</option>`).join('');
+  const shotsHTML = f.shots.map((sh, i) => `
+    <div class="shot-field" id="sf-${i}">
+      <div class="shot-fl">
+        <span>${isSeq ? 'Shot ' + String(i+1).padStart(2,'0') : ''}</span>
+        ${isSeq && i > 0 ? `<button class="shot-remove" onclick="removeShot(${i})">✕ Remove</button>` : ''}
+      </div>
+      <textarea style="min-height:90px" placeholder="${isSeq?'Shot '+(i+1)+' prompt...':'Paste your prompt here...'}" oninput="pForm.shots[${i}].prompt=this.value">${esc(sh.prompt||'')}</textarea>
+      ${isSeq ? `<div style="margin-top:8px"><div style="font-size:9px;letter-spacing:0.1em;color:#d18d1f;text-transform:uppercase;margin-bottom:4px">@image_${i+1}</div>
+        <input placeholder="Reference image for this shot..." value="${esc(sh.refImage||'')}" oninput="pForm.shots[${i}].refImage=this.value"></div>` : ''}
+    </div>`).join('');
+
+  document.getElementById('project-edit-form').innerHTML = `
+    <div class="sec"><label class="lbl">Project title <span style="color:#555">(optional)</span></label><input value="${esc(f.title||'')}" placeholder="e.g. My surfing version" oninput="pForm.title=this.value"></div>
+    <div class="sec"><label class="lbl">Tool</label><select onchange="pForm.tool=this.value">${toolOpts}</select></div>
+    <div class="sec">
+      <label class="lbl">${isSeq ? 'Shots' : 'Prompt'}</label>
+      <div id="shots-container">${shotsHTML}</div>
+      ${isSeq ? '<button class="btn" style="font-size:10px" onclick="addShot()">+ Add Shot</button>' : ''}
+    </div>
+    ${!isSeq ? `<div class="sec"><label class="lbl">Reference image</label><input placeholder="Describe the reference image..." value="${esc(f.refImage||'')}" oninput="pForm.refImage=this.value"></div>` : ''}
+    <div class="sec"><label class="lbl">Notes <span style="color:#555">(optional)</span></label><textarea style="min-height:60px" placeholder="Settings, observations..." oninput="pForm.notes=this.value">${esc(f.notes||'')}</textarea></div>
+    <div class="sec"><label class="lbl">Instagram URL <span style="color:#555">(optional)</span></label><input value="${esc(f.instagramUrl||'')}" placeholder="https://www.instagram.com/p/..." oninput="pForm.instagramUrl=this.value"></div>
+    <div class="sec"><label class="lbl">Author <span style="color:#555">(optional)</span></label><input value="${esc(f.author||'')}" placeholder="e.g. Gerardo" maxlength="20" oninput="pForm.author=this.value.slice(0,20)"></div>
+    <div class="row">
+      <button class="btn-p" onclick="saveEditProject()">Save Changes</button>
+      <button class="btn" onclick="showView('project-detail')">Cancel</button>
+    </div>`;
+  showView('project-edit');
+}
+
+function saveEditProject() {
+  if (!pForm) return;
+  const isSeq = pForm.type === 'sequence' && pForm.shots.length > 1;
+  const updated = { ...currentProject, ...pForm,
+    type: isSeq ? 'sequence' : 'single',
+    prompt: isSeq ? null : pForm.shots[0]?.prompt,
+    shots: isSeq ? pForm.shots : null,
+    refImage: isSeq ? null : pForm.shots[0]?.refImage,
+  };
+  allProjects = allProjects.map(x => x.id === updated.id ? updated : x);
+  saveProjects(); currentProject = updated; openProjectDetail(updated.id);
+}
+
+function showProjectDeleteConfirm() {
+  document.getElementById('proj-del-btn').style.display = 'none';
+  document.getElementById('proj-del-confirm').style.display = 'inline-flex';
+}
+function hideProjectDeleteConfirm() {
+  document.getElementById('proj-del-btn').style.display = 'inline-flex';
+  document.getElementById('proj-del-confirm').style.display = 'none';
+}
+function deleteProject() {
+  allProjects = allProjects.filter(x => x.id !== currentProject.id);
+  saveProjects(); currentProject = null; showView('projects');
+}
+
+// ── AUTHOR FILTERS ───────────────────────────────────────────────
+function populateAuthorFilters() {
+  const presetAuthors = [...new Set(allPresets.map(p => p.author).filter(Boolean))].sort();
+  const toolAuthors = [...new Set(allTools.map(t => t.author).filter(Boolean))].sort();
+  const projectAuthors = [...new Set(allProjects.map(p => p.author).filter(Boolean))].sort();
+
+  const pSel = document.getElementById('author-filter');
+  const tSel = document.getElementById('tools-author-filter');
+  const prSel = document.getElementById('projects-author-filter');
+
+  if (pSel) { const cur = pSel.value; pSel.innerHTML = '<option value="All">All creators</option>' + presetAuthors.map(a => `<option value="${esc(a)}"${a===cur?' selected':''}>${esc(a)}</option>`).join(''); }
+  if (tSel) { const cur = tSel.value; tSel.innerHTML = '<option value="All">All creators</option>' + toolAuthors.map(a => `<option value="${esc(a)}"${a===cur?' selected':''}>${esc(a)}</option>`).join(''); }
+  if (prSel) { const cur = prSel.value; prSel.innerHTML = '<option value="All">All creators</option>' + projectAuthors.map(a => `<option value="${esc(a)}"${a===cur?' selected':''}>${esc(a)}</option>`).join(''); }
+}
+
+// ── FILE SYSTEM SAVE ─────────────────────────────────────────────
+let folderHandle = null;
+const supportsFileSystem = typeof window.showDirectoryPicker === 'function';
+
+async function saveToFolder() {
+  const btn = document.getElementById('save-btn');
+  const status = document.getElementById('save-status');
+
+  if (!supportsFileSystem) {
+    alert('Your browser does not support direct file saving.\n\nGo to Settings → Export JSON for each section (Library, Projects, Tools) and replace the corresponding .json files in your Prompt_Studio folder manually.\n\nChrome or Edge is recommended for direct saving.');
+    return;
+  }
+
+  try {
+    // Request folder if we don't have it yet this session
+    if (!folderHandle) {
+      folderHandle = await window.showDirectoryPicker({ mode: 'readwrite', startIn: 'documents' });
+    }
+
+    btn.classList.add('saving');
+    btn.textContent = '↓ Saving...';
+
+    const files = [
+      { name: 'library.json',  data: allPresets  },
+      { name: 'projects.json', data: allProjects },
+      { name: 'tools.json',    data: allTools    },
+    ];
+
+    for (const f of files) {
+      const fileHandle = await folderHandle.getFileHandle(f.name, { create: true });
+      const writable = await fileHandle.createWritable();
+      await writable.write(JSON.stringify(f.data, null, 2));
+      await writable.close();
+    }
+
+    btn.classList.remove('saving');
+    btn.textContent = '↓ Save';
+    status.classList.add('visible');
+    setTimeout(() => status.classList.remove('visible'), 2500);
+
+  } catch(e) {
+    btn.classList.remove('saving');
+    btn.textContent = '↓ Save';
+    if (e.name !== 'AbortError') {
+      // Permission denied or other error — reset handle and tell user
+      folderHandle = null;
+      alert('Save failed: ' + e.message + '\n\nTry again — you may need to re-select your folder.');
+    }
+  }
+}
+
+async function loadFromFolder() {
+  // Try to load from previously granted folder handle (won't work cross-session
+  // without persistent permission, but tries on startup if handle exists)
+  if (!supportsFileSystem || !folderHandle) return;
+  try {
+    const fileMap = { 'library.json': 'allPresets', 'projects.json': 'allProjects', 'tools.json': 'allTools' };
+    for (const [filename, varName] of Object.entries(fileMap)) {
+      try {
+        const fh = await folderHandle.getFileHandle(filename);
+        const file = await fh.getFile();
+        const text = await file.text();
+        const data = JSON.parse(text);
+        if (Array.isArray(data)) {
+          if (varName === 'allPresets') allPresets = data;
+          if (varName === 'allProjects') allProjects = data;
+          if (varName === 'allTools') allTools = data;
+        }
+      } catch {}
+    }
+    // Persist to localStorage as cache
+    localStorage.setItem('dzps_presets', JSON.stringify(allPresets));
+    localStorage.setItem('dzps_projects', JSON.stringify(allProjects));
+    localStorage.setItem('dzps_tools', JSON.stringify(allTools));
+  } catch {}
+}
+
+// ── INIT ─────────────────────────────────────────────────────────
+document.getElementById('logo-img').src = LOGO_URL;
+loadData();
+showView('library');
+populateAuthorFilters();
+if (!isLocal) {
+  syncFromGitHub();
+  syncProjectsFromGitHub();
+  syncToolsFromGitHub();
+}
+</script>
+
+<footer style="border-top:1px solid #1a1a1a;padding:14px 22px;display:flex;align-items:center;justify-content:space-between;margin-top:40px">
+  <span style="font-size:10px;color:#444;letter-spacing:0.08em">© 2026 Gerardo Schiavone · District Zero</span>
+  <div style="display:flex;align-items:center;gap:18px">
+    <!-- Instagram -->
+    <a href="https://www.instagram.com/gerry.malta/" target="_blank" rel="noopener noreferrer" title="Instagram" style="color:#555;transition:color 0.2s" onmouseover="this.style.color='#d18d1f'" onmouseout="this.style.color='#555'">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
+        <circle cx="12" cy="12" r="4.5"/>
+        <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/>
+      </svg>
+    </a>
+    <!-- LinkedIn -->
+    <a href="https://www.linkedin.com/in/gerardo-schiavone-3b41b5b3/" target="_blank" rel="noopener noreferrer" title="LinkedIn" style="color:#555;transition:color 0.2s" onmouseover="this.style.color='#d18d1f'" onmouseout="this.style.color='#555'">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="2" y="2" width="20" height="20" rx="3"/>
+        <line x1="8" y1="11" x2="8" y2="17"/>
+        <line x1="8" y1="8" x2="8" y2="8.5"/>
+        <line x1="12" y1="17" x2="12" y2="13"/>
+        <path d="M12 13a3 3 0 0 1 6 0v4"/>
+      </svg>
+    </a>
+    <!-- TikTok -->
+    <a href="https://www.tiktok.com/@gerry.malta" target="_blank" rel="noopener noreferrer" title="TikTok" style="color:#555;transition:color 0.2s" onmouseover="this.style.color='#d18d1f'" onmouseout="this.style.color='#555'">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+        <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.69a8.18 8.18 0 0 0 4.78 1.52V6.75a4.85 4.85 0 0 1-1.01-.06z"/>
+      </svg>
+    </a>
+  </div>
+</footer>
+</body>
+</html>
