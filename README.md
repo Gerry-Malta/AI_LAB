@@ -1,2 +1,2 @@
-# Prompt_Studio
-Prompt studio
+# AI_LAB
+AI_LAB
