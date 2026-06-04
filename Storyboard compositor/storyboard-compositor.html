@@ -1,0 +1,1231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Storyboard Compositor</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&display=swap');
+
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #0c0c0c;
+            --bg-tertiary: #0e0e0e;
+            --border-primary: #1e1e1e;
+            --border-secondary: #2a2a2a;
+            --text-primary: #e8e4dc;
+            --text-secondary: #888880;
+            --text-dim: #555550;
+            --accent-gold: #d18d1f;
+            --accent-gold-dim: #8a5c14;
+            --accent-green: #1D9E75;
+            --glow-gold: rgba(209, 141, 31, 0.4);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'DM Mono', 'Courier New', monospace;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            padding: 12px 16px 0 16px;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Scanline effect */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(
+                0deg,
+                rgba(209, 141, 31, 0.02) 0px,
+                transparent 1px,
+                transparent 2px,
+                rgba(209, 141, 31, 0.02) 3px
+            );
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        .header {
+            border-bottom: 1px solid var(--border-primary);
+            padding: 20px 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 12px;
+            background: var(--bg-primary);
+            z-index: 20;
+            gap: 20px;
+            border-radius: 8px 8px 0 0;
+        }
+
+        .logo-wrap {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-shrink: 0;
+        }
+
+        .logo-img {
+            height: 36px;
+            width: auto;
+        }
+
+        .logo-div {
+            width: 1px;
+            height: 28px;
+            background: #2a2a2a;
+        }
+
+        .logo-sub {
+            font-size: 13px;
+            letter-spacing: 0.2em;
+            color: var(--accent-gold);
+            text-transform: uppercase;
+        }
+
+        .logo-module {
+            font-size: 13px;
+            letter-spacing: 0.15em;
+            color: var(--text-dim);
+            text-transform: uppercase;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 32px;
+        }
+
+        /* Full width grid on mobile */
+        @media (max-width: 768px), (hover: none) {
+            .container {
+                padding: 16px 0;
+            }
+
+            .grid-container {
+                padding: 8px;
+                border-radius: 0;
+                margin-left: 0;
+                margin-right: 0;
+            }
+
+            .grid {
+                border-radius: 0;
+            }
+        }
+
+        .instructions {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-primary);
+            border-left: 3px solid var(--accent-gold);
+            padding: 16px 20px;
+            border-radius: 6px;
+            margin-bottom: 32px;
+            box-shadow: 0 0 20px rgba(209, 141, 31, 0.1);
+        }
+
+        .instructions p {
+            font-size: 13px;
+            line-height: 1.6;
+            color: var(--text-secondary);
+        }
+
+        .upload-zone {
+            border: 2px dashed var(--border-primary);
+            border-radius: 8px;
+            padding: 48px;
+            text-align: center;
+            margin-bottom: 32px;
+            background: var(--bg-secondary);
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .upload-zone::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(209, 141, 31, 0.1), transparent);
+            transition: left 0.5s;
+        }
+
+        .upload-zone:hover::before {
+            left: 100%;
+        }
+
+        .upload-zone:hover {
+            border-color: var(--accent-gold);
+            background: var(--bg-tertiary);
+            box-shadow: 0 0 30px var(--glow-gold);
+        }
+
+        .upload-zone.dragover {
+            border-color: var(--accent-gold);
+            background: var(--bg-tertiary);
+            box-shadow: 0 0 40px var(--glow-gold);
+        }
+
+        .upload-zone p:first-child {
+            font-size: 15px;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .upload-zone p:last-child {
+            font-size: 12px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .thumbnails {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 32px;
+            overflow-x: auto;
+            padding: 16px;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            border: 1px solid var(--border-primary);
+        }
+
+        .thumbnails::-webkit-scrollbar {
+            height: 8px;
+        }
+
+        .thumbnails::-webkit-scrollbar-track {
+            background: var(--bg-tertiary);
+        }
+
+        .thumbnails::-webkit-scrollbar-thumb {
+            background: var(--border-primary);
+            border-radius: 4px;
+        }
+
+        .thumbnails::-webkit-scrollbar-thumb:hover {
+            background: var(--accent-gold);
+        }
+
+        .grid-controls {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            gap: 8px;
+            padding: 16px;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            border: 1px solid var(--border-primary);
+        }
+
+        .grid-size-btn {
+            padding: 8px 20px;
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-primary);
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            font-family: 'DM Mono', monospace;
+        }
+
+        .grid-size-btn:hover {
+            background: var(--bg-secondary);
+            border-color: var(--accent-gold);
+            color: var(--text-primary);
+        }
+
+        .grid-size-btn.active {
+            background: var(--accent-gold);
+            color: #0a0a0a;
+            border-color: var(--accent-gold);
+            box-shadow: 0 0 15px var(--glow-gold);
+        }
+
+        .thumbnail {
+            position: relative;
+            min-width: 140px;
+            height: 80px;
+            border-radius: 6px;
+            overflow: hidden;
+            border: 2px solid var(--border-primary);
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            background: var(--bg-tertiary);
+        }
+
+        .thumbnail:hover {
+            border-color: var(--accent-gold);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px var(--glow-gold);
+        }
+
+        .thumbnail img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .thumbnail .number {
+            position: absolute;
+            top: 6px;
+            left: 6px;
+            background: rgba(0, 0, 0, 0.9);
+            color: var(--accent-gold);
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 700;
+            border: 1px solid var(--accent-gold);
+            box-shadow: 0 0 10px var(--glow-gold);
+        }
+
+        .grid-container {
+            background: var(--bg-secondary);
+            padding: 24px;
+            border-radius: 8px;
+            margin-bottom: 32px;
+            border: 1px solid var(--border-primary);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(var(--grid-cols, 3), 1fr);
+            grid-template-rows: repeat(var(--grid-rows, 3), 1fr);
+            gap: 3px;
+            background: var(--border-primary);
+            border: 2px solid var(--border-primary);
+            border-radius: 6px;
+            overflow: hidden;
+            aspect-ratio: 16 / 9;
+            max-width: 100%;
+            margin: 0 auto;
+        }
+
+        .cell {
+            position: relative;
+            background: #000;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .cell:hover {
+            z-index: 10;
+            box-shadow: 0 0 30px var(--glow-gold);
+        }
+
+        .cell:hover .label {
+            background: rgba(209, 141, 31, 0.9);
+            color: var(--bg-primary);
+            transform: scale(1.1);
+        }
+
+        .cell canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .cell .label {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.9);
+            color: var(--accent-gold);
+            padding: 6px 14px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 700;
+            pointer-events: none;
+            border: 1px solid var(--accent-gold);
+            box-shadow: 0 0 15px var(--glow-gold);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Smaller labels on mobile */
+        @media (max-width: 768px), (hover: none) {
+            .cell .label {
+                padding: 3px 8px;
+                font-size: 11px;
+                top: 6px;
+                left: 6px;
+            }
+
+            /* Compact header on mobile */
+            .header {
+                padding: 12px 16px;
+                gap: 8px;
+            }
+
+            .logo-wrap {
+                gap: 8px;
+            }
+
+            .logo-img {
+                height: 24px;
+            }
+
+            .logo-div {
+                height: 20px;
+            }
+
+            .logo-sub {
+                font-size: 9px;
+                letter-spacing: 0.15em;
+            }
+
+            .logo-module {
+                font-size: 9px;
+                letter-spacing: 0.1em;
+            }
+        }
+
+        .cell .filename {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.95);
+            color: var(--text-primary);
+            padding: 6px 10px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: 400;
+            pointer-events: none;
+            border: 1px solid var(--border-secondary);
+            display: none;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .cell.selected {
+            outline: 3px solid var(--accent-gold);
+            outline-offset: -3px;
+            z-index: 15;
+        }
+
+        .cell:hover .filename {
+            display: block;
+        }
+
+        /* Hide filename on mobile - covers image */
+        @media (max-width: 768px), (hover: none) {
+            .cell:hover .filename {
+                display: none;
+            }
+        }
+
+        /* Exclude zone - appears when dragging on mobile */
+        #excludeZone {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 120px;
+            background: rgba(204, 51, 51, 0.1);
+            border-top: 3px dashed #cc3333;
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            color: #cc3333;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            transition: background 0.2s;
+        }
+
+        #excludeZone.drag-over {
+            background: rgba(204, 51, 51, 0.2);
+        }
+
+        #excludeZone.active {
+            display: flex;
+        }
+
+        .controls {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 14px 32px;
+            background: var(--accent-gold);
+            color: #0a0a0a;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            position: relative;
+            overflow: hidden;
+            font-family: 'DM Mono', monospace;
+        }
+
+        button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        button:hover::before {
+            left: 100%;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px var(--glow-gold);
+            background: #e8a030;
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        button:disabled:hover {
+            box-shadow: none;
+        }
+
+        button:disabled::before {
+            display: none;
+        }
+
+        #resetBtn {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-primary);
+        }
+
+        #resetBtn:hover {
+            background: var(--bg-secondary);
+            border-color: var(--accent-gold);
+            box-shadow: 0 0 20px var(--glow-gold);
+        }
+
+        /* Drag and drop states */
+        .cell.dragging {
+            opacity: 0.5;
+        }
+
+        .cell.drag-over {
+            outline: 3px solid var(--accent-gold);
+            outline-offset: -3px;
+        }
+
+        /* Shine animations */
+        @keyframes shine-gold {
+            0% {
+                left: -100%;
+            }
+            100% {
+                left: 100%;
+            }
+        }
+
+        @keyframes shine-red {
+            0% {
+                left: -100%;
+            }
+            100% {
+                left: 100%;
+            }
+        }
+
+        .cell.animate-copy::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(209, 141, 31, 0.4), transparent);
+            pointer-events: none;
+            z-index: 20;
+            animation: shine-gold 0.6s ease-out;
+        }
+
+        .cell.animate-exclude::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(204, 51, 51, 0.4), transparent);
+            pointer-events: none;
+            z-index: 20;
+            animation: shine-red 0.6s ease-out;
+        }
+    </style>
+</head>
+<body>
+    <!-- HEADER -->
+    <div id="header">
+        <div class="logo-wrap">
+            <img class="logo-img" src="https://cdn.jsdelivr.net/gh/Gerry-Malta/Prompt_Studio@main/DZ_logo_color_transparent_s.png" alt="District Zero" onerror="this.style.display='none'">
+            <div class="logo-div"></div>
+            <span class="logo-sub">Prompt Studio</span>
+            <div class="logo-div"></div>
+            <span class="logo-module">Storyboard Compositor</span>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="instructions">
+            <p id="instructionsText">Upload multiple storyboard images. Click a cell to select, use &lt; and &gt; to navigate, ↓ to discard (narrow selection). Export when ready.</p>
+        </div>
+
+        <div class="upload-zone" id="uploadZone">
+            <p>Click to upload or drag & drop images here</p>
+            <p>Upload multiple storyboard images</p>
+        </div>
+        <input type="file" id="fileInput" accept="image/*" multiple>
+
+        <div class="thumbnails" id="thumbnails" style="display: none;"></div>
+
+        <div class="grid-controls">
+            <label style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.1em; margin-right: 12px;">Grid Size:</label>
+            <button class="grid-size-btn active" data-grid="2x2">2×2</button>
+            <button class="grid-size-btn" data-grid="3x3">3×3</button>
+            <button class="grid-size-btn" data-grid="4x3">4×3</button>
+        </div>
+
+        <div class="grid-container">
+            <div class="grid" id="grid"></div>
+        </div>
+
+        <div class="controls">
+            <button id="exportBtn" disabled>Export Composite</button>
+            <button id="resetBtn" disabled>Reset Grid</button>
+        </div>
+    </div>
+
+    <!-- Exclude zone for mobile drag -->
+    <div id="excludeZone">
+        Drop here to exclude from selection
+    </div>
+
+    <script>
+        // Detect if device is mobile/touch
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+                         ('ontouchstart' in window) || 
+                         (navigator.maxTouchPoints > 0);
+
+        const state = {
+            images: [],
+            imageNames: [], // store original filenames
+            cellAssignments: Array(9).fill(0), // will resize based on grid
+            canvases: [],
+            selectedCell: null,
+            excludedImages: [], // list of image indices to exclude from selection
+            draggedCell: null,
+            isMobile: isMobile,
+            gridRows: 3,
+            gridCols: 3,
+            totalCells: 9
+        };
+
+        const uploadZone = document.getElementById('uploadZone');
+        const fileInput = document.getElementById('fileInput');
+        const thumbnails = document.getElementById('thumbnails');
+        const grid = document.getElementById('grid');
+        const exportBtn = document.getElementById('exportBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const excludeZone = document.getElementById('excludeZone');
+
+        // Update instructions for mobile
+        if (state.isMobile) {
+            document.getElementById('instructionsText').textContent = 
+                'Upload multiple storyboard images. Tap a cell to cycle through images. Drag to copy or drag outside to exclude. Export when ready.';
+        }
+
+        // Exclude zone drag handlers (mobile only)
+        if (state.isMobile) {
+            excludeZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                excludeZone.classList.add('drag-over');
+            });
+
+            excludeZone.addEventListener('dragleave', () => {
+                excludeZone.classList.remove('drag-over');
+            });
+
+            excludeZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                excludeZone.classList.remove('drag-over');
+                excludeZone.classList.remove('active');
+                
+                const draggedCellIndex = state.draggedCell;
+                if (draggedCellIndex !== null) {
+                    const imageIndex = state.cellAssignments[draggedCellIndex];
+                    
+                    // Exclude this image
+                    if (!state.excludedImages.includes(imageIndex)) {
+                        state.excludedImages.push(imageIndex);
+                        
+                        // Move cell to next available image
+                        const availableIndices = [];
+                        for (let i = 0; i < state.images.length; i++) {
+                            if (!state.excludedImages.includes(i)) {
+                                availableIndices.push(i);
+                            }
+                        }
+                        
+                        if (availableIndices.length > 0) {
+                            state.cellAssignments[draggedCellIndex] = availableIndices[0];
+                            drawCell(draggedCellIndex);
+                            
+                            // Red shine animation
+                            const cell = document.querySelector(`.cell[data-cell-index="${draggedCellIndex}"]`);
+                            if (cell) {
+                                cell.classList.add('animate-exclude');
+                                setTimeout(() => {
+                                    cell.classList.remove('animate-exclude');
+                                }, 600);
+                            }
+                        }
+                    }
+                }
+                
+                state.draggedCell = null;
+            });
+        }
+
+        // Grid size selector handlers
+        document.querySelectorAll('.grid-size-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const gridSize = btn.dataset.grid;
+                changeGridSize(gridSize);
+                
+                // Update active button
+                document.querySelectorAll('.grid-size-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            });
+        });
+
+        function changeGridSize(size) {
+            const sizes = {
+                '2x2': { rows: 2, cols: 2, total: 4 },
+                '3x3': { rows: 3, cols: 3, total: 9 },
+                '4x3': { rows: 4, cols: 3, total: 12 }
+            };
+            
+            const config = sizes[size];
+            if (!config) return;
+            
+            // Update state
+            state.gridRows = config.rows;
+            state.gridCols = config.cols;
+            state.totalCells = config.total;
+            
+            // Resize cellAssignments array
+            const oldAssignments = [...state.cellAssignments];
+            state.cellAssignments = Array(config.total).fill(0);
+            
+            // Copy over existing assignments up to new size
+            for (let i = 0; i < Math.min(oldAssignments.length, config.total); i++) {
+                state.cellAssignments[i] = oldAssignments[i];
+            }
+            
+            // Update CSS variables
+            grid.style.setProperty('--grid-cols', config.cols);
+            grid.style.setProperty('--grid-rows', config.rows);
+            
+            // Clear and rebuild grid
+            grid.innerHTML = '';
+            state.canvases = [];
+            state.selectedCell = null;
+            
+            updateGrid();
+        }
+
+        // Upload handlers
+        uploadZone.addEventListener('click', () => fileInput.click());
+        
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('dragover');
+        });
+
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.classList.remove('dragover');
+        });
+
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+            handleFiles(e.dataTransfer.files);
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            handleFiles(e.target.files);
+        });
+
+        function handleFiles(files) {
+            const imageFiles = Array.from(files).filter(f => f.type.startsWith('image/'));
+            
+            imageFiles.forEach(file => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        state.images.push(img);
+                        state.imageNames.push(file.name); // Store filename
+                        addThumbnail(img, state.images.length, file.name);
+                        updateGrid();
+                        
+                        if (state.images.length > 0) {
+                            exportBtn.disabled = false;
+                            resetBtn.disabled = false;
+                            thumbnails.style.display = 'flex';
+                        }
+                    };
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function addThumbnail(img, number, filename) {
+            const thumb = document.createElement('div');
+            thumb.className = 'thumbnail';
+            thumb.title = filename || `Image ${number}`;
+            
+            const imgEl = document.createElement('img');
+            imgEl.src = img.src;
+            
+            const numLabel = document.createElement('div');
+            numLabel.className = 'number';
+            numLabel.textContent = number;
+            
+            thumb.appendChild(imgEl);
+            thumb.appendChild(numLabel);
+            
+            // Click thumbnail = set all cells to this image
+            thumb.addEventListener('click', () => {
+                for (let i = 0; i < 9; i++) {
+                    state.cellAssignments[i] = number - 1; // Convert to 0-indexed
+                    drawCell(i);
+                }
+            });
+            
+            thumbnails.appendChild(thumb);
+        }
+
+        function updateGrid() {
+            if (state.images.length === 0) return;
+
+            // Initialize grid if empty
+            if (state.canvases.length === 0) {
+                for (let i = 0; i < state.totalCells; i++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.dataset.cellIndex = i;
+                    
+                    const canvas = document.createElement('canvas');
+                    const label = document.createElement('div');
+                    label.className = 'label';
+                    label.textContent = '1';
+                    
+                    const filename = document.createElement('div');
+                    filename.className = 'filename';
+                    
+                    cell.appendChild(canvas);
+                    cell.appendChild(label);
+                    cell.appendChild(filename);
+                    
+                    cell.addEventListener('click', () => handleCellClick(i));
+                    
+                    // Drag and drop handlers - always enabled
+                    cell.draggable = true;
+                    
+                    cell.addEventListener('dragstart', (e) => {
+                        state.draggedCell = i;
+                        e.dataTransfer.effectAllowed = 'copy';
+                        cell.classList.add('dragging');
+                        
+                        // Show exclude zone on mobile
+                        if (state.isMobile) {
+                            excludeZone.classList.add('active');
+                        }
+                    });
+                    
+                    cell.addEventListener('dragend', (e) => {
+                        cell.classList.remove('dragging');
+                        
+                        // Hide exclude zone on mobile
+                        if (state.isMobile) {
+                            excludeZone.classList.remove('active');
+                            excludeZone.classList.remove('drag-over');
+                        }
+                    });
+                    
+                    cell.addEventListener('dragover', (e) => {
+                        e.preventDefault();
+                        e.dataTransfer.dropEffect = 'copy';
+                        cell.classList.add('drag-over');
+                    });
+                    
+                    cell.addEventListener('dragleave', () => {
+                        cell.classList.remove('drag-over');
+                    });
+                    
+                    cell.addEventListener('drop', (e) => {
+                        e.preventDefault();
+                        cell.classList.remove('drag-over');
+                        
+                        const dropIndex = i;
+                        const dragIndex = state.draggedCell;
+                        
+                        if (dragIndex !== null && dragIndex !== dropIndex) {
+                            // Copy the VISUAL CONTENT from dragged cell to drop cell
+                            // This means copying the canvas pixel data directly
+                            const sourceCanvas = state.canvases[dragIndex];
+                            const targetCanvas = state.canvases[dropIndex];
+                            const targetCtx = targetCanvas.getContext('2d');
+                            
+                            // Copy the source canvas directly to target
+                            targetCanvas.width = sourceCanvas.width;
+                            targetCanvas.height = sourceCanvas.height;
+                            targetCtx.drawImage(sourceCanvas, 0, 0);
+                            
+                            // Update the assignment to match what we're showing
+                            state.cellAssignments[dropIndex] = state.cellAssignments[dragIndex];
+                            
+                            // Update label to reflect new assignment
+                            const label = targetCanvas.nextElementSibling;
+                            label.textContent = state.cellAssignments[dropIndex] + 1;
+                            
+                            // Update filename
+                            const filename = label.nextElementSibling;
+                            if (filename) {
+                                filename.textContent = state.imageNames[state.cellAssignments[dropIndex]] || `Image ${state.cellAssignments[dropIndex] + 1}`;
+                            }
+                            
+                            // Trigger gold shine animation
+                            cell.classList.add('animate-copy');
+                            setTimeout(() => {
+                                cell.classList.remove('animate-copy');
+                            }, 600);
+                        }
+                        
+                        state.draggedCell = null;
+                    });
+                    
+                    grid.appendChild(cell);
+                    state.canvases.push(canvas);
+                }
+            }
+
+            // Draw each cell
+            for (let i = 0; i < state.totalCells; i++) {
+                drawCell(i);
+            }
+        }
+
+        function drawCell(cellIndex) {
+            const canvas = state.canvases[cellIndex];
+            const ctx = canvas.getContext('2d');
+            const imageIndex = state.cellAssignments[cellIndex];
+            const img = state.images[imageIndex];
+
+            if (!img) return;
+
+            // Set canvas size based on current grid dimensions
+            const cellWidth = img.width / state.gridCols;
+            const cellHeight = img.height / state.gridRows;
+            canvas.width = cellWidth;
+            canvas.height = cellHeight;
+
+            // Calculate source position in the grid
+            const row = Math.floor(cellIndex / state.gridCols);
+            const col = cellIndex % state.gridCols;
+            const sx = col * cellWidth;
+            const sy = row * cellHeight;
+
+            // Draw the section
+            ctx.drawImage(img, sx, sy, cellWidth, cellHeight, 0, 0, cellWidth, cellHeight);
+
+            // Update label
+            const label = canvas.nextElementSibling;
+            label.textContent = imageIndex + 1;
+            
+            // Update filename
+            const filename = label.nextElementSibling;
+            if (filename) {
+                filename.textContent = state.imageNames[imageIndex] || `Image ${imageIndex + 1}`;
+            }
+        }
+
+        function handleCellClick(cellIndex) {
+            if (state.isMobile) {
+                // Mobile: click = cycle forward (no selection)
+                cycleCell(cellIndex);
+            } else {
+                // Desktop: click = select cell for keyboard navigation
+                selectCell(cellIndex);
+            }
+        }
+
+        function selectCell(cellIndex) {
+            // Remove previous selection
+            document.querySelectorAll('.cell').forEach(c => c.classList.remove('selected'));
+            
+            // Select this cell
+            state.selectedCell = cellIndex;
+            const cell = document.querySelector(`.cell[data-cell-index="${cellIndex}"]`);
+            if (cell) cell.classList.add('selected');
+        }
+
+        function cycleCell(cellIndex) {
+            // Get available images (excluding excluded ones)
+            const availableIndices = [];
+            for (let i = 0; i < state.images.length; i++) {
+                if (!state.excludedImages.includes(i)) {
+                    availableIndices.push(i);
+                }
+            }
+            
+            if (availableIndices.length === 0) return;
+            
+            // Find current position in available list
+            const currentIndex = state.cellAssignments[cellIndex];
+            let currentPos = availableIndices.indexOf(currentIndex);
+            
+            // If current image is not in available list (might have been excluded), start from beginning
+            if (currentPos === -1) {
+                currentPos = -1; // Will become 0 after +1
+            }
+            
+            // Move to next available
+            const nextPos = (currentPos + 1) % availableIndices.length;
+            state.cellAssignments[cellIndex] = availableIndices[nextPos];
+            
+            drawCell(cellIndex);
+        }
+
+        exportBtn.addEventListener('click', () => {
+            if (state.images.length === 0) return;
+
+            // Create output canvas
+            const refImg = state.images[0];
+            const outputCanvas = document.createElement('canvas');
+            outputCanvas.width = refImg.width;
+            outputCanvas.height = refImg.height;
+            const ctx = outputCanvas.getContext('2d');
+
+            const cellWidth = refImg.width / 3;
+            const cellHeight = refImg.height / 3;
+
+            // Draw each cell to output
+            for (let i = 0; i < 9; i++) {
+                const row = Math.floor(i / 3);
+                const col = i % 3;
+                const dx = col * cellWidth;
+                const dy = row * cellHeight;
+
+                const cellCanvas = state.canvases[i];
+                ctx.drawImage(cellCanvas, dx, dy, cellWidth, cellHeight);
+            }
+
+            // Download
+            outputCanvas.toBlob((blob) => {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `storyboard_composite_${Date.now()}.png`;
+                a.click();
+                URL.revokeObjectURL(url);
+            });
+        });
+
+        resetBtn.addEventListener('click', () => {
+            state.cellAssignments = Array(state.totalCells).fill(0);
+            state.excludedImages = [];
+            state.selectedCell = null;
+            document.querySelectorAll('.cell').forEach(c => c.classList.remove('selected'));
+            updateGrid();
+        });
+
+        // Keyboard navigation - always active
+        document.addEventListener('keydown', (e) => {
+            // Check if all cells have the same assignment (uniform state)
+            const allSame = state.cellAssignments.every(a => a === state.cellAssignments[0]);
+            
+            // NO CELL SELECTED + ALL CELLS SAME = Global navigation mode
+            if (state.selectedCell === null && allSame) {
+                if (e.key === 'ArrowRight' || e.key === '>' || e.key === '.') {
+                    e.preventDefault();
+                    // Change all cells to next image
+                    const availableIndices = [];
+                    for (let i = 0; i < state.images.length; i++) {
+                        if (!state.excludedImages.includes(i)) {
+                            availableIndices.push(i);
+                        }
+                    }
+                    
+                    if (availableIndices.length === 0) return;
+                    
+                    const currentIndex = state.cellAssignments[0];
+                    const currentPos = availableIndices.indexOf(currentIndex);
+                    const nextPos = (currentPos + 1) % availableIndices.length;
+                    const newIndex = availableIndices[nextPos];
+                    
+                    // Set all cells to new index
+                    for (let i = 0; i < 9; i++) {
+                        state.cellAssignments[i] = newIndex;
+                        drawCell(i);
+                    }
+                    return;
+                }
+                else if (e.key === 'ArrowLeft' || e.key === '<' || e.key === ',') {
+                    e.preventDefault();
+                    // Change all cells to previous image
+                    const availableIndices = [];
+                    for (let i = 0; i < state.images.length; i++) {
+                        if (!state.excludedImages.includes(i)) {
+                            availableIndices.push(i);
+                        }
+                    }
+                    
+                    if (availableIndices.length === 0) return;
+                    
+                    const currentIndex = state.cellAssignments[0];
+                    const currentPos = availableIndices.indexOf(currentIndex);
+                    const nextPos = (currentPos - 1 + availableIndices.length) % availableIndices.length;
+                    const newIndex = availableIndices[nextPos];
+                    
+                    // Set all cells to new index
+                    for (let i = 0; i < 9; i++) {
+                        state.cellAssignments[i] = newIndex;
+                        drawCell(i);
+                    }
+                    return;
+                }
+            }
+            
+            // CELL SELECTED = Individual cell navigation
+            if (state.selectedCell === null) return;
+            
+            const cellIndex = state.selectedCell;
+            
+            if (e.key === 'ArrowRight' || e.key === '>' || e.key === '.') {
+                e.preventDefault();
+                // Cycle forward through available images
+                const availableIndices = [];
+                for (let i = 0; i < state.images.length; i++) {
+                    if (!state.excludedImages.includes(i)) {
+                        availableIndices.push(i);
+                    }
+                }
+                
+                if (availableIndices.length === 0) return;
+                
+                const currentIndex = state.cellAssignments[cellIndex];
+                const currentPos = availableIndices.indexOf(currentIndex);
+                const nextPos = (currentPos + 1) % availableIndices.length;
+                
+                state.cellAssignments[cellIndex] = availableIndices[nextPos];
+                drawCell(cellIndex);
+            } 
+            else if (e.key === 'ArrowLeft' || e.key === '<' || e.key === ',') {
+                e.preventDefault();
+                // Cycle backward through available images
+                const availableIndices = [];
+                for (let i = 0; i < state.images.length; i++) {
+                    if (!state.excludedImages.includes(i)) {
+                        availableIndices.push(i);
+                    }
+                }
+                
+                if (availableIndices.length === 0) return;
+                
+                const currentIndex = state.cellAssignments[cellIndex];
+                const currentPos = availableIndices.indexOf(currentIndex);
+                const nextPos = (currentPos - 1 + availableIndices.length) % availableIndices.length;
+                
+                state.cellAssignments[cellIndex] = availableIndices[nextPos];
+                drawCell(cellIndex);
+            }
+            else if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                // Exclude current image from selection
+                const currentImageIndex = state.cellAssignments[cellIndex];
+                
+                if (!state.excludedImages.includes(currentImageIndex)) {
+                    state.excludedImages.push(currentImageIndex);
+                    
+                    // Move to next available image
+                    const availableIndices = [];
+                    for (let i = 0; i < state.images.length; i++) {
+                        if (!state.excludedImages.includes(i)) {
+                            availableIndices.push(i);
+                        }
+                    }
+                    
+                    if (availableIndices.length > 0) {
+                        state.cellAssignments[cellIndex] = availableIndices[0];
+                        drawCell(cellIndex);
+                        
+                        // Trigger red shine animation
+                        const cell = document.querySelector(`.cell[data-cell-index="${cellIndex}"]`);
+                        if (cell) {
+                            cell.classList.add('animate-exclude');
+                            setTimeout(() => {
+                                cell.classList.remove('animate-exclude');
+                            }, 600);
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
