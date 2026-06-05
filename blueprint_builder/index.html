@@ -1187,6 +1187,94 @@
             margin-bottom: 16px;
         }
 
+        /* ── Markdown-rendered blueprint preview ─────────────────────────── */
+        #md-preview-box-prompt.md-rendered {
+            white-space: normal;
+            font-size: 11px;
+            line-height: 1.75;
+            color: var(--text-secondary);
+        }
+        #md-preview-box-prompt.md-rendered h1 {
+            color: var(--accent-gold);
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            margin: 20px 0 10px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid var(--border-secondary);
+        }
+        #md-preview-box-prompt.md-rendered h2 {
+            color: var(--accent-gold-dim);
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.09em;
+            text-transform: uppercase;
+            margin: 18px 0 8px;
+        }
+        #md-preview-box-prompt.md-rendered h3 {
+            color: var(--text-primary);
+            font-size: 11px;
+            font-weight: 600;
+            margin: 14px 0 6px;
+            letter-spacing: 0.05em;
+        }
+        #md-preview-box-prompt.md-rendered h4 {
+            color: var(--text-secondary);
+            font-size: 10px;
+            font-weight: 600;
+            margin: 10px 0 4px;
+            letter-spacing: 0.04em;
+            opacity: 0.85;
+        }
+        #md-preview-box-prompt.md-rendered p {
+            margin: 5px 0;
+            color: var(--text-dim);
+            font-size: 10px;
+        }
+        #md-preview-box-prompt.md-rendered ul {
+            margin: 6px 0;
+            padding-left: 18px;
+        }
+        #md-preview-box-prompt.md-rendered li {
+            color: var(--text-secondary);
+            margin: 4px 0;
+            font-size: 10px;
+            line-height: 1.7;
+        }
+        #md-preview-box-prompt.md-rendered strong {
+            color: var(--text-primary);
+            font-weight: 700;
+        }
+        #md-preview-box-prompt.md-rendered em {
+            color: var(--text-dim);
+            font-style: italic;
+        }
+        #md-preview-box-prompt.md-rendered code {
+            background: rgba(255,255,255,0.05);
+            padding: 1px 5px;
+            border-radius: 3px;
+            font-size: 9px;
+            font-family: 'DM Mono', monospace;
+            color: var(--text-secondary);
+            border: 1px solid var(--border-primary);
+        }
+        #md-preview-box-prompt.md-rendered pre {
+            background: var(--bg-primary);
+            border: 1px solid var(--border-secondary);
+            padding: 12px;
+            border-radius: 4px;
+            overflow-x: auto;
+            margin: 8px 0;
+        }
+        #md-preview-box-prompt.md-rendered pre code {
+            background: none;
+            border: none;
+            padding: 0;
+            font-size: 9px;
+            color: var(--text-dim);
+        }
+
         /* Log */
         .log-box {
             background: #000;
@@ -1356,6 +1444,67 @@
 
         .slider-value {
             color: var(--accent-gold);
+        }
+
+        /* ── Field Status Slider ──────────────────────────────────────────── */
+        .status-slider-wrap {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .status-slider-label-text {
+            font-size: 8px;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--text-dim);
+            flex-shrink: 0;
+            width: 38px;
+        }
+
+        .status-value-badge {
+            font-size: 8px;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            font-weight: 700;
+            flex-shrink: 0;
+            width: 82px;
+            text-align: right;
+        }
+
+        input[type="range"].status-slider {
+            flex: 1;
+            height: 3px;
+            margin: 0;
+            padding: 0;
+            border: none;
+        }
+
+        input[type="range"].status-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            background: var(--status-thumb-color, #4a90d9);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 8px var(--status-thumb-color, rgba(74,144,217,0.5));
+            margin-top: -5px;
+        }
+
+        input[type="range"].status-slider::-moz-range-thumb {
+            width: 14px;
+            height: 14px;
+            background: var(--status-thumb-color, #4a90d9);
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 0 8px var(--status-thumb-color, rgba(74,144,217,0.5));
+        }
+
+        input[type="range"].status-slider::-moz-range-progress {
+            height: 3px;
+            border-radius: 2px 0 0 2px;
         }
 
         input[type="range"] {
@@ -2951,6 +3100,7 @@
         .at-desc { color: var(--text-dim); font-size: 9px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 120px; }
 
     </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
 </head>
 <body>
     <!-- FILE PROTOCOL WARNING -->
@@ -2972,7 +3122,9 @@
             <!-- HEADER -->
             <div class="header">
                 <div class="logo-wrap">
-                    <img class="logo-img" src="https://cdn.jsdelivr.net/gh/Gerry-Malta/Prompt_Studio@main/DZ_logo_color_transparent_s.png" alt="District Zero" onerror="this.style.display='none'">
+                    <a href="https://thedistrictzero.com/" target="_blank" rel="noopener" style="display: flex; align-items: center; text-decoration: none;">
+                        <img class="logo-img" src="https://cdn.jsdelivr.net/gh/Gerry-Malta/Prompt_Studio@main/DZ_logo_color_transparent_s.png" alt="District Zero" onerror="this.style.display='none'">
+                    </a>
                     <div class="logo-div"></div>
                     <span class="logo-sub">AI Lab</span>
                     <div class="logo-div"></div>
@@ -5101,8 +5253,10 @@
                     </div>
                     <div class="field">
                         <label class="label">Prompt</label>
+                        ${buildStatusSlider(shot.id, 'prompt', shot.fields?.prompt?.status)}
                         <textarea id="${shot.id}-prompt" rows="6"
                             placeholder="Write anything. Type @ to reference a lookdev item."
+                            data-status="${shot.fields?.prompt?.status || 'PLACEHOLDER'}"
                             onblur="saveFieldValue('${shot.id}', 'prompt', this.value)"
                         >${shot.fields?.prompt?.value || ''}</textarea>
                     </div>
@@ -5121,30 +5275,38 @@
                     </div>
                     <div class="field">
                         <label class="label">Subject</label>
+                        ${buildStatusSlider(shot.id, 'subject', shot.fields?.subject?.status)}
                         <textarea id="${shot.id}-subject"
                             placeholder="Who or what is in the frame. Type @ to reference a character."
+                            data-status="${shot.fields?.subject?.status || 'PLACEHOLDER'}"
                             onblur="saveFieldValue('${shot.id}', 'subject', this.value)"
                         >${shot.fields?.subject?.value || ''}</textarea>
                         ${buildLookdevDropdown('characters', `${shot.id}-subject`)}
                     </div>
                     <div class="field">
                         <label class="label">Motion</label>
+                        ${buildStatusSlider(shot.id, 'motion', shot.fields?.motion?.status)}
                         <textarea id="${shot.id}-motion"
                             placeholder="What moves and how."
+                            data-status="${shot.fields?.motion?.status || 'PLACEHOLDER'}"
                             onblur="saveFieldValue('${shot.id}', 'motion', this.value)"
                         >${shot.fields?.motion?.value || ''}</textarea>
                     </div>
                     <div class="field">
                         <label class="label">Camera</label>
+                        ${buildStatusSlider(shot.id, 'camera', shot.fields?.camera?.status)}
                         <textarea id="${shot.id}-camera"
                             placeholder="Shot size, angle, lens, camera movement."
+                            data-status="${shot.fields?.camera?.status || 'PLACEHOLDER'}"
                             onblur="saveFieldValue('${shot.id}', 'camera', this.value)"
                         >${shot.fields?.camera?.value || ''}</textarea>
                     </div>
                     <div class="field">
                         <label class="label">Environment</label>
+                        ${buildStatusSlider(shot.id, 'environment', shot.fields?.environment?.status)}
                         <textarea id="${shot.id}-environment"
                             placeholder="Location, time of day, atmosphere. Type @ for an environment ref."
+                            data-status="${shot.fields?.environment?.status || 'PLACEHOLDER'}"
                             onblur="saveFieldValue('${shot.id}', 'environment', this.value)"
                         >${shot.fields?.environment?.value || ''}</textarea>
                         ${buildLookdevDropdown('environments', `${shot.id}-environment`)}
@@ -5152,16 +5314,20 @@
                     </div>
                     <div class="field">
                         <label class="label">Aesthetics</label>
+                        ${buildStatusSlider(shot.id, 'aesthetics', shot.fields?.aesthetics?.status)}
                         <textarea id="${shot.id}-aesthetics"
                             placeholder="Visual style, color grade, film references."
+                            data-status="${shot.fields?.aesthetics?.status || 'PLACEHOLDER'}"
                             onblur="saveFieldValue('${shot.id}', 'aesthetics', this.value)"
                         >${shot.fields?.aesthetics?.value || ''}</textarea>
                         ${buildLookdevDropdown('styles', `${shot.id}-aesthetics`)}
                     </div>
                     <div class="field">
                         <label class="label">Audio</label>
+                        ${buildStatusSlider(shot.id, 'audio', shot.fields?.audio?.status)}
                         <textarea id="${shot.id}-audio"
                             placeholder="Ambience, SFX, music direction."
+                            data-status="${shot.fields?.audio?.status || 'PLACEHOLDER'}"
                             onblur="saveFieldValue('${shot.id}', 'audio', this.value)"
                         >${shot.fields?.audio?.value || ''}</textarea>
                         ${buildLookdevDropdown('sound', `${shot.id}-audio`)}
@@ -5181,31 +5347,39 @@
                     </div>
                     <div class="field">
                         <label class="label" title="Lock each character to a screen zone. Use @Name to reference lookdev items.">Spatial Map</label>
+                        ${buildStatusSlider(shot.id, 'spatialMap', shot.fields?.spatialMap?.status)}
                         <textarea id="${shot.id}-spatialMap"
                             placeholder="@CharacterName — left third&#10;@CharacterName2 — center&#10;Type @ to insert a character reference."
+                            data-status="${shot.fields?.spatialMap?.status || 'PLACEHOLDER'}"
                             onblur="saveFieldValue('${shot.id}', 'spatialMap', this.value)"
                         >${shot.fields?.spatialMap?.value || ''}</textarea>
                         ${buildLookdevDropdown('characters', `${shot.id}-spatialMap`)}
                     </div>
                     <div class="field">
                         <label class="label" title="What each character does — actions, interactions, beats.">Action Plan</label>
+                        ${buildStatusSlider(shot.id, 'actionPlan', shot.fields?.actionPlan?.status)}
                         <textarea id="${shot.id}-actionPlan"
                             placeholder="@CharacterName walks forward slowly.&#10;@CharacterName2 turns to face camera."
+                            data-status="${shot.fields?.actionPlan?.status || 'PLACEHOLDER'}"
                             onblur="saveFieldValue('${shot.id}', 'actionPlan', this.value)"
                         >${shot.fields?.actionPlan?.value || ''}</textarea>
                         ${buildLookdevDropdown('characters', `${shot.id}-actionPlan`)}
                     </div>
                     <div class="field">
                         <label class="label" title="Camera behavior — size, angle, movement, lens.">Camera Plan</label>
+                        ${buildStatusSlider(shot.id, 'cameraPlan', shot.fields?.cameraPlan?.status)}
                         <textarea id="${shot.id}-cameraPlan"
                             placeholder="Shot size, angle, movement, lens."
+                            data-status="${shot.fields?.cameraPlan?.status || 'PLACEHOLDER'}"
                             onblur="saveFieldValue('${shot.id}', 'cameraPlan', this.value)"
                         >${shot.fields?.cameraPlan?.value || ''}</textarea>
                     </div>
                     <div class="field">
                         <label class="label">Environment</label>
+                        ${buildStatusSlider(shot.id, 'environment', shot.fields?.environment?.status)}
                         <textarea id="${shot.id}-environment"
                             placeholder="Location, time of day, atmosphere."
+                            data-status="${shot.fields?.environment?.status || 'PLACEHOLDER'}"
                             onblur="saveFieldValue('${shot.id}', 'environment', this.value)"
                         >${shot.fields?.environment?.value || ''}</textarea>
                         ${buildLookdevDropdown('environments', `${shot.id}-environment`)}
@@ -5213,31 +5387,39 @@
                     </div>
                     <div class="field">
                         <label class="label">Aesthetics</label>
+                        ${buildStatusSlider(shot.id, 'aesthetics', shot.fields?.aesthetics?.status)}
                         <textarea id="${shot.id}-aesthetics"
                             placeholder="Visual style, color grade, film references."
+                            data-status="${shot.fields?.aesthetics?.status || 'PLACEHOLDER'}"
                             onblur="saveFieldValue('${shot.id}', 'aesthetics', this.value)"
                         >${shot.fields?.aesthetics?.value || ''}</textarea>
                         ${buildLookdevDropdown('styles', `${shot.id}-aesthetics`)}
                     </div>
                     <div class="field">
                         <label class="label">Audio</label>
+                        ${buildStatusSlider(shot.id, 'audio', shot.fields?.audio?.status)}
                         <textarea id="${shot.id}-audio"
                             placeholder="Ambience, SFX, music."
+                            data-status="${shot.fields?.audio?.status || 'PLACEHOLDER'}"
                             onblur="saveFieldValue('${shot.id}', 'audio', this.value)"
                         >${shot.fields?.audio?.value || ''}</textarea>
                         ${buildLookdevDropdown('sound', `${shot.id}-audio`)}
                     </div>
                     <div class="field">
                         <label class="label" title="What must stay visually identical across cuts — costume, position, expression.">Continuity</label>
+                        ${buildStatusSlider(shot.id, 'continuity', shot.fields?.continuity?.status)}
                         <textarea id="${shot.id}-continuity"
                             placeholder="What must remain identical across cuts."
+                            data-status="${shot.fields?.continuity?.status || 'PLACEHOLDER'}"
                             onblur="saveFieldValue('${shot.id}', 'continuity', this.value)"
                         >${shot.fields?.continuity?.value || ''}</textarea>
                     </div>
                     <div class="field">
                         <label class="label" title="The last frame of this shot — sets up the next cut.">Final Frame</label>
+                        ${buildStatusSlider(shot.id, 'finalFrame', shot.fields?.finalFrame?.status)}
                         <textarea id="${shot.id}-finalFrame"
                             placeholder="Last frame composition — sets up the next cut."
+                            data-status="${shot.fields?.finalFrame?.status || 'PLACEHOLDER'}"
                             onblur="saveFieldValue('${shot.id}', 'finalFrame', this.value)"
                         >${shot.fields?.finalFrame?.value || ''}</textarea>
                     </div>
@@ -5277,6 +5459,7 @@
                     fieldsHtml = `
                         <div class="field">
                             <label class="label">Prompt</label>
+                            ${buildBracketStatusSlider(shot.id, index, 'prompt', bracket.fieldStatus?.prompt)}
                             <textarea id="${shot.id}-bracket-${index}-prompt" rows="4"
                                 placeholder="Write anything for this bracket. Type @ to reference a lookdev item."
                                 onblur="saveBracketFieldValue('${shot.id}', ${index}, 'prompt', this.value)"
@@ -5286,6 +5469,7 @@
                     fieldsHtml = `
                         <div class="field">
                             <label class="label">Subject</label>
+                            ${buildBracketStatusSlider(shot.id, index, 'subject', bracket.fieldStatus?.subject)}
                             <textarea id="${shot.id}-bracket-${index}-subject"
                                 placeholder="Who or what is in frame."
                                 onblur="saveBracketFieldValue('${shot.id}', ${index}, 'subject', this.value)"
@@ -5294,6 +5478,7 @@
                         </div>
                         <div class="field">
                             <label class="label">Motion</label>
+                            ${buildBracketStatusSlider(shot.id, index, 'motion', bracket.fieldStatus?.motion)}
                             <textarea id="${shot.id}-bracket-${index}-motion"
                                 placeholder="What moves."
                                 onblur="saveBracketFieldValue('${shot.id}', ${index}, 'motion', this.value)"
@@ -5301,6 +5486,7 @@
                         </div>
                         <div class="field">
                             <label class="label">Camera</label>
+                            ${buildBracketStatusSlider(shot.id, index, 'camera', bracket.fieldStatus?.camera)}
                             <textarea id="${shot.id}-bracket-${index}-camera"
                                 placeholder="Camera behavior."
                                 onblur="saveBracketFieldValue('${shot.id}', ${index}, 'camera', this.value)"
@@ -5308,6 +5494,7 @@
                         </div>
                         <div class="field">
                             <label class="label">Environment</label>
+                            ${buildBracketStatusSlider(shot.id, index, 'environment', bracket.fieldStatus?.environment)}
                             <textarea id="${shot.id}-bracket-${index}-environment"
                                 placeholder="Location / atmosphere."
                                 onblur="saveBracketFieldValue('${shot.id}', ${index}, 'environment', this.value)"
@@ -5316,6 +5503,7 @@
                         </div>
                         <div class="field">
                             <label class="label">Aesthetics</label>
+                            ${buildBracketStatusSlider(shot.id, index, 'aesthetics', bracket.fieldStatus?.aesthetics)}
                             <textarea id="${shot.id}-bracket-${index}-aesthetics"
                                 placeholder="Visual style."
                                 onblur="saveBracketFieldValue('${shot.id}', ${index}, 'aesthetics', this.value)"
@@ -5324,6 +5512,7 @@
                         </div>
                         <div class="field">
                             <label class="label">Audio</label>
+                            ${buildBracketStatusSlider(shot.id, index, 'audio', bracket.fieldStatus?.audio)}
                             <textarea id="${shot.id}-bracket-${index}-audio"
                                 placeholder="Sound."
                                 onblur="saveBracketFieldValue('${shot.id}', ${index}, 'audio', this.value)"
@@ -5334,6 +5523,7 @@
                     fieldsHtml = `
                         <div class="field">
                             <label class="label">Spatial Map</label>
+                            ${buildBracketStatusSlider(shot.id, index, 'spatialMap', bracket.fieldStatus?.spatialMap)}
                             <textarea id="${shot.id}-bracket-${index}-spatialMap"
                                 placeholder="@Name — position"
                                 onblur="saveBracketFieldValue('${shot.id}', ${index}, 'spatialMap', this.value)"
@@ -5342,6 +5532,7 @@
                         </div>
                         <div class="field">
                             <label class="label">Action Plan</label>
+                            ${buildBracketStatusSlider(shot.id, index, 'actionPlan', bracket.fieldStatus?.actionPlan)}
                             <textarea id="${shot.id}-bracket-${index}-actionPlan"
                                 placeholder="@Name does..."
                                 onblur="saveBracketFieldValue('${shot.id}', ${index}, 'actionPlan', this.value)"
@@ -5350,6 +5541,7 @@
                         </div>
                         <div class="field">
                             <label class="label">Camera Plan</label>
+                            ${buildBracketStatusSlider(shot.id, index, 'cameraPlan', bracket.fieldStatus?.cameraPlan)}
                             <textarea id="${shot.id}-bracket-${index}-cameraPlan"
                                 placeholder="Shot size, angle, movement."
                                 onblur="saveBracketFieldValue('${shot.id}', ${index}, 'cameraPlan', this.value)"
@@ -5357,6 +5549,7 @@
                         </div>
                         <div class="field">
                             <label class="label">Environment</label>
+                            ${buildBracketStatusSlider(shot.id, index, 'environment', bracket.fieldStatus?.environment)}
                             <textarea id="${shot.id}-bracket-${index}-environment"
                                 placeholder="Location / atmosphere."
                                 onblur="saveBracketFieldValue('${shot.id}', ${index}, 'environment', this.value)"
@@ -5365,6 +5558,7 @@
                         </div>
                         <div class="field">
                             <label class="label">Aesthetics</label>
+                            ${buildBracketStatusSlider(shot.id, index, 'aesthetics', bracket.fieldStatus?.aesthetics)}
                             <textarea id="${shot.id}-bracket-${index}-aesthetics"
                                 placeholder="Visual style."
                                 onblur="saveBracketFieldValue('${shot.id}', ${index}, 'aesthetics', this.value)"
@@ -5373,6 +5567,7 @@
                         </div>
                         <div class="field">
                             <label class="label">Audio</label>
+                            ${buildBracketStatusSlider(shot.id, index, 'audio', bracket.fieldStatus?.audio)}
                             <textarea id="${shot.id}-bracket-${index}-audio"
                                 placeholder="Sound."
                                 onblur="saveBracketFieldValue('${shot.id}', ${index}, 'audio', this.value)"
@@ -5709,11 +5904,135 @@
         function initSliderFills() {
             // Initialize all range inputs with fill
             document.querySelectorAll('input[type="range"]').forEach(slider => {
-                updateSliderFill(slider);
-                slider.addEventListener('input', function() {
-                    updateSliderFill(this);
-                });
+                if (slider.classList.contains('status-slider')) {
+                    updateStatusSliderFill(slider, parseInt(slider.value));
+                    // oninput handler already set inline; no duplicate listener needed
+                } else {
+                    updateSliderFill(slider);
+                    slider.addEventListener('input', function() {
+                        updateSliderFill(this);
+                    });
+                }
             });
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // FIELD STATUS SLIDER
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        const STATUS_LEVELS = ['OFF', 'PLACEHOLDER', 'DRAFT', 'LOCKED', 'CRITICAL'];
+        const STATUS_COLORS = {
+            'OFF':         '#666666',
+            'PLACEHOLDER': '#4a90d9',
+            'DRAFT':       '#4CAF50',
+            'LOCKED':      '#d18d1f',
+            'CRITICAL':    '#e53935'
+        };
+
+        function statusToValue(status) {
+            const idx = STATUS_LEVELS.indexOf((status || 'PLACEHOLDER').toUpperCase());
+            return idx >= 0 ? idx : 1; // default PLACEHOLDER = 1
+        }
+
+        function valueToStatus(val) {
+            return STATUS_LEVELS[parseInt(val)] || 'PLACEHOLDER';
+        }
+
+        function buildStatusSlider(shotId, fieldName, currentStatus) {
+            const status = (currentStatus || 'PLACEHOLDER').toUpperCase();
+            const val = statusToValue(status);
+            const color = STATUS_COLORS[status] || STATUS_COLORS['PLACEHOLDER'];
+            return `<div class="status-slider-wrap">
+                <span class="status-slider-label-text">Status</span>
+                <input type="range" class="status-slider"
+                    id="${shotId}-${fieldName}-status-slider"
+                    min="0" max="4" step="1" value="${val}"
+                    oninput="updateStatusSlider('${shotId}', '${fieldName}', this.value)"
+                    style="--status-thumb-color: ${color};">
+                <span class="status-value-badge" id="${shotId}-${fieldName}-status-label" style="color: ${color};">${status}</span>
+            </div>`;
+        }
+
+        function updateStatusSlider(shotId, fieldName, val) {
+            if (isCurrentVersionReadOnly()) return;
+            const status = valueToStatus(val);
+            const color = STATUS_COLORS[status];
+
+            // Update badge label
+            const label = document.getElementById(`${shotId}-${fieldName}-status-label`);
+            if (label) { label.textContent = status; label.style.color = color; }
+
+            // Update slider fill + thumb colour
+            const slider = document.getElementById(`${shotId}-${fieldName}-status-slider`);
+            if (slider) {
+                slider.style.setProperty('--status-thumb-color', color);
+                updateStatusSliderFill(slider, parseInt(val));
+            }
+
+            // Sync data-status onto the textarea (for extractShotFields compatibility)
+            const textarea = document.getElementById(`${shotId}-${fieldName}`);
+            if (textarea) textarea.dataset.status = status;
+
+            // Save directly to state
+            const shot = state.shots.find(s => s.id === shotId);
+            if (shot) {
+                if (!shot.fields) shot.fields = {};
+                if (!shot.fields[fieldName]) shot.fields[fieldName] = {};
+                shot.fields[fieldName].status = status;
+            }
+
+            // Auto-update version snapshot
+            updateCurrentVersionSnapshot();
+        }
+
+        function updateStatusSliderFill(slider, val) {
+            const percentage = (val / 4) * 100;
+            const status = valueToStatus(val);
+            const color = STATUS_COLORS[status];
+            slider.style.setProperty('--status-thumb-color', color);
+            slider.style.background = `linear-gradient(to right, ${color} 0%, ${color} ${percentage}%, var(--bg-tertiary) ${percentage}%, var(--bg-tertiary) 100%)`;
+        }
+
+        // ── Bracket-specific status slider ───────────────────────────────────────
+
+        function buildBracketStatusSlider(shotId, bracketIndex, fieldName, currentStatus) {
+            const status = (currentStatus || 'PLACEHOLDER').toUpperCase();
+            const val = statusToValue(status);
+            const color = STATUS_COLORS[status] || STATUS_COLORS['PLACEHOLDER'];
+            return `<div class="status-slider-wrap">
+                <span class="status-slider-label-text">Status</span>
+                <input type="range" class="status-slider"
+                    id="${shotId}-bracket-${bracketIndex}-${fieldName}-status-slider"
+                    min="0" max="4" step="1" value="${val}"
+                    oninput="updateBracketStatusSlider('${shotId}', ${bracketIndex}, '${fieldName}', this.value)"
+                    style="--status-thumb-color: ${color};">
+                <span class="status-value-badge" id="${shotId}-bracket-${bracketIndex}-${fieldName}-status-label" style="color: ${color};">${status}</span>
+            </div>`;
+        }
+
+        function updateBracketStatusSlider(shotId, bracketIndex, fieldName, val) {
+            if (isCurrentVersionReadOnly()) return;
+            const status = valueToStatus(val);
+            const color = STATUS_COLORS[status];
+
+            const label = document.getElementById(`${shotId}-bracket-${bracketIndex}-${fieldName}-status-label`);
+            if (label) { label.textContent = status; label.style.color = color; }
+
+            const slider = document.getElementById(`${shotId}-bracket-${bracketIndex}-${fieldName}-status-slider`);
+            if (slider) {
+                slider.style.setProperty('--status-thumb-color', color);
+                updateStatusSliderFill(slider, parseInt(val));
+            }
+
+            // Save to bracket.fieldStatus
+            const shot = state.shots.find(s => s.id === shotId);
+            if (shot && shot.brackets && shot.brackets[bracketIndex]) {
+                const bracket = shot.brackets[bracketIndex];
+                if (!bracket.fieldStatus) bracket.fieldStatus = {};
+                bracket.fieldStatus[fieldName] = status;
+            }
+
+            updateCurrentVersionSnapshot();
         }
 
         // ═══════════════════════════════════════════════════════════════════════════
@@ -5952,8 +6271,11 @@
                         const bEnd   = bStart + (bracket.duration || 0);
                         md += '#### Bracket ' + (bIdx + 1) + '  `[' + ts(bStart) + ' - ' + ts(bEnd) + ']`\n';
                         bracketLabels.forEach(([label, key]) => {
+                            const status = (bracket.fieldStatus?.[key] || 'PLACEHOLDER').toUpperCase();
+                            if (status === 'OFF') return;
                             const v = resolveAtMentions((bracket[key] || '').toString().trim());
-                            if (v) md += '- **' + label + '**: ' + v + '\n';
+                            if (!v && status === 'PLACEHOLDER') return;
+                            md += '- **' + label + '** `[' + status + ']`: ' + (v || '_(empty — fill from context)_') + '\n';
                         });
                         md += '\n';
                     });
@@ -6079,7 +6401,7 @@
                             // Then read from state
                             bracketFields[fieldName] = {
                                 value: bracket[fieldName] || '',
-                                status: 'PLACEHOLDER'
+                                status: bracket.fieldStatus?.[fieldName] || 'PLACEHOLDER'
                             };
                         });
                         return {
@@ -6126,33 +6448,35 @@
                 }
             }
 
-            // Render PROMPT view
-            previewBoxPrompt.innerHTML = promptMd.split('\n').map(rawLine => {
-                const line = esc(rawLine);
+            // Render PROMPT view — marked.js for real markdown, then colorize status tags
+            previewBoxPrompt.classList.add('md-rendered');
 
-                // H1 — section anchors
-                if (rawLine.startsWith('# ')) return '<span style="color: var(--accent-gold); font-weight: 600;">' + line + '</span>';
-                // H2 — sub-sections
-                if (rawLine.startsWith('## ')) return '<span style="color: var(--accent-gold-dim); font-weight: 500;">' + line + '</span>';
-                // H3 / H4 — categories, shots, brackets
-                if (rawLine.startsWith('### ') || rawLine.startsWith('#### ')) return '<span style="color: var(--text-primary);">' + line + '</span>';
+            // Configure marked for clean output
+            marked.use({ gfm: true, breaks: false });
 
-                // status tag inline highlights
-                let out = line
-                    .replace(/\[CRITICAL\]/g,    '<span style="color: var(--accent-gold);">[CRITICAL]</span>')
-                    .replace(/\[LOCKED\]/g,      '<span style="color: #1D9E75;">[LOCKED]</span>')
-                    .replace(/\[DRAFT\]/g,       '<span style="color: var(--text-secondary);">[DRAFT]</span>')
-                    .replace(/\[PLACEHOLDER\]/g, '<span style="color: var(--text-dim);">[PLACEHOLDER]</span>')
-                    .replace(/\[OFF\]/g,         '<span style="color: #cc3333;">[OFF]</span>');
+            let renderedHtml = marked.parse(promptMd);
 
-                // `@image_N` highlight
-                out = out.replace(/(@image_\d+)/g, '<span style="color: var(--accent-gold); font-family: monospace;">$1</span>');
+            // Colorize status tags — marked wraps backtick content as <code>[STATUS]</code>
+            // Apply same hex values as the field status slider
+            renderedHtml = renderedHtml
+                .replace(/<code>\[CRITICAL\]<\/code>/g,
+                    '<code style="color:#e53935;font-weight:700;background:rgba(229,57,53,0.12);border-color:rgba(229,57,53,0.3);">[CRITICAL]</code>')
+                .replace(/<code>\[LOCKED\]<\/code>/g,
+                    '<code style="color:#d18d1f;font-weight:600;background:rgba(209,141,31,0.12);border-color:rgba(209,141,31,0.3);">[LOCKED]</code>')
+                .replace(/<code>\[DRAFT\]<\/code>/g,
+                    '<code style="color:#4CAF50;background:rgba(76,175,80,0.1);border-color:rgba(76,175,80,0.3);">[DRAFT]</code>')
+                .replace(/<code>\[PLACEHOLDER\]<\/code>/g,
+                    '<code style="color:#4a90d9;background:rgba(74,144,217,0.1);border-color:rgba(74,144,217,0.3);">[PLACEHOLDER]</code>')
+                .replace(/<code>\[OFF\]<\/code>/g,
+                    '<code style="color:#666;background:rgba(102,102,102,0.1);border-color:rgba(102,102,102,0.3);">[OFF]</code>');
 
-                // bullet lines stay readable
-                if (rawLine.startsWith('- ')) return '<span style="color: var(--text-secondary);">' + out + '</span>';
+            // Colorize @image_N references
+            renderedHtml = renderedHtml.replace(
+                /<code>(@image_\d+)<\/code>/g,
+                '<code style="color:var(--accent-gold);background:rgba(209,141,31,0.1);border-color:rgba(209,141,31,0.3);">$1</code>'
+            );
 
-                return '<span style="color: var(--text-dim);">' + out + '</span>';
-            }).join('\n');
+            previewBoxPrompt.innerHTML = renderedHtml;
 
             // Render TOOL view - Raw JSON with syntax highlighting
             if (cleanJson) {
@@ -6505,6 +6829,9 @@
                             if (b.fields) {
                                 Object.keys(b.fields).forEach(fieldName => {
                                     restoredBracket[fieldName] = b.fields[fieldName].value || '';
+                                    // Restore per-field status
+                                    if (!restoredBracket.fieldStatus) restoredBracket.fieldStatus = {};
+                                    restoredBracket.fieldStatus[fieldName] = b.fields[fieldName].status || 'PLACEHOLDER';
                                 });
                             }
                             return restoredBracket;
