@@ -1,0 +1,31 @@
+{
+  "comfy_path": "D:\\ComfyUI",
+  "timeout": 70,
+  "order": [
+    {
+      "type": "single",
+      "name": "Skull-1024",
+      "restartComfy": true
+    },
+    {
+      "type": "single",
+      "name": "Skull-1408-1344\u00d7768",
+      "restartComfy": true
+    },
+    {
+      "type": "single",
+      "name": "Skull-1152",
+      "restartComfy": true
+    },
+    {
+      "type": "single",
+      "name": "Skull-1280",
+      "restartComfy": true
+    },
+    {
+      "type": "single",
+      "name": "Skull-1408",
+      "restartComfy": true
+    }
+  ]
+}
