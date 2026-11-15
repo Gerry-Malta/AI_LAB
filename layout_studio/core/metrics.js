@@ -1,7 +1,7 @@
 // Composition metrics: deterministic checks of a framed shot (no AI). Works on the scene JSON + a solved camera pose.
-import { sub, add, norm, dot, len, dist, distXZ, cameraBasis, projectPoint, boxCorners, localToWorld, worldToLocal, worldToLocalDir, rayAABB, facingDir, lerp, toRad, clamp, round } from './vec.js';
+import { sub, add, scale, norm, dot, len, dist, distXZ, cameraBasis, projectPoint, boxCorners, localToWorld, worldToLocal, worldToLocalDir, rayAABB, facingDir, lerp, toRad, clamp, round, mat3T, mat3MulVec } from './vec.js';
 import { fovFor, equivalentFocal } from './lens.js';
-import { keypoints, standinParts, partBox, charTransform } from './standin.js';
+import { keypoints, standinParts, charTransform, poseKey } from './standin.js';
 import { SHOT_SIZES } from './framing.js';
 
 /** Oriented box parts (world transform + local centre/size) for any object kind. Shared with the viewer. */
@@ -18,8 +18,9 @@ export function objectParts(obj) {
       ];
     }
     case 'standin': {
-      const ch = { position: obj.position, facing: (obj.rotation || [0, 0, 0])[1], pose: obj.pose || 'stand', height: obj.height || 1.75 };
-      return standinParts(ch.pose, ch.height).map((p) => { const b = partBox(p); return { t: charTransform(ch), center: b.center, size: b.size, tag: p.tag }; });
+      const ch = { position: obj.position, facing: (obj.rotation || [0, 0, 0])[1], pose: obj.pose || 'stand', height: obj.height || 1.75, age: obj.age };
+      const T = charTransform(ch);
+      return standinParts(ch.pose, ch.height, ch.age).map((p) => ({ t: T, center: p.center, size: p.size, m: p.m, shape: p.kind === 'capsule' ? 'capsule' : p.kind === 'box' ? 'box' : 'sphere', radius: p.radius, length: p.length, tag: p.tag }));
     }
     case 'sphere': return [{ t, center: [0, s[1] / 2, 0], size: [s[0], s[1], s[2] ?? s[0]], tag: 'body', shape: 'sphere' }];
     case 'cone': return [{ t, center: [0, s[1] / 2, 0], size: [s[0], s[1], s[2] ?? s[0]], tag: 'body', shape: 'cone' }];
@@ -29,11 +30,14 @@ export function objectParts(obj) {
   }
 }
 
-/** Sample points of an oriented box: 8 corners, 6 face centres, centre (so cones/spheres and straddling boxes are caught). */
+/** A point of a part given an offset in the part's own frame (oriented parts carry a rotation m). */
+const partPoint = (part, d) => localToWorld(part.t, add(part.center, part.m ? mat3MulVec(part.m, d) : d));
+/** Sample points of a part: 8 corners, 6 face centres and the centre (catches cones, spheres and straddling boxes). */
 function boxSamples(part) {
-  const pts = boxCorners(part.t, part.center, part.size);
-  const [cx, cy, cz] = part.center, [sx, sy, sz] = part.size;
-  for (const d of [[sx / 2, 0, 0], [-sx / 2, 0, 0], [0, sy / 2, 0], [0, -sy / 2, 0], [0, 0, sz / 2], [0, 0, -sz / 2], [0, 0, 0]]) pts.push(localToWorld(part.t, [cx + d[0], cy + d[1], cz + d[2]]));
+  const [sx, sy, sz] = part.size.map((v) => v / 2);
+  const pts = [];
+  for (let i = 0; i < 8; i++) pts.push(partPoint(part, [i & 1 ? sx : -sx, i & 2 ? sy : -sy, i & 4 ? sz : -sz]));
+  for (const d of [[sx, 0, 0], [-sx, 0, 0], [0, sy, 0], [0, -sy, 0], [0, 0, sz], [0, 0, -sz], [0, 0, 0]]) pts.push(partPoint(part, d));
   return pts;
 }
 const inFrustum = (pts, eye, basis, vfov, aspect) => {
@@ -56,11 +60,19 @@ function quadRoot(a, b, c, ok) {
  * Returns the ray parameter t (world metres for unscaled objects) or null.
  */
 function rayPart(origin, dir, part) {
-  const lo = worldToLocal(part.t, origin), ld = worldToLocalDir(part.t, dir);
+  let o = sub(worldToLocal(part.t, origin), part.center), ld = worldToLocalDir(part.t, dir);
+  if (part.m) { const mt = mat3T(part.m); o = mat3MulVec(mt, o); ld = mat3MulVec(mt, ld); }
   const [sx, sy, sz] = part.size;
-  const o = [lo[0] - part.center[0], lo[1] - part.center[1], lo[2] - part.center[2]];
   const shape = part.shape || 'box';
   if (shape === 'box') return rayAABB(o, ld, [-sx / 2, -sy / 2, -sz / 2], [sx / 2, sy / 2, sz / 2]);
+  if (shape === 'capsule') {
+    // segment along the part's Y axis, half length h, radius r: side wall plus two end spheres
+    const r = part.radius, h = part.length / 2;
+    let hit = null; const keep = (t) => { if (t != null && t > 0 && (hit == null || t < hit)) hit = t; };
+    keep(quadRoot(ld[0] * ld[0] + ld[2] * ld[2], 2 * (o[0] * ld[0] + o[2] * ld[2]), o[0] * o[0] + o[2] * o[2] - r * r, (t) => Math.abs(o[1] + ld[1] * t) <= h));
+    for (const cy of [-h, h]) { const oy = o[1] - cy; keep(quadRoot(ld[0] * ld[0] + ld[1] * ld[1] + ld[2] * ld[2], 2 * (o[0] * ld[0] + oy * ld[1] + o[2] * ld[2]), o[0] * o[0] + oy * oy + o[2] * o[2] - r * r, () => true)); }
+    return hit;
+  }
   const ox = o[0] / (sx / 2), oz = o[2] / (sz / 2), dx = ld[0] / (sx / 2), dz = ld[2] / (sz / 2);
   if (shape === 'sphere') {
     const oy = o[1] / (sy / 2), dy = ld[1] / (sy / 2);
@@ -82,6 +94,29 @@ function rayPart(origin, dir, part) {
   return best;
 }
 
+/** Is a world point inside a part? */
+function insidePart(pt, part) {
+  let o = sub(worldToLocal(part.t, pt), part.center);
+  if (part.m) o = mat3MulVec(mat3T(part.m), o);
+  const [hx, hy, hz] = part.size.map((v) => v / 2);
+  switch (part.shape || 'box') {
+    case 'sphere': return (o[0] / hx) ** 2 + (o[1] / hy) ** 2 + (o[2] / hz) ** 2 <= 1;
+    case 'capsule': { const y = clamp(o[1], -part.length / 2, part.length / 2); return Math.hypot(o[0], o[1] - y, o[2]) <= part.radius; }
+    case 'cylinder': return Math.abs(o[1]) <= hy && (o[0] / hx) ** 2 + (o[2] / hz) ** 2 <= 1;
+    case 'cone': { const Y = (o[1] + hy) / (2 * hy); return Y >= 0 && Y <= 1 && (o[0] / hx) ** 2 + (o[2] / hz) ** 2 <= (1 - Y) ** 2; }
+    default: return Math.abs(o[0]) <= hx && Math.abs(o[1]) <= hy && Math.abs(o[2]) <= hz;
+  }
+}
+/** Conservative bounding sphere of an object (for culling before ray tests). */
+function boundSphere(o) {
+  const sc = Math.max(...(o.scale || [1, 1, 1]).map(Math.abs));
+  if (o.kind === 'standin') return { c: add(o.position, [0, 0.5, 0]), r: (o.height || 1.75) * 1.05 };
+  const s = o.size || [1, 1, 1];
+  const h = o.kind === 'tree' ? s[1] : s[1];
+  const w = o.kind === 'tree' ? s[0] : Math.max(s[0], s[2] ?? s[0]);
+  return { c: add(o.position, [0, (h * sc) / 2, 0]), r: (0.5 * Math.hypot(w, h, o.kind === 'tree' ? s[0] : s[2] ?? s[0]) * sc) + 0.01 };
+}
+
 /** Resolve the subject (object or character id) into a character-like record using the active blocking. */
 export function resolveSubject(scene, shot, blocking) {
   const id = shot.subject;
@@ -90,7 +125,7 @@ export function resolveSubject(scene, shot, blocking) {
   if (!obj) return null;
   if (obj.kind === 'standin') {
     const b = (blocking && blocking[id]) || {};
-    return { id, kind: 'standin', name: obj.name || id, position: b.position || obj.position, facing: b.facing ?? (obj.rotation || [0, 0, 0])[1], pose: b.pose || obj.pose || 'stand', height: obj.height || 1.75 };
+    return { id, kind: 'standin', name: obj.name || id, position: b.position || obj.position, facing: b.facing ?? (obj.rotation || [0, 0, 0])[1], pose: b.pose || obj.pose || 'stand', height: obj.height || 1.75, age: obj.age };
   }
   return { id, kind: obj.kind, name: obj.name || id, position: obj.position, size: obj.size || [1, 1, 1], facing: (obj.rotation || [0, 0, 0])[1] };
 }
@@ -143,21 +178,22 @@ export function evaluateFrame(scene, shot, pose, blocking, opts = {}) {
     const topY = Math.max(...ys), botY = Math.min(...ys), minX = Math.min(...xs), maxX = Math.max(...xs);
     if (!eyes.behind) {
       // measured size: which keypoint is cut by the bottom edge
-      const order = ['feet', 'knees', 'thigh', 'hips', 'chest', 'shoulders', 'chin', 'mouth', 'brow', 'headTop'];
-      let cut = 'feet';
-      for (const k of order) { if (proj[k].y < -1) cut = k; else break; }
+      // first body landmark below the bottom edge, reading from the head down (works for seated poses with knees up)
+      const order = ['headTop', 'brow', 'mouth', 'chin', 'shoulders', 'chest', 'hips', 'thigh', 'knees', 'feet'];
+      let cut = null;
+      for (const k of order) { if (!proj[k].behind && proj[k].y < -1) { cut = k; break; } }
       const visibleFrac = (Math.min(1, topY) - Math.max(-1, botY)) / 2;
-      const lying = ['lie_prone', 'lie_supine'].includes(subject.pose);
+      const lying = ['lie_prone', 'lie_supine'].includes(poseKey(subject.pose));
       const headFrac = Math.max(0, (proj.headTop.y - proj.chin.y) / 2); // head height as a fraction of frame height
       const byHead = headFrac >= 0.9 ? 'ECU' : headFrac >= 0.72 ? 'BCU' : headFrac >= 0.5 ? 'CU' : headFrac >= 0.31 ? 'MCU' : headFrac >= 0.21 ? 'MS' : headFrac >= 0.15 ? 'MLS' : headFrac >= 0.085 ? 'FS' : headFrac >= 0.035 ? 'WS' : 'EWS';
       let measured;
       if (lying) measured = byHead;
-      else if (cut === 'feet') measured = visibleFrac > 0.78 ? 'FS' : visibleFrac > 0.28 ? 'WS' : 'EWS';
-      else measured = { knees: 'MLS', thigh: 'MLS', hips: 'MS', chest: 'MCU', shoulders: 'CU', chin: 'BCU', mouth: 'ECU', brow: 'ECU', headTop: 'ECU' }[cut] || 'MS';
+      else if (!cut) measured = visibleFrac > 0.78 ? 'FS' : visibleFrac > 0.28 ? 'WS' : 'EWS';
+      else measured = { feet: 'FS', knees: 'MLS', thigh: 'MLS', hips: 'MS', chest: 'MCU', shoulders: 'CU', chin: 'BCU', mouth: 'ECU', brow: 'ECU', headTop: 'ECU' }[cut] || 'MS';
       const headroom = (1 - head.y) / 2; // fraction of frame height above head top
       const requested = opts.expectedSize || shot.size;
       const sizeOk = !requested || requested === 'INSERT' || requested === measured || Math.abs(SIZE_ORDER.indexOf(requested) - SIZE_ORDER.indexOf(measured)) <= 1;
-      res.size = { requested, measured, subjectHeightFrac: round(visibleFrac, 2), headFrac: round(headFrac, 2), cutAt: lying ? 'head-rule' : cut, ok: sizeOk };
+      res.size = { requested, measured, subjectHeightFrac: round(visibleFrac, 2), headFrac: round(headFrac, 2), cutAt: lying ? 'head-rule' : (cut || 'none'), ok: sizeOk };
       if (!sizeOk) flag('warn', `Requested ${requested} but the frame reads as ${measured}.`);
       const spec = SHOT_SIZES[requested] || {};
       const wantHeadroom = spec.headroom ?? 0.1;
@@ -218,8 +254,8 @@ export function evaluateFrame(scene, shot, pose, blocking, opts = {}) {
       let tested = 0, blocked = 0; const by = new Set();
       for (const part of parts) {
         const [cx, cy, cz] = part.center, sy = part.size[1];
-        for (const lp of [[cx, cy + sy / 2 - 0.01, cz], [cx, cy, cz]]) {
-          const wp = localToWorld(part.t, lp);
+        for (const d of [[0, sy / 2 - 0.01, 0], [0, 0, 0]]) {
+          const wp = partPoint(part, d);
           if (!projectPoint(wp, eye, basis, vfov, aspect).inFrame) continue;
           tested++;
           const dir = norm(sub(wp, eye)), maxT = dist(eye, wp) - 0.05;
@@ -235,6 +271,34 @@ export function evaluateFrame(scene, shot, pose, blocking, opts = {}) {
       res.occlusion = { occluded: blocked > 0, by: [...by], tested, blocked };
       if (tested && blocked === tested) flag('bad', `Subject hidden behind ${[...by].slice(0, 3).join(', ')}.`);
       else if (blocked) flag(shot.allowOcclusion ? 'info' : 'warn', `Subject partly hidden by ${[...by].slice(0, 3).join(', ')}.`);
+    }
+  }
+
+  // ---- near objects: camera inside one, or one filling the frame in the foreground ----
+  {
+    const ref0 = subjectDist || dist(eye, pose.target);
+    const nearLimit = Math.max(0.4, 0.5 * ref0);
+    const tanV = Math.tan(toRad(vfov) / 2), tanH = tanV * aspect;
+    const near = objects.filter((o) => o.kind !== 'plane' && !(subject && o.id === subject.id) && (() => { const b = boundSphere(o); return dist(eye, b.c) - b.r < nearLimit; })());
+    const nearParts = near.map((o) => ({ o, parts: objectParts(o) }));
+    for (const { o, parts } of nearParts) if (parts.some((p) => insidePart(eye, p))) flag('bad', `Camera is inside ${o.name || o.id}.`);
+    if (nearParts.length) {
+      const cover = new Map(); let n = 0;
+      for (let iy = 0; iy < 5; iy++) for (let ix = 0; ix < 9; ix++) {
+        const dir = norm(add(basis.forward, add(scale(basis.right, (-0.9 + (1.8 * ix) / 8) * tanH), scale(basis.up, (-0.85 + (1.7 * iy) / 4) * tanV))));
+        n++;
+        let best = null, who = null;
+        for (const { o, parts } of nearParts) for (const part of parts) { const t = rayPart(eye, dir, part); if (t != null && t > 0.02 && (best == null || t < best)) { best = t; who = o; } }
+        if (who && best < nearLimit) cover.set(who, (cover.get(who) || 0) + 1);
+      }
+      const covered = [];
+      for (const [o, c] of cover) {
+        const frac = c / n; covered.push({ name: o.name || o.id, frac: round(frac, 2) });
+        const isChar = o.kind === 'standin';
+        const warnAt = shot.allowOcclusion && isChar ? 0.6 : 0.35, badAt = shot.allowOcclusion && isChar ? 0.8 : 0.55;
+        if (frac >= warnAt) flag(frac >= badAt ? 'bad' : 'warn', `${o.name || o.id} fills ${Math.round(frac * 100)}% of the frame in the foreground.`);
+      }
+      res.foregroundCover = covered;
     }
   }
 
@@ -254,7 +318,7 @@ export function evaluateFrame(scene, shot, pose, blocking, opts = {}) {
     layers[bucket].push(o.name || o.id);
   }
   res.depth = { fg: layers.fg, mg: layers.mg, bg: layers.bg, counts: [layers.fg.length, layers.mg.length, layers.bg.length] };
-  if (shot.wantForeground && !layers.fg.length) flag('warn', 'No foreground element although the shot asks for one.');
+  if ((opts.wantForeground ?? shot.wantForeground) && !layers.fg.length) flag('warn', 'No foreground element although the shot asks for one.');
   if (!layers.bg.length && !layers.mg.length && !['BCU', 'ECU', 'INSERT'].includes(shot.size)) flag('info', 'Nothing behind the subject: flat depth.');
 
   // ---- score ----

@@ -1,5 +1,5 @@
 // Render a scene's shots in sequence to an MP4 (previs of the edit), frame by frame from the shot cameras.
-// usage: node tools/render_mp4.mjs <scene.json path relative to layout_studio> <out.mp4> [--fps 24] [--width 1920] [--height 804] [--shots 1A,1B] [--limit N] [--crf 18]
+// usage: node tools/render_mp4.mjs <scene.json path relative to layout_studio> <out.mp4> [--fps 24] [--width 1920] [--height 804] [--ss 1.5] [--shots 1A,1B] [--limit N] [--crf 18]
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -14,7 +14,7 @@ const opt = (name, def) => { const i = args.indexOf('--' + name); return i >= 0 
 const positional = args.filter((a, i) => !a.startsWith('--') && (i === 0 || !args[i - 1].startsWith('--')));
 const scenePath = positional[0] || 'scenes/demo/street_corner.json';
 const out = positional[1] || scenePath.replace(/\.json$/, '_previs.mp4');
-const fps = +opt('fps', 24), W = +opt('width', 1920), H = +opt('height', 804), crf = +opt('crf', 18), limit = +opt('limit', 0);
+const fps = +opt('fps', 24), W = +opt('width', 1920), H = +opt('height', 804), crf = +opt('crf', 18), limit = +opt('limit', 0), ss = +opt('ss', 1.5);
 const onlyShots = opt('shots', '') ? opt('shots', '').split(',') : null;
 const ffmpegBin = process.env.FFMPEG || 'ffmpeg';
 
@@ -48,7 +48,7 @@ outer: for (const s of seq) {
   const n = Math.max(1, Math.round(s.duration_s * fps));
   for (let i = 0; i < n; i++) {
     const t = n > 1 ? i / (n - 1) : 0;
-    const dataUrl = await page.evaluate(([id, t, w, h, fps]) => LS.api.renderFrame(id, t, w, h, { fps }), [s.id, t, W, H, fps]);
+    const dataUrl = await page.evaluate(([id, t, w, h, fps, ss]) => LS.api.renderFrame(id, t, w, h, { fps, ss }), [s.id, t, W, H, fps, ss]);
     const buf = Buffer.from(dataUrl.slice(dataUrl.indexOf(',') + 1), 'base64');
     if (!ff.stdin.write(buf)) await once(ff.stdin, 'drain');
     done++;

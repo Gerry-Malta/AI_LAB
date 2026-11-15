@@ -2,7 +2,7 @@
 // This is what the agent uses to place cameras deterministically; the user can then nudge in the viewport.
 import { add, sub, scale, norm, lerp, rotateY, facingDir, cameraBasis, dot, cross, dist, toRad, toDeg, clamp, distXZ, roundV, round } from './vec.js';
 import { fovFor, activeGate, LENS_KITS } from './lens.js';
-import { keypoints } from './standin.js';
+import { keypoints, poseKey } from './standin.js';
 
 /**
  * Shot sizes. Cut sizes frame [bottom keypoint .. top keypoint] with headroom (fraction of frame height).
@@ -23,11 +23,21 @@ export const SHOT_SIZES = {
 export const SHOT_SIZE_IDS = Object.keys(SHOT_SIZES);
 
 const minY = (kp) => Math.min(...Object.values(kp).map((p) => p[1]));
+/** Head height as a fraction of the frame height for each size (centre of the bins the shot check uses). */
+export const HEAD_FRACTION = { EWS: 0.02, WS: 0.06, FS: 0.115, MLS: 0.18, MS: 0.26, MCU: 0.4, CU: 0.6, BCU: 0.8, ECU: 1.1 };
+const isLying = (pose) => ['lie_prone', 'lie_supine'].includes(poseKey(pose));
 
 /** Frame height needed (metres, at the subject plane) and the frame centre height for a subject + size. */
 export function frameSpan(ch, sizeId, headroomOverride) {
   const spec = SHOT_SIZES[sizeId] || SHOT_SIZES.MS;
   const kp = keypoints(ch);
+  if (!spec.fill && isLying(ch.pose)) {
+    // lying subjects have almost no vertical extent: size the frame on the head, like the shot check measures it
+    const hf = HEAD_FRACTION[sizeId] || 0.26;
+    const F = dist(kp.headTop, kp.chin) / hf;
+    const yc = kp.headTop[1] + (headroomOverride ?? spec.headroom ?? 0.08) * F - F / 2;
+    return { F, yc, anchor: lerp(kp.eyes, kp.hips, clamp(0.35 - hf * 0.4, 0, 0.35)), kp, spec };
+  }
   let F, yb, anchor;
   if (spec.fill) {
     const top = kp.headTop[1], bottom = minY(kp);
@@ -35,11 +45,16 @@ export function frameSpan(ch, sizeId, headroomOverride) {
     yb = bottom - spec.bottomMargin * F;
     anchor = kp.hips;
   } else {
-    const top = kp[spec.top][1], bottom = kp[spec.bottom][1];
-    const h = headroomOverride ?? spec.headroom, bm = spec.bottomMargin || 0;
-    F = Math.max(0.05, top - bottom) / Math.max(0.2, 1 - h - bm);
-    yb = bottom - bm * F;
-    anchor = lerp(kp[spec.top], kp[spec.bottom], 0.5);
+    let bottomName = spec.bottom, bm = spec.bottomMargin || 0;
+    // seated with the knees up: thigh / knee cuts are meaningless, frame the whole seated figure instead
+    if ((bottomName === 'thigh' || bottomName === 'knees') && kp[bottomName][1] > kp.hips[1]) { bottomName = 'feet'; bm = 0.04; }
+    const top = kp[spec.top][1], bottom = kp[bottomName][1];
+    const h = headroomOverride ?? spec.headroom;
+    // the bottom edge cuts 3% of the frame above the landmark (a cut goes through it), or leaves a margin below the feet
+    const c = bottomName === 'feet' ? -bm : 0.03;
+    F = Math.max(0.05, top - bottom) / Math.max(0.2, 1 - h + c);
+    yb = bottom + c * F;
+    anchor = lerp(kp[spec.top], kp[bottomName], 0.5);
   }
   return { F, yc: yb + F / 2, anchor, kp, spec };
 }
@@ -180,8 +195,10 @@ export function solveOTS(o) {
   }
   const { vfov } = fovFor(Object.assign({}, lens, { focal_mm: focal }));
   const F = 2 * d * Math.tan(toRad(vfov) / 2), Fw = F * lens.aspect;
-  // bg subject on the far third, fg shoulder on the near third
-  const target = add([kbg.eyes[0], kbg.eyes[1] - 0.12 * F, kbg.eyes[2]], scale(right, -side * (o.offset ?? 0.18) * Fw));
+  // bg subject on the far third, fg shoulder on the near third; vertically the eyes sit high but the head keeps its headroom
+  const h = (SHOT_SIZES[o.fitSize || 'MCU'] || {}).headroom ?? 0.08;
+  const cy = Math.max(kbg.eyes[1] - 0.12 * F, kbg.headTop[1] + h * F - F / 2);
+  const target = add([kbg.eyes[0], cy, kbg.eyes[2]], scale(right, -side * (o.offset ?? 0.18) * Fw));
   return { position: roundV(position), target: roundV(target), distance: round(d, 2), focal_mm: focal, frameHeight: round(F, 2), notes: [] };
 }
 

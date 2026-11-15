@@ -26,42 +26,27 @@ const beatBlocking = (id) => (getBeat(id) || {}).blocking || {};
 const standins = () => objects().filter((o) => o.kind === 'standin');
 const activeBeatId = () => { const sh = currentShot(); return sh ? (sh.beat || null) : S.beatId; };
 
-function blockingAt(shot, t) {
-  const idA = shot.beatA || shot.beat, idB = shot.beatB || shot.beat;
-  const bA = beatBlocking(idA), bB = beatBlocking(idB);
-  if (idA === idB || !shot.beatB) return bA;
-  const s = core.ease('smooth', t);
-  const out = {};
-  for (const o of standins()) {
-    const a = bA[o.id] || { position: o.position, facing: o.rotation[1], pose: o.pose };
-    const b = bB[o.id] || a;
-    const pa = a.position || o.position, pb = b.position || pa;
-    const moving = core.dist(pa, pb) > 0.3 && s > 0.03 && s < 0.97;
-    out[o.id] = { position: core.lerp(pa, pb, s), facing: core.lerpAngle(a.facing ?? o.rotation[1], b.facing ?? a.facing ?? o.rotation[1], s), pose: moving && [a.pose, b.pose].some((p) => !p || p === 'stand' || p === 'walk' || p === 'crouch' || p === 'sit_ground') ? 'walk' : (s < 0.5 ? (a.pose || o.pose) : (b.pose || o.pose)), visible: s < 0.5 ? a.visible : b.visible };
-  }
-  return out;
-}
+const blockingAt = (shot, t) => core.blockingAt(S.scene, shot, t);
 const currentBlocking = () => { const sh = currentShot(); return sh ? blockingAt(sh, S.t) : beatBlocking(S.beatId); };
 
 function solvedFor(shot) {
   const key = S.version;
   const c = S.solvedCache.get(shot.id);
   if (c && c.key === key) return c.res;
-  const subj = core.resolveSubject(S.scene, shot, beatBlocking(shot.beat));
-  const res = core.solveRig(shot, { subject: subj && subj.position });
+  const res = core.solveShot(S.scene, shot);
   S.solvedCache.set(shot.id, { key, res });
   return res;
 }
 function evaluateAt(shot, t) {
   const solved = solvedFor(shot);
-  const expected = ((t < 0.5 ? shot.framing && shot.framing.A : shot.framing && shot.framing.B) || {}).size || shot.size;
-  return core.evaluateFrame(S.scene, shot, solved.pose(t), blockingAt(shot, t), { expectedSize: expected });
+  const def = (t < 0.5 ? shot.framing && shot.framing.A : shot.framing && shot.framing.B) || {};
+  return core.evaluateFrame(S.scene, shot, solved.pose(t), blockingAt(shot, t), { expectedSize: def.size || shot.size, wantForeground: def.wantForeground });
 }
 function scoreFor(shot) {
   const c = S.scoreCache.get(shot.id);
   if (c && c.key === S.version) return c.score;
   let score = evaluateAt(shot, 0).score;
-  if (shot.keys.B) score = Math.min(score, evaluateAt(shot, 1).score);
+  if (shot.keys.B || (shot.beatA && shot.beatB && shot.beatA !== shot.beatB)) score = Math.min(score, evaluateAt(shot, 0.5).score, evaluateAt(shot, 1).score);
   S.scoreCache.set(shot.id, { key: S.version, score });
   return score;
 }
@@ -90,9 +75,18 @@ function loadScene(json, name) {
   S.selectedId = null; S.shotId = null; S.beatId = (beats()[0] || {}).id || null; S.t = 0; S.playing = false; S.undo = []; S.dirty = false; S.lookThrough = false; vp.lookThrough = false;
   invalidate();
   vp.setWorld(S.scene.world); vp.buildObjects(objects()); vp.applyBlocking(objects(), currentBlocking()); vp.setSelected(null);
+  fitShadows();
   frameAll();
   refreshAll();
   if (shots().length) selectShot(shots()[0].id, { fly: false });
+}
+function fitShadows() {
+  const pts = objects().filter((o) => o.role !== 'ENV' && o.kind !== 'plane').map((o) => o.position);
+  for (const b of beats()) for (const v of Object.values(b.blocking || {})) if (v.position) pts.push(v.position);
+  if (!pts.length) return vp.fitShadows([0, 0, 0], 30);
+  const min = [Infinity, Infinity], max = [-Infinity, -Infinity];
+  for (const p of pts) { min[0] = Math.min(min[0], p[0]); min[1] = Math.min(min[1], p[2]); max[0] = Math.max(max[0], p[0]); max[1] = Math.max(max[1], p[2]); }
+  vp.fitShadows([(min[0] + max[0]) / 2, 0, (min[1] + max[1]) / 2], Math.hypot(max[0] - min[0], max[1] - min[1]) / 2 + 14);
 }
 function frameAll() {
   const pts = objects().filter((o) => o.role !== 'ENV' && o.kind !== 'plane').map((o) => o.position);
@@ -130,7 +124,7 @@ function refreshOutliner() {
     if (!list.length) continue;
     html += `<div class="group">${role} · ${list.length}</div>`;
     const shown = role === 'ENV' && list.length > 60 && !f ? list.slice(0, 60) : list;
-    for (const o of shown) html += `<div class="row ${o.id === S.selectedId ? 'selected' : ''}" data-id="${esc(o.id)}"><span class="dot" style="background:${esc(o.color || ROLE_COLORS[o.role] || '#888')}"></span><span class="name">${esc(o.name || o.id)}</span><span class="tag">${esc(o.kind === 'standin' ? (o.pose || 'stand') : o.kind)}</span><span class="eye ${o.visible === false ? 'off' : ''}" data-eye="${esc(o.id)}" title="toggle visibility">◉</span></div>`;
+    for (const o of shown) html += `<div class="row ${o.id === S.selectedId ? 'selected' : ''}" data-id="${esc(o.id)}"><span class="dot" style="background:${esc(o.color || ROLE_COLORS[o.role] || '#888')}"></span><span class="name">${esc(o.name || o.id)}</span><span class="tag">${esc(o.kind === 'standin' ? core.poseKey(o.pose) : o.kind)}</span><span class="eye ${o.visible === false ? 'off' : ''}" data-eye="${esc(o.id)}" title="toggle visibility">◉</span></div>`;
     if (shown.length < list.length) html += `<div class="row"><span class="tag">… ${list.length - shown.length} more (use the filter)</span></div>`;
   }
   box.innerHTML = html || '<div class="empty">No objects. Add proxies with the buttons above.</div>';
@@ -149,19 +143,21 @@ function refreshProps() {
   html += `<div class="field"><label>color</label><div class="pair"><input type="color" data-f="color" value="${esc(/^#[0-9a-f]{6}$/i.test(o.color || '') ? o.color : '#888888')}"><input data-f="color" value="${esc(o.color || '')}"></div></div>`;
   if (o.kind === 'standin') {
     html += `<div class="field"><label>height m</label><input type="number" step="0.01" data-f="height" value="${o.height || 1.75}"></div>`;
+    html += `<div class="field"><label>age</label><input type="number" step="1" data-f="age" value="${o.age ?? ''}" placeholder="auto from height"></div>`;
     if (beatId) {
       html += `<h4>blocking · beat ${esc(beatId)} ${bl ? '' : '<span class="badge warn">not set (using rest)</span>'}</h4>`;
       const p = bl ? bl.position : o.position;
       html += `<div class="field"><label>position</label>${xyz('bl.position', p)}</div>`;
       html += `<div class="field"><label>facing °</label><input type="number" step="1" data-f="bl.facing" value="${bl ? (bl.facing ?? o.rotation[1]) : o.rotation[1]}"></div>`;
-      html += `<div class="field"><label>pose</label><select data-f="bl.pose">${opt(core.POSES, bl ? (bl.pose || o.pose) : o.pose, (p) => core.POSE_NAMES[p])}</select></div>`;
+      html += `<div class="field"><label>pose</label><select data-f="bl.pose">${opt(core.POSES, core.poseKey(bl ? (bl.pose || o.pose) : o.pose), (p) => core.POSE_NAMES[p])}</select></div>`;
       html += `<div class="field"><label>visible</label><input type="checkbox" data-f="bl.visible" ${(bl ? bl.visible : o.visible) === false ? '' : 'checked'}></div>`;
+      html += actingHTML(bl ? (bl.pose || o.pose) : o.pose);
       html += `<div class="note">Gizmo moves edit this beat. Rest transform below.</div>`;
     }
     html += `<h4>rest transform</h4>`;
     html += `<div class="field"><label>position</label>${xyz('position', o.position)}</div>`;
     html += `<div class="field"><label>facing °</label><input type="number" step="1" data-f="rotation.1" value="${o.rotation[1]}"></div>`;
-    html += `<div class="field"><label>pose</label><select data-f="pose">${opt(core.POSES, o.pose || 'stand', (p) => core.POSE_NAMES[p])}</select></div>`;
+    html += `<div class="field"><label>pose</label><select data-f="pose">${opt(core.POSES, core.poseKey(o.pose), (p) => core.POSE_NAMES[p])}</select></div>`;
   } else {
     html += `<div class="field"><label>position</label>${xyz('position', o.position)}</div>`;
     html += `<div class="field"><label>rotation °</label>${xyz('rotation', o.rotation, 1)}</div>`;
@@ -175,6 +171,24 @@ function refreshProps() {
   html += `<div class="btnrow"><button class="small" data-act="frame">Frame (F)</button><button class="small" data-act="dup">Duplicate</button><button class="small" data-act="ground">Drop to ground</button><button class="small" data-act="del" style="color:var(--bad)">Delete</button></div>`;
   box.innerHTML = html;
 }
+const ACTING = [['head', 'pitch', 'head down'], ['head', 'yaw', 'head turn ←'], ['neck', 'pitch', 'neck down'], ['spine', 'pitch', 'lean fwd'], ['spine', 'yaw', 'twist ←'],
+  ['shoulderL', 'flex', 'L arm fwd'], ['shoulderL', 'abd', 'L arm out'], ['elbowL', 'flex', 'L elbow'], ['shoulderR', 'flex', 'R arm fwd'], ['shoulderR', 'abd', 'R arm out'], ['elbowR', 'flex', 'R elbow'],
+  ['hipL', 'flex', 'L thigh up'], ['kneeL', 'flex', 'L knee'], ['hipR', 'flex', 'R thigh up'], ['kneeR', 'flex', 'R knee']];
+/** Joint-angle fields for the acting of a stand-in in the current beat (values are the resolved angles, degrees). */
+function actingHTML(pose) {
+  const A = core.resolvePose(pose), custom = pose && typeof pose === 'object' && pose.base;
+  let h = `<details class="acting" ${custom ? 'open' : ''}><summary class="note" style="cursor:pointer">acting · joint angles ${custom ? '<span class="badge ok">adjusted</span>' : ''}</summary><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;margin-top:4px">`;
+  for (const [j, k, label] of ACTING) h += `<label class="mini" style="display:flex;flex-direction:column">${esc(label)}<input type="number" step="1" data-f="act.${j}.${k}" value="${Math.round((A[j] && A[j][k]) || 0)}"></label>`;
+  return h + `</div><div class="btnrow"><button class="small" data-act="acting-reset">Reset to ${esc(core.poseKey(pose))}</button></div></details>`;
+}
+function setActing(target, joint, field, value) {
+  const cur = target.pose, base = core.poseKey(cur);
+  const over = cur && typeof cur === 'object' && cur.base ? JSON.parse(JSON.stringify(cur)) : { base };
+  const lib = core.resolvePose(base)[joint] || {};
+  over[joint] = Object.assign({}, over[joint] || {}, { [field]: value });
+  if (Math.abs((lib[field] || 0) - value) < 1e-9 && Object.keys(over[joint]).length === 1) delete over[joint];
+  target.pose = Object.keys(over).length > 1 ? over : base;
+}
 function setPath(obj, path, value) { const parts = path.split('.'); let o = obj; for (let i = 0; i < parts.length - 1; i++) { if (o[parts[i]] == null) o[parts[i]] = isNaN(+parts[i + 1]) ? {} : []; o = o[parts[i]]; } o[parts[parts.length - 1]] = value; }
 function readInput(el) { if (el.type === 'checkbox') return el.checked; if (el.type === 'number') { const v = parseFloat(el.value); return isNaN(v) ? 0 : v; } return el.value; }
 function ensureBlocking(beatId, objId) { const b = getBeat(beatId); if (!b) return null; b.blocking = b.blocking || {}; if (!b.blocking[objId]) { const o = getObj(objId); b.blocking[objId] = { position: o.position.slice(), facing: o.rotation[1], pose: o.pose || 'stand' }; } return b.blocking[objId]; }
@@ -182,7 +196,8 @@ $('#props').addEventListener('change', (e) => {
   const el = e.target; const o = getObj(S.selectedId); if (!o || !el.dataset.f) return;
   snapshot();
   let f = el.dataset.f; const v = readInput(el);
-  if (f.startsWith('bl.')) { const b = ensureBlocking(activeBeatId(), o.id); if (b) setPath(b, f.slice(3), f === 'bl.visible' ? v : v); }
+  if (f.startsWith('act.')) { const [, joint, field] = f.split('.'); const b = activeBeatId() ? ensureBlocking(activeBeatId(), o.id) : o; setActing(b, joint, field, v); }
+  else if (f.startsWith('bl.')) { const b = ensureBlocking(activeBeatId(), o.id); if (b) setPath(b, f.slice(3), f === 'bl.visible' ? v : v); }
   else if (f === 'color') { o.color = v; }
   else setPath(o, f, v);
   if (f.startsWith('rotation.') || f === 'pose') { /* rest */ }
@@ -195,6 +210,7 @@ $('#props').addEventListener('click', (e) => {
   if (act === 'dup') { snapshot(); const c = JSON.parse(JSON.stringify(o)); c.id = core.uid(o.id.split('_')[0] || 'OBJ'); c.name = (o.name || o.id) + ' copy'; c.position = [o.position[0] + 0.5, o.position[1], o.position[2] + 0.5]; objects().push(c); vp.addObjectNode(c); selectObject(c.id); markDirty(); }
   if (act === 'ground') { snapshot(); o.position[1] = 0; afterObjectEdit(o); refreshProps(); }
   if (act === 'del') deleteObject(o.id);
+  if (act === 'acting-reset') { snapshot(); const b = activeBeatId() ? ensureBlocking(activeBeatId(), o.id) : o; b.pose = core.poseKey(b.pose); afterObjectEdit(o); refreshProps(); }
 });
 function afterObjectEdit(o) { vp.refreshObject(o); vp.applyBlocking(objects(), currentBlocking()); invalidate(); markDirty(); refreshOutliner(); refreshRight(); }
 function deleteObject(id) {
@@ -281,10 +297,13 @@ function refreshShotEditor() {
   html += `<div class="field"><label>rig</label><select data-f="rig.type">${opt(core.RIG_IDS, rig.type, (r) => core.RIGS[r].name)}</select></div>`;
   if (rig.type === 'crane') { html += `<div class="field"><label>arm max m</label><input type="number" step="0.5" data-f="rig.arm" value="${rig.arm || 9}"></div><div class="field"><label>pivot</label>${xyz('rig.pivot', rig.pivot || null, 0.1)}</div><div class="btnrow"><button class="small" data-act="pivot-focus">Pivot = focus point</button><button class="small" data-act="pivot-auto">Auto pivot</button></div>`; }
   if (['dolly', 'steadicam', 'handheld', 'gimbal', 'drone', 'vehicle'].includes(rig.type)) html += `<div class="field"><label>curved path</label><div class="pair"><button class="small" data-act="via-view">via = view pos</button><button class="small" data-act="via-clear">${rig.via ? 'clear via' : 'straight'}</button></div></div>`;
-  if (core.RIGS[rig.type].noise) html += `<div class="field"><label>texture</label><div class="pair"><label class="mini"><input type="checkbox" data-f="rig.noiseOn" ${rig.noise === false ? '' : 'checked'}> operator noise</label><input type="number" step="1" data-f="rig.seed" value="${rig.seed ?? 7}" title="seed"></div></div>`;
-  html += `<div class="field"><label>options</label><div class="pair"><label class="mini"><input type="checkbox" data-f="rig.aimSubject" ${rig.aim === 'subject' ? 'checked' : ''}> aim locked on subject</label><label class="mini"><input type="checkbox" data-f="rig.lowMode" ${rig.lowMode ? 'checked' : ''}> low mode</label></div></div>`;
+  if (core.RIGS[rig.type].noise) html += `<div class="field"><label>shake</label><div class="xyz"><label class="mini"><input type="checkbox" data-f="rig.noiseOn" ${rig.noise === false ? '' : 'checked'}> on</label><input type="number" step="0.1" min="0" max="3" data-f="rig.shake" value="${rig.shake ?? 1}" title="intensity (1 = default)"><input type="number" step="1" data-f="rig.seed" value="${rig.seed ?? 7}" title="seed"></div></div>`;
+  html += `<div class="field"><label>options</label><div class="pair"><label class="mini"><input type="checkbox" data-f="rig.aimSubject" ${rig.aim === 'subject' ? 'checked' : ''}> aim follows subject</label><label class="mini"><input type="checkbox" data-f="rig.follow" ${rig.follow ? 'checked' : ''}> camera follows subject</label><label class="mini"><input type="checkbox" data-f="rig.lowMode" ${rig.lowMode ? 'checked' : ''}> low mode</label></div></div>`;
   html += `<div class="field"><label>duration s</label><input type="number" step="0.5" data-f="duration_s" value="${sh.duration_s}"></div>`;
-  html += `<div class="field"><label>curve</label><select data-f="curve">${opt(core.CURVE_IDS, typeof sh.curve === 'string' ? sh.curve : 'easeInOut', (c) => core.CURVE_PRESETS[c].name)}</select></div>`;
+  html += `<div class="field"><label>curve</label><select data-f="curve">${opt([...core.CURVE_IDS, 'custom'], typeof sh.curve === 'string' ? sh.curve : 'custom', (c) => (c === 'custom' ? 'Custom bezier…' : core.CURVE_PRESETS[c].name))}</select></div>`;
+  const cp = core.curvePoints(sh.curve);
+  if (cp) html += `<div class="field"><label>bezier x1 y1 x2 y2</label><div class="xyz" style="grid-template-columns:repeat(4,1fr)">${cp.map((v, i) => `<input type="number" step="0.05" data-f="curvep.${i}" value="${r3(v)}">`).join('')}</div></div>`;
+  html += `<div class="field"><label></label>${curveSVG(sh.curve)}</div>`;
   html += `<h4>keys</h4>`;
   for (const k of ['A', 'B']) {
     const key = sh.keys[k];
@@ -306,10 +325,13 @@ $('#shot-editor').addEventListener('change', (e) => {
   const f = el.dataset.f; let v = readInput(el);
   if (f === 'rig.noiseOn') sh.rig.noise = v ? undefined : false;
   else if (f === 'rig.aimSubject') { if (v) sh.rig.aim = 'subject'; else delete sh.rig.aim; }
+  else if (f === 'rig.follow') { if (v) sh.rig.follow = true; else delete sh.rig.follow; }
   else if (f === 'camera.aspect' || f === 'camera.squeeze' || f === 'camera.focal_mm') { setPath(sh, f, parseFloat(v)); }
   else if (f === 'camera.focus_m') sh.camera.focus_m = v || null;
   else if (f.startsWith('line.')) { sh.line = sh.line || [null, null]; sh.line[+f.split('.')[1]] = v || null; if (!sh.line[0] && !sh.line[1]) sh.line = null; }
   else if (f === 'beat' || f === 'beatA' || f === 'beatB') { sh[f] = v || null; }
+  else if (f === 'curve') { sh.curve = v === 'custom' ? { type: 'bezier', p: core.curvePoints(sh.curve) || [0.65, 0, 0.35, 1] } : v; }
+  else if (f.startsWith('curvep.')) { const p = core.curvePoints(sh.curve) || [0.65, 0, 0.35, 1]; p[+f.split('.')[1]] = clampN(v, -1, 2); p[0] = clampN(p[0], 0, 1); p[2] = clampN(p[2], 0, 1); sh.curve = { type: 'bezier', p }; }
   else setPath(sh, f, v);
   if (f === 'rig.type') { if (sh.rig.type === 'static' && sh.keys.B) { sh.keys.B.position = sh.keys.A.position.slice(); } }
   afterShotEdit(); refreshShotEditor();
@@ -332,6 +354,12 @@ $('#shot-editor').addEventListener('click', (e) => {
   if (act === 'resolve') { try { core.resolveShotKeys(S.scene, sh); toast('Framing re-solved'); } catch (err) { toast('Re-solve failed: ' + err.message); } }
   afterShotEdit(); refreshShotEditor();
 });
+const clampN = (v, a, b) => Math.min(b, Math.max(a, +v || 0));
+/** Small plot of a timing curve: time on x, progress on y. */
+function curveSVG(curve) {
+  const pts = []; for (let i = 0; i <= 40; i++) { const x = i / 40; pts.push(`${(6 + x * 148).toFixed(1)},${(66 - core.ease(curve, x) * 60).toFixed(1)}`); }
+  return `<svg viewBox="0 0 160 72" width="160" height="72" style="background:#0c0e11;border:1px solid var(--line);border-radius:4px"><line x1="6" y1="66" x2="154" y2="6" stroke="#3a414b" stroke-dasharray="3 3"/><polyline points="${pts.join(' ')}" fill="none" stroke="#f2c14e" stroke-width="2"/></svg>`;
+}
 function afterShotEdit() { invalidate(); markDirty(); updateHelpers(); layoutPip(); refreshShotList(); refreshRight(); }
 $('#btn-add-shot').addEventListener('click', () => {
   if (!S.scene) return; snapshot();
@@ -353,7 +381,7 @@ function refreshBeats() {
   const sh = currentShot();
   ed.innerHTML = `<h4>beat ${esc(b.id)}</h4><div class="field"><label>label</label><input data-f="label" value="${esc(b.label || '')}"></div><div class="field"><label>time s</label><div class="pair"><input type="number" data-f="t0" value="${b.t0 ?? 0}"><input type="number" data-f="t1" value="${b.t1 ?? 0}"></div></div>` +
     `<div class="note">${sh ? `Shot ${esc(sh.name)} is selected: the viewport shows its beat. Select a stand-in and move it to edit the blocking of beat <b>${esc(activeBeatId())}</b>.` : 'Move stand-ins to edit this beat\'s blocking.'}</div>` +
-    `<table class="kv">${standins().map((o) => { const bl = (b.blocking || {})[o.id]; return `<tr><td>${esc(o.name)}</td><td>${bl ? `${bl.pose || o.pose} · ${bl.position.map((v) => v.toFixed(1)).join(', ')} · ${Math.round(bl.facing ?? o.rotation[1])}°` : '<span class="mini">rest</span>'}</td></tr>`; }).join('')}</table>` +
+    `<table class="kv">${standins().map((o) => { const bl = (b.blocking || {})[o.id]; return `<tr><td>${esc(o.name)}</td><td>${bl ? `${core.poseKey(bl.pose || o.pose)} · ${bl.position.map((v) => v.toFixed(1)).join(', ')} · ${Math.round(bl.facing ?? o.rotation[1])}°` : '<span class="mini">rest</span>'}</td></tr>`; }).join('')}</table>` +
     `<div class="btnrow"><button class="small" data-act="capture">Capture all stand-ins into this beat</button><button class="small" data-act="del" style="color:var(--bad)">Delete beat</button></div>`;
 }
 $('#beatlist').addEventListener('click', (e) => { const row = e.target.closest('.row'); if (!row) return; S.beatId = row.dataset.id; S.shotId = null; $('#timeline').classList.add('hidden'); layoutPip(); vp.applyBlocking(objects(), currentBlocking()); updateHelpers(); refreshBeats(); refreshShotList(); refreshProps(); refreshRight(); });
@@ -375,8 +403,8 @@ function refreshRight() {
   try {
     solved = solvedFor(sh);
     const pose = (S.lookThrough && (vp.driving || vp.look)) ? vp.getShotCamPose() : solved.pose(S.t);
-    const expected = ((S.t < 0.5 ? sh.framing && sh.framing.A : sh.framing && sh.framing.B) || {}).size || sh.size;
-    ev = core.evaluateFrame(S.scene, sh, pose, blockingAt(sh, S.t), { expectedSize: expected });
+    const def = (S.t < 0.5 ? sh.framing && sh.framing.A : sh.framing && sh.framing.B) || {};
+    ev = core.evaluateFrame(S.scene, sh, pose, blockingAt(sh, S.t), { expectedSize: def.size || sh.size, wantForeground: def.wantForeground });
     S.lastEval = { ev, pose, sh };
   } catch (e) { M.innerHTML = `<div class="flag bad">Evaluation error: ${esc(e.message)}</div>`; return; }
   const sc = ev.score, cls = sc >= 85 ? 'ok' : sc >= 65 ? 'warn' : 'bad';
@@ -572,28 +600,62 @@ function sequenceInfo() {
   let t0 = 0;
   return shots().map((sh) => { const o = { id: sh.id, name: sh.name, duration_s: sh.duration_s || 0, start_s: t0, size: sh.size, rig: (sh.rig && sh.rig.type) || 'static', focal_mm: sh.camera.focal_mm, aspect: sh.camera.aspect || 2.39 }; t0 += sh.duration_s || 0; return o; });
 }
+function wrapText(ctx, text, maxW) {
+  const words = String(text).split(/\s+/).filter(Boolean), lines = [];
+  let cur = '';
+  for (const w of words) { const t = cur ? cur + ' ' + w : w; if (cur && ctx.measureText(t).width > maxW) { lines.push(cur); cur = w; } else cur = t; }
+  if (cur) lines.push(cur);
+  return lines;
+}
+/** Which dialogue line is on screen at time t: slices proportional to the line length. */
+function dialogueAt(lines, t) {
+  if (!lines || !lines.length) return null;
+  const w = lines.map((d) => 12 + String(d.line || '').length), tot = w.reduce((a, b) => a + b, 0);
+  let acc = 0;
+  for (let i = 0; i < lines.length; i++) { acc += w[i] / tot; if (t <= acc + 1e-9) return lines[i]; }
+  return lines[lines.length - 1];
+}
 function burnIn(canvas, sh, t, fps = 24) {
-  const ctx = canvas.getContext('2d'); const W = canvas.width, H = canvas.height; const fs = Math.max(12, Math.round(H / 40));
+  const ctx = canvas.getContext('2d'); const W = canvas.width, H = canvas.height, u = H / 804;
+  const pad = Math.round(12 * u), mono = '"DM Mono", Menlo, "DejaVu Sans Mono", monospace', sans = '"Helvetica Neue", Arial, "DejaVu Sans", sans-serif';
   const info = sequenceInfo().find((x) => x.id === sh.id); const tt = (info ? info.start_s : 0) + t * (sh.duration_s || 0);
   const ff = Math.floor((tt % 1) * fps + 1e-6);
   const tc = `${String(Math.floor(tt / 60)).padStart(2, '0')}:${String(Math.floor(tt % 60)).padStart(2, '0')}:${String(ff).padStart(2, '0')}`;
-  const pad = Math.round(fs * 0.6);
-  ctx.textBaseline = 'top';
-  const box = (text, x, y, align = 'left', size = fs) => { ctx.font = `500 ${size}px "DM Mono", Menlo, monospace`; const wdt = ctx.measureText(text).width; const bx = align === 'right' ? x - wdt - pad * 2 : x; ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.fillRect(bx, y, wdt + pad * 2, size + pad); ctx.fillStyle = '#fff'; ctx.fillText(text, bx + pad, y + pad / 2); };
-  box(`${S.scene.project || ''} · Sc.${S.scene.scene.number ?? ''} · ${sh.name} · ${sh.size || ''} · ${sh.camera.focal_mm}mm · ${(sh.rig && sh.rig.type) || 'static'} · ${sh.duration_s}s`, pad, pad);
-  box(tc, W - pad, pad, 'right');
-  if (sh.intent) { const txt = sh.intent.length > 120 ? sh.intent.slice(0, 117) + '…' : sh.intent; box(txt, pad, H - fs - pad * 2, 'left', Math.round(fs * 0.85)); }
+  const panel = (lines, x, y, size, o = {}) => {
+    ctx.font = `${o.weight || 500} ${size}px ${o.font || mono}`;
+    const lh = Math.round(size * 1.28), widths = lines.map((l) => ctx.measureText(l).width);
+    const w = Math.max(...widths) + pad * 2, h = lh * lines.length + Math.round(pad * 0.9);
+    const bx = o.align === 'right' ? x - w : o.align === 'center' ? x - w / 2 : x, by = o.anchor === 'bottom' ? y - h : y;
+    ctx.fillStyle = o.bg || 'rgba(0,0,0,0.74)'; ctx.fillRect(bx, by, w, h);
+    ctx.fillStyle = o.color || '#fff'; ctx.textBaseline = 'top';
+    lines.forEach((l, i) => ctx.fillText(l, o.align === 'center' ? bx + (w - widths[i]) / 2 : bx + pad, by + Math.round(pad * 0.45) + i * lh));
+    return { y: by, h };
+  };
+  const head = panel([`${S.scene.project || ''} · Sc.${S.scene.scene.number ?? ''} · ${sh.name} · ${sh.size || ''} · ${sh.camera.focal_mm}mm · ${(sh.rig && sh.rig.type) || 'static'} · ${sh.duration_s}s`], pad, pad, Math.round(24 * u));
+  panel([tc], W - pad, pad, Math.round(24 * u), { align: 'right' });
+  if (sh.intent) {
+    const size = Math.round(26 * u); ctx.font = `400 ${size}px ${sans}`;
+    let lines = wrapText(ctx, sh.intent, W * 0.66);
+    if (lines.length > 2) { lines = lines.slice(0, 2); lines[1] = lines[1].replace(/\s*\S*$/, '') + ' …'; }
+    panel(lines, pad, head.y + head.h + Math.round(6 * u), size, { font: sans, weight: 400, color: '#f3e7c8' });
+  }
+  const d = dialogueAt(sh.dialogue, t);
+  if (d) {
+    const size = Math.round(36 * u); ctx.font = `600 ${size}px ${sans}`;
+    const lines = wrapText(ctx, `${d.who ? d.who + ':  ' : ''}${d.line}`, W * 0.78).slice(0, 2);
+    panel(lines, W / 2, H - Math.round(18 * u), size, { font: sans, weight: 600, align: 'center', anchor: 'bottom', bg: 'rgba(0,0,0,0.78)' });
+  }
 }
 /** Render one frame of a shot at time t (0..1) at an exact size; returns a data URL. */
 function renderFrame(shotId, t, w = 1920, h = 804, opts = {}) {
   const sh = shots().find((s) => s.id === shotId); if (!sh) throw new Error('unknown shot ' + shotId);
   const solved = solvedFor(sh); const pose = solved.pose(t);
   vp.applyBlocking(objects(), blockingAt(sh, t));
-  const canvas = vp.renderStill(pose, sh.camera, w, h);
+  const canvas = vp.renderStill(pose, sh.camera, w, h, opts.ss || 1);
   if (opts.burnIn !== false) burnIn(canvas, sh, t, opts.fps || 24);
   return canvas.toDataURL(opts.format || 'image/jpeg', opts.quality ?? 0.92);
 }
-window.LS.api = { sequence: sequenceInfo, renderFrame };
+window.LS.api = { sequence: sequenceInfo, renderFrame, load: (json, name) => loadScene(json, name) };
 
 // ------------------------------------------------------------------ boot ------------------------------------------------
 const params = new URLSearchParams(location.search);

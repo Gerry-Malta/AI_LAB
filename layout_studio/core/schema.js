@@ -25,7 +25,7 @@ export function newShot(partial = {}) {
     id: uid('SH'), name: '', beat: null, size: 'MS', subject: null, intent: '',
     camera: { filmback: 'ALEXA35_OG', focal_mm: 35, aspect: 2.39, squeeze: 1, fstop: 2.8, focus_m: null },
     rig: { type: 'static' }, duration_s: 5, curve: 'easeInOut',
-    keys: { A: { position: [0, 1.5, 5], target: [0, 1.2, 0], roll: 0 }, B: null }, notes: '',
+    keys: { A: { position: [0, 1.5, 5], target: [0, 1.2, 0], roll: 0 }, B: null }, dialogue: [], notes: '',
   }, partial);
 }
 
