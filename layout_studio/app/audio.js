@@ -4,12 +4,13 @@
 
 const isAbs = (p) => /^(https?:|blob:|data:)/.test(p);
 
-/** A gentle limiter so dialogue, effects and ambience never clip when they pile up. */
+/** +4 dB of make-up gain into a gentle limiter: a comfortable level, and nothing clips when sounds pile up. */
 function masterChain(ctx) {
-  const comp = ctx.createDynamicsCompressor();
+  const gain = ctx.createGain(), comp = ctx.createDynamicsCompressor();
+  gain.gain.value = 1.585;
   comp.threshold.value = -6; comp.knee.value = 6; comp.ratio.value = 8; comp.attack.value = 0.003; comp.release.value = 0.2;
-  comp.connect(ctx.destination);
-  return comp;
+  gain.connect(comp); comp.connect(ctx.destination);
+  return gain;
 }
 
 export class SoundPlayer {

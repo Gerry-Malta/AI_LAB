@@ -29,7 +29,7 @@ export function mixSoundInto(sceneFile, videoIn, videoOut, { fps = 24, shots = n
     const head = e.start < 0 ? `atrim=start=${(-e.start).toFixed(3)},asetpts=PTS-STARTPTS,` : ''; // a line that starts before the export
     return `[${k}:a]${head}aresample=48000,volume=${(e.gain ?? 1).toFixed(3)},adelay=delays=${ms(e.start)}:all=1[s${i}]`;
   });
-  const graph = `${chains.join(';')};${found.map((_, i) => `[s${i}]`).join('')}amix=inputs=${found.length}:normalize=0:dropout_transition=0,alimiter=limit=0.89:level=false,apad[aout]`;
+  const graph = `${chains.join(';')};${found.map((_, i) => `[s${i}]`).join('')}amix=inputs=${found.length}:normalize=0:dropout_transition=0,volume=4dB,alimiter=limit=0.89:level=false,apad[aout]`;
   args.push('-filter_complex', graph, '-map', '0:v', '-map', '[aout]', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', '-ac', '2', '-shortest', '-movflags', '+faststart', path.resolve(videoOut));
   const r = spawnSync(ffmpeg, args, { stdio: ['ignore', 'inherit', 'inherit'] });
   if (r.status !== 0) throw new Error(`ffmpeg exited ${r.status}`);
