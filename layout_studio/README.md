@@ -10,6 +10,10 @@ coordinates — while you fly through the scene with Unreal-style controls and f
 
 No build step. Open `index.html` through any static server (or GitHub Pages). three.js loads from `vendor/three/` when that folder is present (self-contained, offline) and from jsDelivr otherwise.
 
+![viewer](docs/shots_demo/overview.png)
+
+![look through the shot camera](docs/shots_demo/shot_1C.png)
+
 
 ```
 python3 -m http.server 8000      # then http://localhost:8000/layout_studio/
