@@ -1,0 +1,1143 @@
+{
+ "format": "layout-studio/scene",
+ "version": 1,
+ "project": "DEMO",
+ "units": "m",
+ "up": "Y",
+ "scene": {
+  "number": 1,
+  "heading": "EXT. CAFÉ TERRACE - STREET CORNER - LATE AFTERNOON",
+  "int_ext": "EXT",
+  "location": "Street corner",
+  "time": "LATE AFTERNOON",
+  "pages": "1",
+  "synopsis": "Anna waits at a café table. Ben arrives late, sits, they argue quietly while the street keeps moving."
+ },
+ "world": {
+  "ground": {
+   "size": 160,
+   "color": "#6d6a63"
+  },
+  "sky": "#c9d6e3",
+  "sun": {
+   "azimuth": 240,
+   "elevation": 22
+  }
+ },
+ "objects": [
+  {
+   "id": "ENV_sidewalk",
+   "name": "Sidewalk",
+   "role": "ENV",
+   "kind": "box",
+   "position": [
+    0,
+    0,
+    0
+   ],
+   "rotation": [
+    0,
+    0,
+    0
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ],
+   "size": [
+    30,
+    0.15,
+    6
+   ],
+   "color": "#9a958c",
+   "source": "inferred",
+   "notes": ""
+  },
+  {
+   "id": "ENV_building",
+   "name": "Café building",
+   "role": "SET",
+   "kind": "box",
+   "position": [
+    0,
+    0,
+    -6.5
+   ],
+   "rotation": [
+    0,
+    0,
+    0
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ],
+   "size": [
+    30,
+    12,
+    7
+   ],
+   "color": "#b89a7a",
+   "source": "inferred",
+   "notes": ""
+  },
+  {
+   "id": "ENV_awning",
+   "name": "Awning",
+   "role": "SET",
+   "kind": "box",
+   "position": [
+    0,
+    3,
+    -2.4
+   ],
+   "rotation": [
+    8,
+    0,
+    0
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ],
+   "size": [
+    8,
+    0.1,
+    2.2
+   ],
+   "color": "#8a2f2f",
+   "source": "inferred",
+   "notes": ""
+  },
+  {
+   "id": "ENV_window",
+   "name": "Café window",
+   "role": "SET",
+   "kind": "box",
+   "position": [
+    0,
+    0.8,
+    -3
+   ],
+   "rotation": [
+    0,
+    0,
+    0
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ],
+   "size": [
+    6,
+    2.4,
+    0.1
+   ],
+   "color": "#3a4a5a",
+   "source": "inferred",
+   "notes": ""
+  },
+  {
+   "id": "ENV_door",
+   "name": "Café door",
+   "role": "SET",
+   "kind": "box",
+   "position": [
+    4.5,
+    0.15,
+    -3
+   ],
+   "rotation": [
+    0,
+    0,
+    0
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ],
+   "size": [
+    1.2,
+    2.3,
+    0.1
+   ],
+   "color": "#4a2f1f",
+   "source": "inferred",
+   "notes": ""
+  },
+  {
+   "id": "PROP_lamppost",
+   "name": "Lamppost",
+   "role": "PROP",
+   "kind": "cylinder",
+   "position": [
+    -6,
+    0.15,
+    2.2
+   ],
+   "rotation": [
+    0,
+    0,
+    0
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ],
+   "size": [
+    0.2,
+    5.5,
+    0.2
+   ],
+   "color": "#333",
+   "source": "inferred",
+   "notes": ""
+  },
+  {
+   "id": "PROP_bench",
+   "name": "Bench",
+   "role": "PROP",
+   "kind": "box",
+   "position": [
+    7,
+    0.15,
+    1.5
+   ],
+   "rotation": [
+    0,
+    0,
+    0
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ],
+   "size": [
+    1.8,
+    0.45,
+    0.5
+   ],
+   "color": "#6b4a2a",
+   "source": "inferred",
+   "notes": ""
+  },
+  {
+   "id": "PROP_planter",
+   "name": "Planter",
+   "role": "PROP",
+   "kind": "box",
+   "position": [
+    -2.8,
+    0.15,
+    1.8
+   ],
+   "rotation": [
+    0,
+    0,
+    0
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ],
+   "size": [
+    1.2,
+    0.5,
+    0.5
+   ],
+   "color": "#55634a",
+   "source": "inferred",
+   "notes": ""
+  },
+  {
+   "id": "PROP_shrub",
+   "name": "Shrub",
+   "role": "PROP",
+   "kind": "cone",
+   "position": [
+    -2.8,
+    0.65,
+    1.8
+   ],
+   "rotation": [
+    0,
+    0,
+    0
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ],
+   "size": [
+    1,
+    0.8,
+    1
+   ],
+   "color": "#3f7a3a",
+   "source": "inferred",
+   "notes": ""
+  },
+  {
+   "id": "PROP_car",
+   "name": "Parked car",
+   "role": "PROP",
+   "kind": "box",
+   "position": [
+    3,
+    0,
+    6.5
+   ],
+   "rotation": [
+    0,
+    0,
+    0
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ],
+   "size": [
+    4.4,
+    1.45,
+    1.8
+   ],
+   "color": "#2b3e5a",
+   "source": "inferred",
+   "notes": ""
+  },
+  {
+   "id": "PROP_table",
+   "name": "Café table",
+   "role": "HERO",
+   "kind": "cylinder",
+   "position": [
+    0,
+    0.15,
+    0.2
+   ],
+   "rotation": [
+    0,
+    0,
+    0
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ],
+   "size": [
+    0.8,
+    0.74,
+    0.8
+   ],
+   "color": "#d8d3c8",
+   "source": "inferred",
+   "notes": ""
+  },
+  {
+   "id": "PROP_chair_anna",
+   "name": "Chair (Anna)",
+   "role": "PROP",
+   "kind": "box",
+   "position": [
+    -0.75,
+    0.15,
+    0.2
+   ],
+   "rotation": [
+    0,
+    0,
+    0
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ],
+   "size": [
+    0.45,
+    0.45,
+    0.45
+   ],
+   "color": "#7a6a55",
+   "source": "inferred",
+   "notes": ""
+  },
+  {
+   "id": "PROP_chair_ben",
+   "name": "Chair (Ben)",
+   "role": "PROP",
+   "kind": "box",
+   "position": [
+    0.75,
+    0.15,
+    0.2
+   ],
+   "rotation": [
+    0,
+    0,
+    0
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ],
+   "size": [
+    0.45,
+    0.45,
+    0.45
+   ],
+   "color": "#7a6a55",
+   "source": "inferred",
+   "notes": ""
+  },
+  {
+   "id": "PROP_cup",
+   "name": "Coffee cup",
+   "role": "PROP",
+   "kind": "cylinder",
+   "position": [
+    -0.15,
+    0.89,
+    0.1
+   ],
+   "rotation": [
+    0,
+    0,
+    0
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ],
+   "size": [
+    0.08,
+    0.09,
+    0.08
+   ],
+   "color": "#f4f1ea",
+   "source": "inferred",
+   "notes": ""
+  },
+  {
+   "id": "ENV_tree_1",
+   "name": "Street tree",
+   "role": "ENV",
+   "kind": "tree",
+   "position": [
+    -14,
+    0.15,
+    4.4
+   ],
+   "rotation": [
+    0,
+    0,
+    0
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ],
+   "size": [
+    3.740331049542874,
+    6.552616650704294,
+    0.45
+   ],
+   "color": "#4a7a3f",
+   "source": "inferred",
+   "notes": "",
+   "trunk": 0.45
+  },
+  {
+   "id": "ENV_tree_2",
+   "name": "Street tree",
+   "role": "ENV",
+   "kind": "tree",
+   "position": [
+    -8.4,
+    0.15,
+    4.4
+   ],
+   "rotation": [
+    0,
+    0,
+    0
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ],
+   "size": [
+    3.8513247556984425,
+    6.1500938455574214,
+    0.45
+   ],
+   "color": "#4a7a3f",
+   "source": "inferred",
+   "notes": "",
+   "trunk": 0.45
+  },
+  {
+   "id": "ENV_tree_3",
+   "name": "Street tree",
+   "role": "ENV",
+   "kind": "tree",
+   "position": [
+    -2.8000000000000007,
+    0.15,
+    4.4
+   ],
+   "rotation": [
+    0,
+    0,
+    0
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ],
+   "size": [
+    4.21520620631054,
+    7.693254050333053,
+    0.45
+   ],
+   "color": "#4a7a3f",
+   "source": "inferred",
+   "notes": "",
+   "trunk": 0.45
+  },
+  {
+   "id": "ENV_tree_4",
+   "name": "Street tree",
+   "role": "ENV",
+   "kind": "tree",
+   "position": [
+    2.799999999999997,
+    0.15,
+    4.4
+   ],
+   "rotation": [
+    0,
+    0,
+    0
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ],
+   "size": [
+    3.5851332852616906,
+    7.435436376836151,
+    0.45
+   ],
+   "color": "#4a7a3f",
+   "source": "inferred",
+   "notes": "",
+   "trunk": 0.45
+  },
+  {
+   "id": "ENV_tree_5",
+   "name": "Street tree",
+   "role": "ENV",
+   "kind": "tree",
+   "position": [
+    8.399999999999999,
+    0.15,
+    4.4
+   ],
+   "rotation": [
+    0,
+    0,
+    0
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ],
+   "size": [
+    3.6036445698700845,
+    6.42746195057407,
+    0.45
+   ],
+   "color": "#4a7a3f",
+   "source": "inferred",
+   "notes": "",
+   "trunk": 0.45
+  },
+  {
+   "id": "ENV_tree_6",
+   "name": "Street tree",
+   "role": "ENV",
+   "kind": "tree",
+   "position": [
+    14,
+    0.15,
+    4.4
+   ],
+   "rotation": [
+    0,
+    0,
+    0
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ],
+   "size": [
+    4.2877076249569654,
+    6.540998931508511,
+    0.45
+   ],
+   "color": "#4a7a3f",
+   "source": "inferred",
+   "notes": "",
+   "trunk": 0.45
+  },
+  {
+   "id": "ENV_building_far",
+   "name": "Building across",
+   "role": "ENV",
+   "kind": "box",
+   "position": [
+    0,
+    0,
+    24
+   ],
+   "rotation": [
+    0,
+    0,
+    0
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ],
+   "size": [
+    40,
+    14,
+    10
+   ],
+   "color": "#a99f90",
+   "source": "inferred",
+   "notes": ""
+  },
+  {
+   "id": "CHAR_anna",
+   "name": "ANNA",
+   "role": "CHAR",
+   "kind": "standin",
+   "position": [
+    -0.75,
+    0.15,
+    0.2
+   ],
+   "rotation": [
+    0,
+    90,
+    0
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ],
+   "size": [
+    0.5,
+    1.68,
+    0.3
+   ],
+   "color": "#c2743b",
+   "source": "inferred",
+   "notes": "",
+   "height": 1.68,
+   "pose": "sit_chair"
+  },
+  {
+   "id": "CHAR_ben",
+   "name": "BEN",
+   "role": "CHAR",
+   "kind": "standin",
+   "position": [
+    6,
+    0.15,
+    1
+   ],
+   "rotation": [
+    0,
+    270,
+    0
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ],
+   "size": [
+    0.5,
+    1.84,
+    0.3
+   ],
+   "color": "#3b6ea5",
+   "source": "inferred",
+   "notes": "",
+   "height": 1.84,
+   "pose": "walk"
+  }
+ ],
+ "beats": [
+  {
+   "id": "b1",
+   "label": "Anna waits; Ben arrives from the corner",
+   "t0": 0,
+   "t1": 10,
+   "blocking": {
+    "CHAR_anna": {
+     "position": [
+      -0.75,
+      0.15,
+      0.2
+     ],
+     "facing": 90,
+     "pose": "sit_chair"
+    },
+    "CHAR_ben": {
+     "position": [
+      6,
+      0.15,
+      1
+     ],
+     "facing": 270,
+     "pose": "walk"
+    }
+   }
+  },
+  {
+   "id": "b2",
+   "label": "Ben sits; the argument",
+   "t0": 10,
+   "t1": 60,
+   "blocking": {
+    "CHAR_anna": {
+     "position": [
+      -0.75,
+      0.15,
+      0.2
+     ],
+     "facing": 90,
+     "pose": "sit_chair"
+    },
+    "CHAR_ben": {
+     "position": [
+      0.75,
+      0.15,
+      0.2
+     ],
+     "facing": 270,
+     "pose": "sit_chair"
+    }
+   }
+  }
+ ],
+ "shots": [
+  {
+   "id": "sh010",
+   "name": "1A",
+   "beat": "b1",
+   "size": "WS",
+   "subject": "CHAR_anna",
+   "intent": "Establishing: Anna alone at the table, the street alive around her; slow push.",
+   "camera": {
+    "filmback": "ALEXA35_OG",
+    "focal_mm": 27,
+    "aspect": 2.39,
+    "squeeze": 1,
+    "fstop": 2.8,
+    "focus_m": 11
+   },
+   "rig": {
+    "type": "dolly"
+   },
+   "duration_s": 8,
+   "curve": "cinematic",
+   "keys": {
+    "A": {
+     "position": [
+      8.395,
+      1.3,
+      6.414
+     ],
+     "target": [
+      -0.031,
+      1.336,
+      -0.657
+     ],
+     "roll": 0
+    },
+    "B": {
+     "position": [
+      5.714,
+      1.3,
+      4.164
+     ],
+     "target": [
+      -0.031,
+      1.336,
+      -0.657
+     ],
+     "roll": 0
+    }
+   },
+   "notes": "",
+   "wantForeground": true,
+   "allowOcclusion": false,
+   "line": null,
+   "beatA": null,
+   "beatB": null,
+   "framing": {
+    "A": {
+     "type": "single",
+     "azimuth": -40,
+     "cameraHeight": 1.3,
+     "distance": 11,
+     "leadRoom": 0.15
+    },
+    "B": {
+     "type": "single",
+     "azimuth": -40,
+     "cameraHeight": 1.3,
+     "distance": 7.5,
+     "leadRoom": 0.15
+    }
+   }
+  },
+  {
+   "id": "sh020",
+   "name": "1B",
+   "beat": "b1",
+   "size": "MS",
+   "subject": "CHAR_ben",
+   "intent": "Steadicam follows Ben from the corner to the chair.",
+   "camera": {
+    "filmback": "ALEXA35_OG",
+    "focal_mm": 32,
+    "aspect": 2.39,
+    "squeeze": 1,
+    "fstop": 2.8,
+    "focus_m": 2.57
+   },
+   "rig": {
+    "type": "steadicam"
+   },
+   "duration_s": 9,
+   "curve": "easeInOut",
+   "keys": {
+    "A": {
+     "position": [
+      3.575,
+      1.5,
+      1.933
+     ],
+     "target": [
+      5.798,
+      1.595,
+      0.65
+     ],
+     "roll": 0
+    },
+    "B": {
+     "position": [
+      0,
+      1.25,
+      4.714
+     ],
+     "target": [
+      0,
+      0.855,
+      0.2
+     ],
+     "roll": 0
+    }
+   },
+   "notes": "",
+   "wantForeground": false,
+   "allowOcclusion": false,
+   "line": null,
+   "beatA": "b1",
+   "beatB": "b2",
+   "framing": {
+    "A": {
+     "type": "single",
+     "azimuth": 30,
+     "cameraHeight": 1.5,
+     "leadRoom": 0.18
+    },
+    "B": {
+     "type": "two",
+     "a": "CHAR_anna",
+     "b": "CHAR_ben",
+     "size": "FS",
+     "side": 1,
+     "cameraHeight": 1.25
+    }
+   }
+  },
+  {
+   "id": "sh030",
+   "name": "1C",
+   "beat": "b2",
+   "size": "FS",
+   "subject": "CHAR_anna",
+   "intent": "Two-shot across the table, awning and window behind.",
+   "camera": {
+    "filmback": "ALEXA35_OG",
+    "focal_mm": 40,
+    "aspect": 2.39,
+    "squeeze": 1,
+    "fstop": 2.8,
+    "focus_m": 5.66
+   },
+   "rig": {
+    "type": "static"
+   },
+   "duration_s": 10,
+   "curve": "easeInOut",
+   "keys": {
+    "A": {
+     "position": [
+      0,
+      1.2,
+      5.854
+     ],
+     "target": [
+      0,
+      0.855,
+      0.2
+     ],
+     "roll": 0
+    },
+    "B": null
+   },
+   "notes": "",
+   "wantForeground": false,
+   "allowOcclusion": false,
+   "line": [
+    "CHAR_anna",
+    "CHAR_ben"
+   ],
+   "beatA": null,
+   "beatB": null,
+   "framing": {
+    "A": {
+     "type": "two",
+     "a": "CHAR_anna",
+     "b": "CHAR_ben",
+     "side": 1,
+     "cameraHeight": 1.2
+    },
+    "B": null
+   }
+  },
+  {
+   "id": "sh040",
+   "name": "1D",
+   "beat": "b2",
+   "size": "MCU",
+   "subject": "CHAR_anna",
+   "intent": "OTS on Anna.",
+   "camera": {
+    "filmback": "ALEXA35_OG",
+    "focal_mm": 75,
+    "aspect": 2.39,
+    "squeeze": 1,
+    "fstop": 2.8,
+    "focus_m": 2.59
+   },
+   "rig": {
+    "type": "static"
+   },
+   "duration_s": 8,
+   "curve": "easeInOut",
+   "keys": {
+    "A": {
+     "position": [
+      1.85,
+      1.429,
+      0.65
+     ],
+     "target": [
+      -0.7,
+      1.311,
+      0.026
+     ],
+     "roll": 0
+    },
+    "B": null
+   },
+   "notes": "",
+   "wantForeground": false,
+   "allowOcclusion": true,
+   "line": [
+    "CHAR_anna",
+    "CHAR_ben"
+   ],
+   "beatA": null,
+   "beatB": null,
+   "framing": {
+    "A": {
+     "type": "ots",
+     "fg": "CHAR_ben",
+     "bg": "CHAR_anna",
+     "side": 1,
+     "fitSize": "MCU"
+    },
+    "B": null
+   }
+  },
+  {
+   "id": "sh050",
+   "name": "1E",
+   "beat": "b2",
+   "size": "MCU",
+   "subject": "CHAR_ben",
+   "intent": "OTS on Ben.",
+   "camera": {
+    "filmback": "ALEXA35_OG",
+    "focal_mm": 65,
+    "aspect": 2.39,
+    "squeeze": 1,
+    "fstop": 2.8,
+    "focus_m": 2.58
+   },
+   "rig": {
+    "type": "static"
+   },
+   "duration_s": 8,
+   "curve": "easeInOut",
+   "keys": {
+    "A": {
+     "position": [
+      -1.85,
+      1.328,
+      0.65
+     ],
+     "target": [
+      0.695,
+      1.419,
+      0
+     ],
+     "roll": 0
+    },
+    "B": null
+   },
+   "notes": "",
+   "wantForeground": false,
+   "allowOcclusion": true,
+   "line": [
+    "CHAR_anna",
+    "CHAR_ben"
+   ],
+   "beatA": null,
+   "beatB": null,
+   "framing": {
+    "A": {
+     "type": "ots",
+     "fg": "CHAR_anna",
+     "bg": "CHAR_ben",
+     "side": -1,
+     "fitSize": "MCU"
+    },
+    "B": null
+   }
+  },
+  {
+   "id": "sh060",
+   "name": "1F",
+   "beat": "b2",
+   "size": "CU",
+   "subject": "CHAR_anna",
+   "intent": "Clean close-up, slow slider drift.",
+   "camera": {
+    "filmback": "ALEXA35_OG",
+    "focal_mm": 75,
+    "aspect": 2.39,
+    "squeeze": 1,
+    "fstop": 2,
+    "focus_m": 1.7
+   },
+   "rig": {
+    "type": "slider"
+   },
+   "duration_s": 6,
+   "curve": "easeInOut",
+   "keys": {
+    "A": {
+     "position": [
+      0.686,
+      1.15,
+      1.095
+     ],
+     "target": [
+      -0.698,
+      1.341,
+      0.126
+     ],
+     "roll": 0
+    },
+    "B": {
+     "position": [
+      0.844,
+      1.15,
+      0.762
+     ],
+     "target": [
+      -0.722,
+      1.341,
+      0.129
+     ],
+     "roll": 0
+    }
+   },
+   "notes": "",
+   "wantForeground": false,
+   "allowOcclusion": false,
+   "line": [
+    "CHAR_anna",
+    "CHAR_ben"
+   ],
+   "beatA": null,
+   "beatB": null,
+   "framing": {
+    "A": {
+     "type": "single",
+     "azimuth": -35,
+     "cameraHeight": 1.15
+    },
+    "B": {
+     "type": "single",
+     "azimuth": -22,
+     "cameraHeight": 1.15
+    }
+   }
+  }
+ ],
+ "notes": ""
+}
