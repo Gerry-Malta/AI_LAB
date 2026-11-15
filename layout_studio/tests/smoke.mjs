@@ -53,6 +53,32 @@ console.log('interaction', JSON.stringify(inter));
 await page.keyboard.press('Control+KeyZ'); await page.waitForTimeout(200);
 const after = await page.evaluate(() => LS.S.scene.objects.length);
 console.log('objects after undo', after, 'expected', info.objects);
+
+// Export MP4 dialog + a short in-browser encode (WebCodecs + mp4-muxer), checked with ffprobe when it is installed
+await page.click('#btn-export'); await page.waitForTimeout(800);
+const dlg = await page.evaluate(() => ({ open: !document.querySelector('#export').classList.contains('hidden'), summary: document.querySelector('#ex-summary').textContent, codec: document.querySelector('#ex-codec').textContent }));
+console.log('export dialog', JSON.stringify(dlg));
+if (!dlg.open || !/frames/.test(dlg.summary)) errors.push('pageerror: export dialog did not open');
+await page.click('#ex-close');
+const enc = await page.evaluate(async () => {
+  try {
+    const res = await LS.api.exportMP4({ shotIds: [LS.S.scene.shots[0].id], width: 640, fps: 24, ss: 1, maxFrames: 24 });
+    const bytes = new Uint8Array(await res.blob.arrayBuffer());
+    let bin = ''; for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+    return { ok: true, codec: res.codec, frames: res.frames, width: res.width, height: res.height, size: bytes.length, b64: btoa(bin) };
+  } catch (e) { return { ok: false, error: String(e && e.message || e) }; }
+});
+if (!enc.ok) { console.log('export', enc.error); errors.push('pageerror: export failed: ' + enc.error); }
+else {
+  const file = path.join(out, 'export_test.mp4'); fs.writeFileSync(file, Buffer.from(enc.b64, 'base64'));
+  console.log('export', JSON.stringify({ codec: enc.codec, frames: enc.frames, size: `${enc.width}x${enc.height}`, bytes: enc.size }));
+  try {
+    const { execFileSync } = await import('node:child_process');
+    const probe = JSON.parse(execFileSync('ffprobe', ['-v', 'error', '-count_frames', '-select_streams', 'v:0', '-show_entries', 'stream=codec_name,width,height,nb_read_frames,r_frame_rate', '-of', 'json', file]).toString()).streams[0];
+    console.log('ffprobe', JSON.stringify(probe));
+    if (+probe.nb_read_frames !== enc.frames || probe.width !== enc.width || probe.height !== enc.height) errors.push('pageerror: exported MP4 does not match: ' + JSON.stringify(probe));
+  } catch (e) { console.log('ffprobe not available or failed:', e.message.split('\n')[0]); }
+}
 console.log('console errors:', errors.length ? errors.join('\n') : 'none');
 await browser.close(); server.close();
 if (errors.some((e) => /pageerror|TypeError|ReferenceError|Failed to load/.test(e))) { console.error('FAIL'); process.exit(1); }

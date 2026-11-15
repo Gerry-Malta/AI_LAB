@@ -238,3 +238,19 @@ test('metrics: camera inside an object and a near object filling the frame are f
   const m2 = core.evaluateFrame(scene, shot, { position: [0.3, 0.6, 4.4], target: [0, 1.2, 0], roll: 0 }, {});
   assert.ok(m2.flags.some((f) => /inside Rock/.test(f.msg)), JSON.stringify(m2.flags));
 });
+
+test('metrics: close shots must see the face, not the back of the head or the crown of a lowered head', () => {
+  const ch = { position: [0, 0, 0], facing: 0, pose: 'stand', height: 1.8, age: 38 };
+  const eyes = core.keypoints(ch).eyes;
+  assert.equal(core.faceReading(ch, [eyes[0], eyes[1], 2]).reads, 'face');
+  assert.equal(core.faceReading(ch, [eyes[0], eyes[1], -2]).reads, 'back of head');
+  assert.equal(core.faceReading(ch, [2, eyes[1], 0]).reads, 'profile');
+  const down = { ...ch, pose: { base: 'stand', neck: { pitch: 25 }, head: { pitch: 35 } } };
+  assert.equal(core.faceReading(down, [eyes[0], eyes[1] + 0.3, 1.2]).reads, 'crown');
+  assert.equal(core.faceReading(down, [eyes[0], eyes[1] - 0.6, 1.2]).reads, 'face');
+  const scene = { objects: [{ id: 'S', kind: 'standin', name: 'S', position: [0, 0, 0], rotation: [0, 0, 0], pose: down.pose, height: 1.8, age: 38 }] };
+  const m = core.evaluateFrame(scene, { size: 'CU', subject: 'S', camera: { focal_mm: 65 } }, { position: [0, eyes[1] + 0.3, 1.6], target: [0, eyes[1] - 0.05, 0], roll: 0 }, {});
+  assert.ok(m.flags.some((f) => /crown/.test(f.msg)), JSON.stringify(m.flags));
+  const parts = core.standinParts('stand', 1.8, 38).map((p) => p.tag);
+  assert.ok(parts.includes('eyeL') && parts.includes('eyeR'), 'mannequin has eyes');
+});

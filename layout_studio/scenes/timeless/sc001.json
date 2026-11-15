@@ -6189,7 +6189,7 @@
    "id": "b1",
    "label": "Radura: Arthur sistema i panini, Claire al telefono, Rebecca disegna sul prato",
    "t0": 0,
-   "t1": 14,
+   "t1": 12,
    "blocking": {
     "CHAR_arthur": {
      "position": [
@@ -6225,13 +6225,81 @@
      "pose": {
       "base": "sit_ground",
       "neck": {
-       "pitch": 12
+       "pitch": 6
       },
       "head": {
-       "pitch": 26
+       "pitch": 18
       },
       "shoulder": {
-       "flex": 22,
+       "flex": 34,
+       "abd": 16
+      },
+      "elbow": {
+       "flex": 124
+      },
+      "wrist": {
+       "flex": 18
+      }
+     }
+    },
+    "CHAR_rebecca": {
+     "position": [
+      2.6,
+      0,
+      -2.8
+     ],
+     "facing": 180,
+     "pose": {
+      "base": "lie_prone",
+      "head": {
+       "pitch": 30
+      }
+     }
+    }
+   }
+  },
+  {
+   "id": "b1b",
+   "label": "Arthur alza gli occhi dai panini e si gira a guardare Rebecca",
+   "t0": 12,
+   "t1": 14,
+   "blocking": {
+    "CHAR_arthur": {
+     "position": [
+      0.55,
+      0,
+      0
+     ],
+     "facing": 120,
+     "pose": {
+      "base": "sit_ground",
+      "spine": {
+       "pitch": 10,
+       "yaw": 12
+      },
+      "head": {
+       "pitch": 0,
+       "yaw": 10
+      }
+     }
+    },
+    "CHAR_claire": {
+     "position": [
+      -0.55,
+      0,
+      0.1
+     ],
+     "facing": 15,
+     "pose": {
+      "base": "sit_ground",
+      "neck": {
+       "pitch": 6
+      },
+      "head": {
+       "pitch": 18
+      },
+      "shoulder": {
+       "flex": 34,
        "abd": 16
       },
       "elbow": {
@@ -6274,14 +6342,14 @@
      "pose": {
       "base": "crouch",
       "head": {
-       "pitch": 22
+       "pitch": 10
       },
       "shoulder": {
-       "flex": 58,
+       "flex": 72,
        "abd": 10
       },
       "elbow": {
-       "flex": 30
+       "flex": 34
       }
      }
     },
@@ -6295,13 +6363,13 @@
      "pose": {
       "base": "sit_ground",
       "neck": {
-       "pitch": 12
+       "pitch": 6
       },
       "head": {
-       "pitch": 26
+       "pitch": 18
       },
       "shoulder": {
-       "flex": 22,
+       "flex": 34,
        "abd": 16
       },
       "elbow": {
@@ -6353,13 +6421,13 @@
      "pose": {
       "base": "sit_ground",
       "neck": {
-       "pitch": 12
+       "pitch": 6
       },
       "head": {
-       "pitch": 26
+       "pitch": 18
       },
       "shoulder": {
-       "flex": 22,
+       "flex": 34,
        "abd": 16
       },
       "elbow": {
@@ -6426,13 +6494,13 @@
      "pose": {
       "base": "sit_ground",
       "neck": {
-       "pitch": 12
+       "pitch": 6
       },
       "head": {
-       "pitch": 26
+       "pitch": 18
       },
       "shoulder": {
-       "flex": 22,
+       "flex": 34,
        "abd": 16
       },
       "elbow": {
@@ -6555,13 +6623,13 @@
      "pose": {
       "base": "sit_ground",
       "neck": {
-       "pitch": 12
+       "pitch": 6
       },
       "head": {
-       "pitch": 26
+       "pitch": 18
       },
       "shoulder": {
-       "flex": 22,
+       "flex": 34,
        "abd": 16
       },
       "elbow": {
@@ -6691,7 +6759,7 @@
     "aspect": 2.39,
     "squeeze": 1,
     "fstop": 2.8,
-    "focus_m": 4.89
+    "focus_m": 4.85
    },
    "rig": {
     "type": "dolly"
@@ -6701,26 +6769,26 @@
    "keys": {
     "A": {
      "position": [
-      0.443,
+      0.439,
       0.85,
-      4.919
+      4.88
      ],
      "target": [
       0,
-      0.783,
+      0.797,
       0.05
      ],
      "roll": 0
     },
     "B": {
      "position": [
-      0.241,
+      0.237,
       0.85,
-      2.698
+      2.655
      ],
      "target": [
       0,
-      0.45,
+      0.457,
       0.05
      ],
      "roll": 0
@@ -6744,7 +6812,7 @@
      "size": "WS",
      "side": 1,
      "cameraHeight": 0.85,
-     "distance": 4.89
+     "distance": 4.85
     },
     "B": {
      "type": "two",
@@ -6823,7 +6891,7 @@
     "aspect": 2.39,
     "squeeze": 1,
     "fstop": 2.8,
-    "focus_m": 1.53
+    "focus_m": 1.82
    },
    "rig": {
     "type": "steadicam",
@@ -6835,26 +6903,26 @@
    "keys": {
     "A": {
      "position": [
-      0.342,
-      1,
-      1.629
+      1.816,
+      0.85,
+      1.271
      ],
      "target": [
-      0.342,
-      0.695,
-      0.131
+      0.648,
+      0.746,
+      -0.122
      ],
      "roll": 0
     },
     "B": {
      "position": [
-      1.544,
+      1.541,
       0.8,
-      7.257
+      7.309
      ],
      "target": [
       2.25,
-      -0.17,
+      -0.148,
       -2.7
      ],
      "roll": 0
@@ -6865,14 +6933,14 @@
    "wantForeground": false,
    "allowOcclusion": false,
    "line": null,
-   "beatA": "b1",
+   "beatA": "b1b",
    "beatB": "b2",
    "framing": {
     "A": {
      "type": "single",
-     "beat": "b1",
-     "azimuth": 20,
-     "cameraHeight": 1,
+     "beat": "b1b",
+     "azimuth": -80,
+     "cameraHeight": 0.85,
      "leadRoom": 0.15,
      "size": "MCU"
     },
@@ -6892,7 +6960,7 @@
    "id": "sh050",
    "name": "1E",
    "beat": "b2",
-   "size": "CU",
+   "size": "MCU",
    "subject": "CHAR_arthur",
    "intent": "\"Posso?\" Arthur accovacciato raccoglie i fogli e li guarda. Macchina a mano appena viva.",
    "camera": {
@@ -6901,7 +6969,7 @@
     "aspect": 2.39,
     "squeeze": 1,
     "fstop": 2,
-    "focus_m": 1.9
+    "focus_m": 2.31
    },
    "rig": {
     "type": "handheld",
@@ -6913,27 +6981,27 @@
    "keys": {
     "A": {
      "position": [
-      4.131,
-      0.95,
-      -2.34
+      4.463,
+      0.75,
+      -2.234
      ],
      "target": [
-      2.299,
-      0.969,
-      -2.831
+      2.243,
+      0.976,
+      -2.829
      ],
      "roll": 0
     },
     "B": {
      "position": [
-      4.131,
-      0.95,
-      -2.34
+      4.463,
+      0.75,
+      -2.234
      ],
      "target": [
-      2.299,
-      0.969,
-      -2.831
+      2.243,
+      0.976,
+      -2.829
      ],
      "roll": 0
     }
@@ -6954,12 +7022,12 @@
     "A": {
      "type": "single",
      "azimuth": -35,
-     "cameraHeight": 0.95
+     "cameraHeight": 0.75
     },
     "B": {
      "type": "single",
      "azimuth": -35,
-     "cameraHeight": 0.95
+     "cameraHeight": 0.75
     }
    }
   },
@@ -7030,7 +7098,7 @@
     "aspect": 2.39,
     "squeeze": 1,
     "fstop": 1.8,
-    "focus_m": 1.24
+    "focus_m": 1.42
    },
    "rig": {
     "type": "static"
@@ -7040,14 +7108,14 @@
    "keys": {
     "A": {
      "position": [
-      3.553,
-      1,
-      -2.86
+      3.66,
+      0.62,
+      -2.868
      ],
      "target": [
-      2.317,
-      1.029,
-      -2.752
+      2.313,
+      1.044,
+      -2.75
      ],
      "roll": 0
     },
@@ -7064,7 +7132,7 @@
     "A": {
      "type": "single",
      "azimuth": -15,
-     "cameraHeight": 1,
+     "cameraHeight": 0.62,
      "leadRoom": 0.1
     },
     "B": null
@@ -7083,7 +7151,7 @@
     "aspect": 2.39,
     "squeeze": 1,
     "fstop": 2.8,
-    "focus_m": 8.78
+    "focus_m": 8.82
    },
    "rig": {
     "type": "static",
@@ -7094,27 +7162,27 @@
    "keys": {
     "A": {
      "position": [
-      -0.143,
+      -0.156,
       0.9,
-      -11.075
+      -11.119
      ],
      "target": [
       2.25,
-      -0.17,
+      -0.148,
       -2.7
      ],
      "roll": 0
     },
     "B": {
      "position": [
-      -0.143,
+      -0.156,
       0.9,
-      -11.075
+      -11.119
      ],
      "target": [
-      -0.501,
-      1.425,
-      0.039
+      -0.505,
+      1.431,
+      0.041
      ],
      "roll": 0
     }
@@ -7357,7 +7425,7 @@
     "aspect": 2.39,
     "squeeze": 1,
     "fstop": 2.8,
-    "focus_m": 3.78
+    "focus_m": 3.73
    },
    "rig": {
     "type": "static"
@@ -7367,13 +7435,13 @@
    "keys": {
     "A": {
      "position": [
-      0.339,
+      0.334,
       1,
-      3.779
+      3.725
      ],
      "target": [
       0,
-      0.472,
+      0.479,
       0.05
      ],
      "roll": 0
@@ -7481,7 +7549,7 @@
    "intent": "Claire risponde senza alzare gli occhi dal telefono.",
    "camera": {
     "filmback": "ALEXA35_OG",
-    "focal_mm": 65,
+    "focal_mm": 50,
     "aspect": 2.39,
     "squeeze": 1,
     "fstop": 2.8,
@@ -7495,14 +7563,14 @@
    "keys": {
     "A": {
      "position": [
-      1.705,
-      0.763,
-      0.332
+      1.704,
+      0.583,
+      0.333
      ],
      "target": [
-      -0.425,
-      0.682,
-      -0.064
+      -0.438,
+      0.676,
+      -0.114
      ],
      "roll": 0
     },
@@ -7529,7 +7597,8 @@
      "fg": "CHAR_arthur",
      "bg": "CHAR_claire",
      "side": 1,
-     "fitSize": "MCU"
+     "fitSize": "MCU",
+     "heightOffset": -0.06
     },
     "B": null
    }
@@ -7605,7 +7674,7 @@
    "intent": "Claire, gli occhi sempre sullo schermo.",
    "camera": {
     "filmback": "ALEXA35_OG",
-    "focal_mm": 65,
+    "focal_mm": 50,
     "aspect": 2.39,
     "squeeze": 1,
     "fstop": 2.8,
@@ -7619,14 +7688,14 @@
    "keys": {
     "A": {
      "position": [
-      1.705,
-      0.763,
-      0.332
+      1.704,
+      0.583,
+      0.333
      ],
      "target": [
-      -0.425,
-      0.682,
-      -0.064
+      -0.438,
+      0.676,
+      -0.114
      ],
      "roll": 0
     },
@@ -7653,7 +7722,8 @@
      "fg": "CHAR_arthur",
      "bg": "CHAR_claire",
      "side": 1,
-     "fitSize": "MCU"
+     "fitSize": "MCU",
+     "heightOffset": -0.06
     },
     "B": null
    }
@@ -7798,7 +7868,7 @@
     "A": {
      "position": [
       1.667,
-      0.758,
+      0.578,
       0.334
      ],
      "target": [
@@ -7831,7 +7901,8 @@
      "fg": "CHAR_arthur",
      "bg": "CHAR_claire",
      "side": 1,
-     "fitSize": "CU"
+     "fitSize": "CU",
+     "heightOffset": -0.06
     },
     "B": null
    }
@@ -8223,7 +8294,7 @@
     "aspect": 2.39,
     "squeeze": 1,
     "fstop": 2.8,
-    "focus_m": 3.37
+    "focus_m": 3.32
    },
    "rig": {
     "type": "dolly"
@@ -8233,26 +8304,26 @@
    "keys": {
     "A": {
      "position": [
-      0.302,
+      0.297,
       0.95,
-      3.37
+      3.315
      ],
      "target": [
       0,
-      0.451,
+      0.458,
       0.05
      ],
      "roll": 0
     },
     "B": {
      "position": [
-      0.651,
+      0.642,
       0.95,
-      7.21
+      7.113
      ],
      "target": [
       0,
-      0.783,
+      0.798,
       0.05
      ],
      "roll": 0

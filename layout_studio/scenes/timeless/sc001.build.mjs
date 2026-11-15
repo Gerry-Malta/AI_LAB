@@ -80,17 +80,23 @@ B.standin('CHAR_rebecca', 'REBECCA (6)', 1.15, '#7a4b2b', [2.6, 0, -2.8], 180, '
 // acting adjustments on top of the library poses (see core/standin.js)
 const ARTHUR_SANDWICHES = { base: 'sit_ground', spine: { pitch: 30 }, shoulder: { flex: 62, abd: 10 }, elbow: { flex: 44 }, head: { pitch: 22 } };
 const ARTHUR_CHIPS = { base: 'sit_ground', shoulderR: { flex: 72, abd: 22 }, elbowR: { flex: 46 }, head: { pitch: 4 } };
-const ARTHUR_PICKS_UP = { base: 'crouch', head: { pitch: 22 }, shoulder: { flex: 58, abd: 10 }, elbow: { flex: 30 } };
-const CLAIRE_PHONE = { base: 'sit_ground', neck: { pitch: 12 }, head: { pitch: 26 }, shoulder: { flex: 22, abd: 16 }, elbow: { flex: 124 }, wrist: { flex: 18 } };
+const ARTHUR_PICKS_UP = { base: 'crouch', head: { pitch: 10 }, shoulder: { flex: 72, abd: 10 }, elbow: { flex: 34 } }; // sheets lifted toward the face
+const CLAIRE_PHONE = { base: 'sit_ground', neck: { pitch: 6 }, head: { pitch: 18 }, shoulder: { flex: 34, abd: 16 }, elbow: { flex: 124 }, wrist: { flex: 18 } }; // phone at chest height
 const REBECCA_DRAWS = { base: 'lie_prone', head: { pitch: 30 } };
 const REBECCA_LOOKS_UP = { base: 'lie_prone', neck: { pitch: -32 }, head: { pitch: -6 } };
 const ARTHUR_TALKS = { base: 'sit_ground', spine: { pitch: 24 }, head: { pitch: -4 } };
 const ARTHUR_GRASS = { base: 'sit_ground', spine: { pitch: 26 }, head: { pitch: 30 }, shoulder: { flex: 46, abd: 8 }, elbow: { flex: 96 } };
 const CLAIRE_FACES = { base: 'sit_ground', spine: { pitch: 22 }, head: { pitch: -2 } };
+const ARTHUR_LOOKS = { base: 'sit_ground', spine: { pitch: 10, yaw: 12 }, head: { pitch: 0, yaw: 10 } }; // turned toward Rebecca, chin up
 
 // ---------------------------------------------------------------- beats --------------------------------------
-B.beat('b1', 'Radura: Arthur sistema i panini, Claire al telefono, Rebecca disegna sul prato', 0, 14, {
+B.beat('b1', 'Radura: Arthur sistema i panini, Claire al telefono, Rebecca disegna sul prato', 0, 12, {
   CHAR_arthur: { position: [0.55, 0, 0], facing: 340, pose: ARTHUR_SANDWICHES },
+  CHAR_claire: { position: [-0.55, 0, 0.1], facing: 15, pose: CLAIRE_PHONE },
+  CHAR_rebecca: { position: [2.6, 0, -2.8], facing: 180, pose: REBECCA_DRAWS },
+});
+B.beat('b1b', 'Arthur alza gli occhi dai panini e si gira a guardare Rebecca', 12, 14, {
+  CHAR_arthur: { position: [0.55, 0, 0], facing: 120, pose: ARTHUR_LOOKS },
   CHAR_claire: { position: [-0.55, 0, 0.1], facing: 15, pose: CLAIRE_PHONE },
   CHAR_rebecca: { position: [2.6, 0, -2.8], facing: 180, pose: REBECCA_DRAWS },
 });
@@ -130,14 +136,14 @@ B.shot({ id: 'sh020', name: '1B', beat: 'b1', size: 'WS', subject: 'CHAR_arthur'
   A: { type: 'two', a: 'CHAR_claire', b: 'CHAR_arthur', size: 'WS', side: 1, cameraHeight: 0.85, distance: +(ts.distance + 2.2).toFixed(2) }, B: { type: 'two', a: 'CHAR_claire', b: 'CHAR_arthur', size: 'FS', side: 1, cameraHeight: 0.85, wantForeground: false } });
 B.shot({ id: 'sh030', name: '1C', beat: 'b1', size: 'MS', subject: 'CHAR_rebecca', intent: 'Rebecca a pancia in giù disegna, orsacchiotto in primo piano, i genitori sfocati sullo sfondo.', lens: { focal_mm: 35, fstop: 2 }, rig: { type: 'static' }, duration_s: 6, wantForeground: true,
   A: { type: 'single', azimuth: -55, cameraHeight: 0.32, leadRoom: 0.1 } });
-B.shot({ id: 'sh040', name: '1D', beat: 'b2', beatA: 'b1', beatB: 'b2', size: 'FS', subject: 'CHAR_arthur', intent: 'Arthur la guarda, si alza e la raggiunge: Steadicam lo segue dal telo fino a Rebecca e si posa sul due.', lens: { focal_mm: 40 }, rig: { type: 'steadicam', follow: true, followVertical: 1 }, duration_s: 10, curve: 'easeInOut',
-  A: { type: 'single', beat: 'b1', azimuth: 20, cameraHeight: 1.0, leadRoom: 0.15, size: 'MCU' }, B: { type: 'two', beat: 'b2', a: 'CHAR_arthur', b: 'CHAR_rebecca', size: 'FS', side: 1, cameraHeight: 0.8, azimuthOffset: -20 } });
-B.shot({ id: 'sh050', name: '1E', beat: 'b2', size: 'CU', subject: 'CHAR_arthur', intent: '"Posso?" Arthur accovacciato raccoglie i fogli e li guarda. Macchina a mano appena viva.', lens: { focal_mm: 65, fstop: 2 }, rig: { type: 'handheld', seed: 3, shake: 0.8 }, duration_s: 8, dialogue: [{ who: 'ARTHUR', line: 'Posso?' }],
-  A: { type: 'single', azimuth: -35, cameraHeight: 0.95 }, B: { type: 'single', azimuth: -35, cameraHeight: 0.95 } });
+B.shot({ id: 'sh040', name: '1D', beat: 'b2', beatA: 'b1b', beatB: 'b2', size: 'FS', subject: 'CHAR_arthur', intent: 'Arthur la guarda, si alza e la raggiunge: Steadicam lo segue dal telo fino a Rebecca e si posa sul due.', lens: { focal_mm: 40 }, rig: { type: 'steadicam', follow: true, followVertical: 1 }, duration_s: 10, curve: 'easeInOut',
+  A: { type: 'single', beat: 'b1b', azimuth: -80, cameraHeight: 0.85, leadRoom: 0.15, size: 'MCU' }, B: { type: 'two', beat: 'b2', a: 'CHAR_arthur', b: 'CHAR_rebecca', size: 'FS', side: 1, cameraHeight: 0.8, azimuthOffset: -20 } });
+B.shot({ id: 'sh050', name: '1E', beat: 'b2', size: 'MCU', subject: 'CHAR_arthur', intent: '"Posso?" Arthur accovacciato raccoglie i fogli e li guarda. Macchina a mano appena viva.', lens: { focal_mm: 65, fstop: 2 }, rig: { type: 'handheld', seed: 3, shake: 0.8 }, duration_s: 8, dialogue: [{ who: 'ARTHUR', line: 'Posso?' }],
+  A: { type: 'single', azimuth: -35, cameraHeight: 0.75 }, B: { type: 'single', azimuth: -35, cameraHeight: 0.75 } }); // below his eyes: he looks down at the sheets
 B.shot({ id: 'sh060', name: '1F', beat: 'b2', size: 'INSERT', subject: 'PROP_drawing_1', intent: 'Inserto: il disegno. Tre figure. La mamma e il papà senza piedi, galleggiano sopra la linea del prato.', lens: { focal_mm: 75, fstop: 2.8 }, rig: { type: 'static' }, duration_s: 4,
   A: { type: 'object', object: 'PROP_drawing_1', elevation: 72, azimuth: 20, fill: 0.75 } });
 B.shot({ id: 'sh070', name: '1G', beat: 'b2', size: 'BCU', subject: 'CHAR_arthur', intent: 'Il sorriso di Arthur si spegne. Sfoglia ancora. Sempre senza piedi.', lens: { focal_mm: 75, fstop: 1.8 }, rig: { type: 'static' }, duration_s: 5,
-  A: { type: 'single', azimuth: -15, cameraHeight: 1.0, leadRoom: 0.1 } });
+  A: { type: 'single', azimuth: -15, cameraHeight: 0.62, leadRoom: 0.1 } }); // low: the smile fading has to read
 B.shot({ id: 'sh080', name: '1H', beat: 'b2', beatA: 'b2', beatB: 'b3', size: 'FS', subject: 'CHAR_arthur', intent: 'Profilo: Arthur bacia Rebecca sulla testa, "Ti voglio bene, scimmietta", si alza e torna al telo; la macchina panoramica con lui e ritrova Claire.', lens: { focal_mm: 35 }, rig: { type: 'static', aim: 'subject' }, duration_s: 9, curve: 'holdMoveHold', dialogue: [{ who: 'ARTHUR', line: 'Ti voglio bene, scimmietta.' }],
   A: { type: 'two', beat: 'b2', a: 'CHAR_arthur', b: 'CHAR_rebecca', size: 'FS', side: -1, cameraHeight: 0.9, margin: 0.1 }, B: { type: 'single', beat: 'b3', azimuth: 40, cameraHeight: 0.9, size: 'WS' } });
 B.shot({ id: 'sh090', name: '1I', beat: 'b3', size: 'CU', subject: 'CHAR_rebecca', intent: 'Rebecca alza lo sguardo oltre la macchina: la montagna. La fissa.', lens: { focal_mm: 65, fstop: 2 }, rig: { type: 'static' }, duration_s: 5,
@@ -149,7 +155,7 @@ B.shot({ id: 'sh110', name: '1K', beat: 'b3', size: 'INSERT', subject: 'PROP_she
 // ---- on the blanket: the confrontation, covered line by line (180° line Claire–Arthur, camera south) ----
 const A_ = 'CHAR_arthur', C_ = 'CHAR_claire';
 const otsOnArthur = (fit) => ({ type: 'ots', fg: C_, bg: A_, side: -1, fitSize: fit });
-const otsOnClaire = (fit) => ({ type: 'ots', fg: A_, bg: C_, side: 1, fitSize: fit });
+const otsOnClaire = (fit) => ({ type: 'ots', fg: A_, bg: C_, side: 1, fitSize: fit, heightOffset: -0.06 }); // just under the shoulder line: her face, not her crown
 B.shot({ id: 'sh120', name: '1L', beat: 'b4', size: 'FS', subject: C_, intent: 'Sul telo, due. Arthur porge a Claire un sacchetto di patatine. Il mezzo metro vuoto tra loro al centro del quadro.', lens: { focal_mm: 40 }, rig: { type: 'static' }, duration_s: 6, line: LINE,
   dialogue: [{ who: 'ARTHUR', line: 'Ne vuoi?' }, { who: 'CLAIRE', line: 'No, grazie.' }],
   A: { type: 'two', a: C_, b: A_, side: 1, cameraHeight: 1.0 } });

@@ -23,11 +23,12 @@ python3 -m http.server 8000      # then http://localhost:8000/layout_studio/
 
 | Path | What |
 |---|---|
-| `index.html`, `app/` | the viewer (three.js): viewport, outliner, shots, beats, PiP camera view, shot check, exports |
+| `index.html`, `app/` | the viewer (three.js): viewport, outliner, shots, beats, PiP camera view, shot check, exports, `export_mp4.js` (in-browser MP4 export) |
 | `core/` | dependency-free ES modules shared by browser and Node: `lens.js` (filmbacks, FOV, DOF), `rigs.js` (rig constraints → `pose(t)`), `motion.js` (easing), `standin.js` (mannequin skeleton, poses, keypoints, body parts), `blocking.js` (blocking over time), `shot.js` (shot solving with subject tracking), `framing.js` (single / two-shot / OTS / insert solvers), `metrics.js` (shot check), `keys.js` (framing definitions → keys), `exporters.js` (camera sheet, Blender script), `schema.js` |
 | `scenes/_lib/build.mjs` | scene builder used by generation scripts: `node scenes/demo/build.mjs` |
 | `scenes/demo/` | public demo scenes: a fictional café terrace and the mannequin pose library |
-| `scenes/<project>/` | your productions. `scenes/timeless/` is git-ignored on purpose (story material stays private) |
+| `scenes/timeless/` | TIMELESS, scene by scene: `sc001.build.mjs` (Scene 1 layout script), `sc001.json`, its camera sheet and Blender script. The whole-film breakdown (`index.json`) stays local |
+| `vendor/` | three.js 0.170 and mp4-muxer 5.2 (MIT), copied unmodified so the viewer works offline |
 | `tests/core.test.mjs` | `node --test tests/core.test.mjs` |
 | `tests/smoke.mjs` | headless Playwright run: loads a scene, walks the shots, screenshots, fails on JS errors |
 | `tools/render_mp4.mjs` | offline sequence render to MP4 (see below) |
@@ -37,7 +38,7 @@ python3 -m http.server 8000      # then http://localhost:8000/layout_studio/
 * **RMB** drag: look. With RMB held: **W A S D** fly, **Q / E** down / up, **Shift** faster, **wheel** changes fly speed.
 * **wheel** (RMB not held): dolly forward / back. **MMB** drag: pan. **Alt + LMB**: orbit the focus point.
 * **LMB**: select object or shot camera. **W / E / R**: move / rotate / scale gizmo. **F**: frame. **Del**: delete.
-* **Space** play, **[ ]** previous / next shot, **L** look through the shot camera, **G** grid, **H** labels, **Ctrl+Z** undo, **Ctrl+S** download JSON.
+* **Space** play, **[ ]** previous / next shot, **L** look through the shot camera (letterboxed to the lens aspect, with live subtitles), **G** grid, **H** labels, **Ctrl+Z** undo, **Ctrl+S** download JSON.
 * While looking through the camera, RMB + WASD drive the **shot camera**; releasing writes the active key (A or B).
 * Shot panel: lens, rig, follow, shake intensity, duration, timing curve with a bezier editor, keys A and B (set from the view, aim at the subject, re-solve from the framing definition).
 * Stand-in panel: blocking per beat (position, facing, pose) and **acting**: head, neck, spine, arms and legs joint angles on top of the pose, with a reset to the library pose.
@@ -111,16 +112,22 @@ risk, rig limits (speed, track, boom range, crane reach, pan rate) and the 180°
 in the framing definition (a push-in that passes its foreground). Each shot gets a 0–100 score; the intent is "first pass that a human
 then nudges", not taste.
 
-## Previs of the edit (sequence playback and MP4)
+## Previs of the edit (real-time playback and MP4)
 
-* In the viewer, **▶ all** in the timeline plays every shot back to back with the stand-ins moving between their beat marks.
-* `node tools/render_mp4.mjs scenes/<project>/<scene>.json out.mp4 [--fps 24] [--width 1920] [--height 804] [--ss 1.5] [--shots 1A,1B]` renders
-  the scene offline, frame by frame from each shot camera (rig moves, operator texture, subject following and blocking transitions
-  included), burns in shot, lens, rig, timecode, the action text and the dialogue as subtitles, and encodes H.264 with `ffmpeg`.
-  `--ss` supersamples each frame (2 = four times the pixels, then filtered down) so thin edges do not crawl during moves. Headless
-  Chromium via Playwright on a CPU renderer: about 1 frame/s at `--ss 2`; split long scenes with `--shots` across processes and join
-  the parts with `ffmpeg -f concat -c copy`.
-* Shadows are fitted to the area where the action is (4096 map), so they stay sharp and stable.
+* **Real time, in the viewer.** **▶ all** in the timeline switches to the lens view and plays every shot back to back on your GPU,
+  letterboxed to the lens aspect, with the stand-ins moving between their beat marks and the dialogue as subtitles. **L** goes
+  back to the world view.
+* **Export MP4** (top bar) renders the same sequence frame by frame on your GPU and encodes it in the browser with WebCodecs
+  (H.264 where the browser has it, else VP9 or AV1), then downloads the file. Options: all shots or the current one, 1280 to 3840
+  wide, supersampling 1 to 2×, 24/25/30 fps, burn-in on or off (shot, lens, rig, timecode, action text, subtitles). Nothing is
+  uploaded. Recent Chrome, Edge, Safari or Firefox. A scene of a few minutes takes minutes, not hours.
+* **Offline, headless:** `node tools/render_mp4.mjs scenes/<project>/<scene>.json out.mp4 [--fps 24] [--width 1920] [--height 804] [--ss 1.5] [--fast] [--shots 1A,1B]`
+  renders the same frames in headless Chromium and encodes H.264 with `ffmpeg`. Use it on a machine with a GPU, or for automation.
+  Without a GPU Chromium falls back to a CPU renderer (SwiftShader) at about 1 to 3 frames per second; `--fast` (Lambert shading,
+  lighter shadows, no logarithmic depth) and `--width 1280 --height 536 --ss 1.5` keep previews quick. Split long scenes with
+  `--shots` across processes and join the parts with `ffmpeg -f concat -c copy`.
+* `--ss` / supersampling renders more pixels and filters them down, so thin edges do not crawl during moves.
+* Shadows are fitted to the area where the action is (4096 map, 2048 in fast mode), so they stay sharp and stable.
 
 ## Exports
 
@@ -132,10 +139,11 @@ then nudges", not taste.
 
 1. Describe the location, props and characters in a build script (see `scenes/demo/build.mjs`) or draw them in the viewer with the + buttons; mark what is observed vs inferred.
 2. Add beats (blocking states) and shots with framing definitions; `node scenes/<project>/build.mjs` prints the shot check report.
-3. Open the viewer, walk the shots, look through the lens, nudge objects or keys, re-solve, export.
+3. Open the viewer, walk the shots, look through the lens, nudge objects or keys, re-solve, play the edit in real time, export.
 4. When a reference image for the location exists, reconstruct it (e.g. Higgsfield 3D Jutsu → GLB) and drop the GLB into the scene as a `gltf` object; keep the proxies for what the photo does not show.
 
 ## Status
 
-v0.1 — Phase 0 (viewer + deterministic core) and the first scene-layout script. Next: the agent loop that writes build
-scripts from the screenplay and iterates on the shot check, USD/FBX camera export, Unreal bridge, stand-in animation clips.
+v0.2 — viewer + deterministic core, Unreal-style mannequins with acting, subject following, real-time screening of the edit,
+in-browser MP4 export, and TIMELESS Scene 1. Next: the agent loop that writes build scripts from the screenplay and iterates
+on the shot check, more TIMELESS scenes, USD/FBX camera export, Unreal bridge, stand-in animation clips.

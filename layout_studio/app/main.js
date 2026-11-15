@@ -2,6 +2,7 @@
 import * as THREE from 'three';
 import * as core from '../core/index.js';
 import { Viewport, ROLE_COLORS } from './scene3d.js';
+import { canEncode, encodeMP4, pickCodec, codecName } from './export_mp4.js';
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -12,7 +13,9 @@ const rd = (rad) => Math.round(THREE.MathUtils.radToDeg(rad) * 10) / 10;
 const opt = (list, value, label = (x) => x, val = (x) => x) => list.map((x) => `<option value="${esc(val(x))}" ${String(val(x)) === String(value) ? 'selected' : ''}>${esc(label(x))}</option>`).join('');
 
 const S = { scene: null, fileName: '', selectedId: null, shotId: null, t: 0, playing: false, loop: true, lookThrough: false, editKey: 'A', beatId: null, tab: 'outliner', pipSize: 'M', snap: false, undo: [], dirty: false, solvedCache: new Map(), scoreCache: new Map(), version: 0, filter: '', lastEval: null };
-const vp = new Viewport($('#gl'));
+const QUERY = new URLSearchParams(location.search);
+const vp = new Viewport($('#gl'), { fast: QUERY.get('render') === 'fast' });
+vp.gateInset = { top: 34, bottom: 50 }; // look-through frame stays clear of the view toolbar and the timeline
 window.LS = { S, vp, core }; // handy for debugging / automation
 
 // ------------------------------------------------------------------ accessors ---------------------------------------------
@@ -465,7 +468,7 @@ $('#tl-play').addEventListener('click', () => { S.playing = !S.playing; S.seqPla
 $('#tl-playall').addEventListener('click', () => {
   if (!shots().length) return;
   S.seqPlay = !S.seqPlay;
-  if (S.seqPlay) { selectShot(shots()[0].id, { fly: false }); S.playing = true; S.loop = false; $('#tl-loop').checked = false; }
+  if (S.seqPlay) { selectShot(shots()[0].id, { fly: false }); if (!S.lookThrough) setLookThrough(true); S.playing = true; S.loop = false; $('#tl-loop').checked = false; }
   else S.playing = false;
   refreshPlayBtn();
 });
@@ -527,6 +530,7 @@ $('#vt-look').addEventListener('click', () => setLookThrough(!S.lookThrough));
 $('#vt-grid').classList.add('active'); $('#vt-labels').classList.add('active');
 
 window.addEventListener('keydown', (e) => {
+  if (!$('#export').classList.contains('hidden')) { if (e.code === 'Escape' && !EX.ctrl) closeExport(); return; }
   if (vp.isTyping()) return;
   const k = e.code;
   if ((e.ctrlKey || e.metaKey) && k === 'KeyZ') { e.preventDefault(); undo(); return; }
@@ -547,7 +551,8 @@ window.addEventListener('keydown', (e) => {
 });
 
 // ------------------------------------------------------------------ files / exports -------------------------------------
-function download(name, text, mime = 'text/plain') { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type: mime })); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500); }
+function downloadBlob(name, blob) { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 60000); }
+function download(name, text, mime = 'text/plain') { downloadBlob(name, new Blob([text], { type: mime })); }
 const baseName = () => `${(S.scene.project || 'scene').replace(/\W+/g, '_')}_sc${String(S.scene.scene.number ?? 1).padStart(3, '0')}`;
 function saveJSON() { if (!S.scene) return; download(`${baseName()}_layout.json`, core.toJSON(S.scene), 'application/json'); S.dirty = false; refreshTitle(); toast('JSON downloaded'); }
 $('#btn-save').addEventListener('click', saveJSON);
@@ -570,6 +575,7 @@ function refreshAll() { refreshTitle(); refreshOutliner(); refreshProps(); refre
 // ------------------------------------------------------------------ main loop -------------------------------------------
 let last = performance.now(), evalTimer = 0;
 function tick(now) {
+  if (S.exporting) { last = now; requestAnimationFrame(tick); return; } // the export owns the renderer
   const dt = Math.min(0.1, (now - last) / 1000); last = now;
   vp.update(dt);
   const sh = currentShot();
@@ -577,7 +583,11 @@ function tick(now) {
     if (S.playing) {
       S.t += dt / (sh.duration_s || 5);
       if (S.t >= 1) {
-        if (S.seqPlay) { const list = shots(); const i = list.findIndex((s) => s.id === sh.id); if (i < list.length - 1) { selectShot(list[i + 1].id, { fly: false }); S.playing = true; } else { S.seqPlay = false; S.playing = false; S.t = 1; } refreshPlayBtn(); }
+        if (S.seqPlay) { // carry the time past the cut into the next shot, so the edit keeps real time
+          const list = shots(); const i = list.findIndex((s) => s.id === sh.id); const over = (S.t - 1) * (sh.duration_s || 5);
+          if (i < list.length - 1) { const nx = list[i + 1]; selectShot(nx.id, { fly: false, t: Math.min(0.999, over / (nx.duration_s || 5)) }); S.playing = true; } else { S.seqPlay = false; S.playing = false; S.t = 1; }
+          refreshPlayBtn();
+        }
         else if (S.loop) S.t -= 1;
         else { S.t = 1; S.playing = false; refreshPlayBtn(); }
       }
@@ -590,7 +600,8 @@ function tick(now) {
     updateTimelineUI();
   }
   vp.render(sh && !S.lookThrough ? pipRect() : null);
-  if (sh && now - evalTimer > 250) { evalTimer = now; refreshRight(); drawGuides(); }
+  updateOverlay(sh);
+  if (sh && now - evalTimer > 250 && !(S.seqPlay && S.playing)) { evalTimer = now; refreshRight(); drawGuides(); } // no shot check during a screening
   requestAnimationFrame(tick);
 }
 requestAnimationFrame(tick);
@@ -646,19 +657,126 @@ function burnIn(canvas, sh, t, fps = 24) {
     panel(lines, W / 2, H - Math.round(18 * u), size, { font: sans, weight: 600, align: 'center', anchor: 'bottom', bg: 'rgba(0,0,0,0.78)' });
   }
 }
+/** Render one frame of a shot at time t (0..1) at an exact size into a canvas, burn-in included unless opts.burnIn === false. */
+function renderFrameCanvas(sh, t, w = 1920, h = 804, opts = {}) {
+  const pose = solvedFor(sh).pose(t);
+  vp.applyBlocking(objects(), blockingAt(sh, t));
+  const canvas = vp.renderStill(pose, sh.camera, w, h, opts.ss || 1, { keep: opts.keep, canvas: opts.canvas });
+  if (opts.burnIn !== false) burnIn(canvas, sh, t, opts.fps || 24);
+  return canvas;
+}
 /** Render one frame of a shot at time t (0..1) at an exact size; returns a data URL. */
 function renderFrame(shotId, t, w = 1920, h = 804, opts = {}) {
   const sh = shots().find((s) => s.id === shotId); if (!sh) throw new Error('unknown shot ' + shotId);
-  const solved = solvedFor(sh); const pose = solved.pose(t);
-  vp.applyBlocking(objects(), blockingAt(sh, t));
-  const canvas = vp.renderStill(pose, sh.camera, w, h, opts.ss || 1);
-  if (opts.burnIn !== false) burnIn(canvas, sh, t, opts.fps || 24);
-  return canvas.toDataURL(opts.format || 'image/jpeg', opts.quality ?? 0.92);
+  return renderFrameCanvas(sh, t, w, h, opts).toDataURL(opts.format || 'image/jpeg', opts.quality ?? 0.92);
 }
-window.LS.api = { sequence: sequenceInfo, renderFrame, load: (json, name) => loadScene(json, name) };
+
+// ------------------------------------------------------------------ Export MP4: render on this GPU, encode in the browser ---
+/** Same frame timing as tools/render_mp4.mjs: each shot gets round(duration × fps) frames, first and last on keys A and B. */
+function framePlan(list, fps) {
+  const frames = [];
+  for (const sh of list) { const n = Math.max(1, Math.round((sh.duration_s || 0) * fps)); for (let i = 0; i < n; i++) frames.push({ sh, t: n > 1 ? i / (n - 1) : 0 }); }
+  return frames;
+}
+const evenHeight = (w, aspect) => 2 * Math.round(w / aspect / 2);
+/** Render the edit (or some shots) frame by frame and encode it. Returns { blob, codec, codecName, frames, seconds, width, height }. */
+async function exportSequence({ shotIds = null, width = 1920, height = 0, fps = 24, ss = 1.5, burnIn: burn = true, maxFrames = 0, signal, onProgress } = {}) {
+  const list = shotIds ? shots().filter((s) => shotIds.includes(s.id) || shotIds.includes(s.name)) : shots();
+  if (!list.length) throw new Error('No shots to export');
+  let frames = framePlan(list, fps); if (maxFrames) frames = frames.slice(0, maxFrames);
+  height = height || evenHeight(width, list[0].camera.aspect || 2.39);
+  const canvas = document.createElement('canvas');
+  S.exporting = true; S.playing = false; S.seqPlay = false; refreshPlayBtn();
+  try {
+    const res = await encodeMP4({
+      width, height, fps, frames: frames.length, signal,
+      renderFrame: (i) => renderFrameCanvas(frames[i].sh, frames[i].t, width, height, { ss, fps, burnIn: burn, keep: true, canvas }),
+      onProgress: onProgress && ((p) => onProgress(Object.assign(p, { shot: frames[p.done - 1].sh, canvas }))),
+    });
+    return Object.assign(res, { width, height });
+  } finally { vp.endStills(); S.exporting = false; }
+}
+/** Batch renders from tools/render_mp4.mjs: pause the live viewport (it would compete for the GPU) and keep the still size. */
+function holdViewport(on) { S.exporting = !!on; if (!on) vp.endStills(); }
+window.LS.api = { sequence: sequenceInfo, renderFrame, exportMP4: exportSequence, hold: holdViewport, load: (json, name) => loadScene(json, name) };
+
+const EX = { ctrl: null, probe: 0 };
+const clock = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+function exportOptions() {
+  const sh = currentShot(); const list = $('#ex-range').value === 'shot' && sh ? [sh] : shots();
+  const fps = +$('#ex-fps').value, width = +$('#ex-size').value, ss = +$('#ex-ss').value;
+  const height = list.length ? evenHeight(width, list[0].camera.aspect || 2.39) : 0;
+  const frames = list.reduce((a, x) => a + Math.max(1, Math.round((x.duration_s || 0) * fps)), 0);
+  return { list, fps, width, height, ss, burn: $('#ex-burn').checked, frames };
+}
+function refreshExportDialog() {
+  const o = exportOptions(), running = !!EX.ctrl;
+  $('#ex-range option[value="shot"]').disabled = !currentShot();
+  const ss = Math.max(1, Math.min(o.ss, 6144 / o.width)); // same cap as Viewport.renderStill
+  $('#ex-summary').textContent = `${o.list.length} shot${o.list.length === 1 ? '' : 's'} · ${o.frames} frames · ${clock(o.frames / o.fps)} · ${o.width}×${o.height} px` + (ss > 1 ? ` · rendered at ${Math.round(o.width * ss)}×${Math.round(o.height * ss)} and filtered down` : '');
+  for (const el of $$('#export select, #export input')) el.disabled = running;
+  $('#ex-start').disabled = running || !o.frames || !canEncode();
+  $('#ex-close').textContent = running ? 'Cancel' : 'Close';
+}
+function probeEncoder() {
+  const o = exportOptions(), id = ++EX.probe;
+  if (!canEncode()) { $('#ex-codec').textContent = 'This browser cannot encode video (no WebCodecs). Use a recent Chrome, Edge, Safari or Firefox.'; return; }
+  $('#ex-codec').textContent = 'Checking the video encoder…';
+  pickCodec(o.width, o.height, o.fps).then((p) => { if (id !== EX.probe) return; $('#ex-codec').textContent = p ? `Encoder: ${codecName(p.config.codec)} (${p.config.codec}), on this computer.` : 'No encoder for this size in this browser: pick a smaller size.'; });
+}
+function openExport() {
+  if (!S.scene || !shots().length) return toast('No shots to export');
+  if (S.playing) { S.playing = false; S.seqPlay = false; refreshPlayBtn(); }
+  $('#export').classList.remove('hidden'); $('#ex-progress').classList.add('hidden'); $('#ex-status').textContent = '';
+  refreshExportDialog(); probeEncoder();
+}
+function closeExport() { if (EX.ctrl) EX.ctrl.abort(); else $('#export').classList.add('hidden'); }
+async function startExport() {
+  const o = exportOptions(); if (!o.frames || EX.ctrl) return;
+  EX.ctrl = new AbortController(); refreshExportDialog();
+  $('#ex-progress').classList.remove('hidden'); $('#ex-bar').style.width = '0%'; $('#ex-status').textContent = 'Starting…';
+  const pv = $('#ex-preview'); pv.height = Math.round(pv.width * o.height / o.width); pv.getContext('2d').clearRect(0, 0, pv.width, pv.height);
+  const name = `${baseName()}${o.list.length === 1 ? '_' + (o.list[0].name || o.list[0].id) : ''}_previs_${o.width}.mp4`;
+  try {
+    const res = await exportSequence({
+      shotIds: o.list.map((x) => x.id), width: o.width, height: o.height, fps: o.fps, ss: o.ss, burnIn: o.burn, signal: EX.ctrl.signal,
+      onProgress: ({ done, total, elapsed, shot, canvas }) => {
+        const rate = done / Math.max(1e-3, elapsed);
+        if (done % 4 === 1 || done === total) { const pv = $('#ex-preview'); pv.getContext('2d').drawImage(canvas, 0, 0, pv.width, pv.height); }
+        $('#ex-bar').style.width = `${(100 * done / total).toFixed(1)}%`;
+        $('#ex-status').textContent = `Frame ${done} / ${total} · shot ${shot.name || shot.id} · ${rate.toFixed(0)} fps · about ${clock((total - done) / rate)} left`;
+      },
+    });
+    downloadBlob(name, res.blob);
+    $('#ex-status').textContent = `Done in ${clock(res.seconds)} (${(res.frames / res.seconds).toFixed(0)} fps) · ${(res.blob.size / 1e6).toFixed(1)} MB · ${res.codecName} · saved as ${name}`;
+  } catch (e) {
+    $('#ex-status').textContent = e && e.name === 'AbortError' ? 'Cancelled.' : `Export failed: ${(e && e.message) || e}`;
+  } finally { EX.ctrl = null; refreshExportDialog(); }
+}
+$('#btn-export').addEventListener('click', openExport);
+$('#ex-start').addEventListener('click', startExport);
+$('#ex-close').addEventListener('click', closeExport);
+$('#export').addEventListener('click', (e) => { if (e.target.id === 'export' && !EX.ctrl) closeExport(); });
+for (const id of ['#ex-range', '#ex-ss', '#ex-burn']) $(id).addEventListener('change', refreshExportDialog);
+for (const id of ['#ex-size', '#ex-fps']) $(id).addEventListener('change', () => { refreshExportDialog(); probeEncoder(); });
+
+// ------------------------------------------------------------------ look-through overlay: shot label + subtitles, live ---
+let overlayKey = '';
+function updateOverlay(sh) {
+  const ov = $('#lt-overlay');
+  if (!S.lookThrough || !sh) { if (overlayKey) { ov.classList.add('hidden'); overlayKey = ''; } return; }
+  const g = vp.gateRect(sh.camera.aspect || 2.39); if (!g) return;
+  const d = dialogueAt(sh.dialogue, S.t);
+  const key = `${g.left},${g.top},${g.width},${g.height}|${sh.id}|${d ? `${d.who}|${d.line}` : ''}`;
+  if (key === overlayKey) return;
+  overlayKey = key;
+  ov.classList.remove('hidden');
+  Object.assign(ov.style, { left: `${g.left}px`, top: `${g.top}px`, width: `${g.width}px`, height: `${g.height}px`, fontSize: `${Math.max(12, Math.round(g.height * 0.042))}px` });
+  $('#lt-label').textContent = `${sh.name || sh.id} · ${sh.size || ''} · ${sh.camera.focal_mm}mm · ${(sh.rig && sh.rig.type) || 'static'}`;
+  const sub = $('#lt-sub'); sub.textContent = d ? `${d.who ? d.who + ':  ' : ''}${d.line}` : ''; sub.classList.toggle('hidden', !d);
+}
 
 // ------------------------------------------------------------------ boot ------------------------------------------------
-const params = new URLSearchParams(location.search);
-const initial = params.get('scene') || 'scenes/demo/street_corner.json';
+const initial = QUERY.get('scene') || 'scenes/demo/street_corner.json';
 const picker = $('#scene-picker'); if (![...picker.options].some((o) => o.value === initial)) { const o = document.createElement('option'); o.value = initial; o.textContent = initial; picker.appendChild(o); } picker.value = initial;
 loadFromURL(initial);
