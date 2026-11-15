@@ -1,2 +1,6 @@
-scenes/timeless/
+# renders are large and reproducible: keep them out of git
+*.mp4
+# stale local screenshots of the TIMELESS shots
 docs/shots_timeless/
+# whole-film breakdown stays local; individual scenes are published
+scenes/timeless/index.json

@@ -10,3 +10,4 @@ export * from './schema.js';
 export * from './keys.js';
 export * from './blocking.js';
 export * from './shot.js';
+export * from './dialogue.js';

@@ -176,6 +176,10 @@ export function skeleton(pose = 'stand', height = 1.75, age) {
   cap('neck', neck, headPivot, neckR, P.rNeck, 'accent');
   ell('head', hp((P.top + P.chin) / 2, 0.004 * H), headR, [P.headW, P.top - P.chin, P.headD]);
   ell('nose', hp((P.eyes + P.mouth) / 2, P.headD * 0.47), headR, [P.headW * 0.16, (P.eyes - P.mouth) * 0.75, P.headD * 0.2], 'accent');
+  // eyes: two dark lenses sitting on the head surface, so the face reads in close shots (nose alone looks like a nape)
+  const eyeX = P.headW * 0.2, headCy = (P.top + P.chin) / 2;
+  const eyeZ = 0.004 * H + (P.headD / 2) * Math.sqrt(Math.max(0, 1 - (eyeX / (P.headW / 2)) ** 2 - ((P.eyes - headCy) / ((P.top - P.chin) / 2)) ** 2));
+  for (const sgn of [1, -1]) ell(sgn > 0 ? 'eyeL' : 'eyeR', at(headPivot, headR, [sgn * eyeX, P.eyes - P.headPivot, eyeZ]), headR, [P.headW * 0.15, P.headW * 0.08, P.headD * 0.07], 'joint');
 
   for (const [S, sgn] of [['L', 1], ['R', -1]]) {
     // arm: shoulder → elbow → wrist → hand

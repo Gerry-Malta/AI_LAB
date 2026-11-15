@@ -17,7 +17,8 @@ const unitGeo = {
   plane: new THREE.PlaneGeometry(1, 1),
 };
 
-function makeLabel(text, color = '#ffffff') {
+/** Editor label: a pill of text that keeps the same size on screen at any distance (size 1 ≈ 18 px of text). */
+function makeLabel(text, color = '#ffffff', size = 1) {
   const c = document.createElement('canvas'); c.width = 512; c.height = 96;
   const ctx = c.getContext('2d');
   ctx.font = '500 40px DM Mono, Menlo, monospace';
@@ -27,8 +28,9 @@ function makeLabel(text, color = '#ffffff') {
   ctx.fillStyle = color; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.fillText(text, 256, 50);
   const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace;
-  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthTest: false, transparent: true }));
-  sprite.scale.set(1.8, 0.34, 1);
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthTest: false, transparent: true, sizeAttenuation: false }));
+  const h = 0.034 * size; sprite.scale.set((h * 512) / 96, h, 1);
+  sprite.userData.isLabel = true;
   sprite.layers.set(HELPER_LAYER);
   sprite.renderOrder = 10;
   return sprite;
@@ -45,19 +47,22 @@ function setPartTransform(mesh, p) {
 const standinTop = (obj, pose) => core.skeleton(pose || obj.pose || 'stand', obj.height || 1.75, obj.age).keypoints.headTop[1] + 0.3;
 
 export class Viewport {
-  constructor(canvas) {
+  /** opts.fast: preview quality for software renderers (no log depth, Lambert shading, lighter shadows). */
+  constructor(canvas, opts = {}) {
     this.canvas = canvas;
-    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true, logarithmicDepthBuffer: true });
+    this.fast = !!opts.fast;
+    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true, logarithmicDepthBuffer: !this.fast });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.renderer.shadowMap.type = this.fast ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.0;
     this.scene = new THREE.Scene();
     this.flyCam = new THREE.PerspectiveCamera(60, 1, 0.05, 30000);
     this.flyCam.layers.enable(HELPER_LAYER);
-    this.shotCam = new THREE.PerspectiveCamera(30, 2.39, 0.05, 30000);
+    this.shotCam = new THREE.PerspectiveCamera(30, 2.39, this.fast ? 0.1 : 0.05, this.fast ? 9000 : 30000);
+    if (this.fast) { this.flyCam.near = 0.1; this.flyCam.far = 9000; this.flyCam.updateProjectionMatrix(); }
     this.objectsRoot = new THREE.Group(); this.objectsRoot.name = 'objects';
     this.helpersRoot = new THREE.Group(); this.helpersRoot.name = 'helpers';
     this.camerasRoot = new THREE.Group(); this.camerasRoot.name = 'cameras';
@@ -102,7 +107,7 @@ export class Viewport {
     const dir = new THREE.DirectionalLight(0xfff2dd, 2.6);
     const az = deg(sun.azimuth), el = deg(sun.elevation);
     dir.position.set(Math.sin(az) * Math.cos(el) * 150, Math.sin(el) * 150, Math.cos(az) * Math.cos(el) * 150);
-    dir.castShadow = true; dir.shadow.mapSize.set(4096, 4096);
+    dir.castShadow = true; dir.shadow.mapSize.set(this.fast ? 2048 : 4096, this.fast ? 2048 : 4096);
     Object.assign(dir.shadow.camera, { left: -60, right: 60, top: 60, bottom: -60, near: 1, far: 500 });
     dir.shadow.bias = -0.0006; dir.shadow.normalBias = 0.02;
     this.sunLight = dir; this.sunDir = new THREE.Vector3(Math.sin(az) * Math.cos(el), Math.sin(el), Math.cos(az) * Math.cos(el));
@@ -134,7 +139,10 @@ export class Viewport {
   }
   buildObjects(objects) { this.clearObjects(); for (const o of objects) this.addObjectNode(o); }
 
-  material(color, opts = {}) { return new THREE.MeshStandardMaterial(Object.assign({ color: new THREE.Color(color || '#999'), roughness: 0.92, metalness: 0 }, opts)); }
+  material(color, opts = {}) {
+    if (this.fast) { const { roughness, metalness, ...rest } = opts; return new THREE.MeshLambertMaterial(Object.assign({ color: new THREE.Color(color || '#999') }, rest)); }
+    return new THREE.MeshStandardMaterial(Object.assign({ color: new THREE.Color(color || '#999'), roughness: 0.92, metalness: 0 }, opts));
+  }
 
   buildMeshes(obj, group) {
     const s = obj.size || [1, 1, 1];
@@ -151,9 +159,9 @@ export class Viewport {
       case 'standin': {
         // Unreal-style mannequin: body plates in the character colour, dark joints and shoes, a nose to read the facing
         const mats = {
-          body: new THREE.MeshStandardMaterial({ color: new THREE.Color(color), roughness: 0.42, metalness: 0.08 }),
-          joint: new THREE.MeshStandardMaterial({ color: new THREE.Color('#2a2e35'), roughness: 0.55, metalness: 0.05 }),
-          accent: new THREE.MeshStandardMaterial({ color: new THREE.Color(color).multiplyScalar(0.72), roughness: 0.45, metalness: 0.05 }),
+          body: this.material(color, { roughness: 0.42, metalness: 0.08 }),
+          joint: this.material('#2a2e35', { roughness: 0.55, metalness: 0.05 }),
+          accent: this.material('#' + new THREE.Color(color).multiplyScalar(0.72).getHexString(), { roughness: 0.45, metalness: 0.05 }),
         };
         const meshes = [];
         for (const p of core.standinParts(obj.pose || 'stand', obj.height || 1.75, obj.age)) {
@@ -295,6 +303,37 @@ export class Viewport {
     g.traverse((c) => { c.layers.set(HELPER_LAYER); });
     return g;
   }
+  /**
+   * Actor marks on the floor, like tape marks on set: each stand-in's spot in every beat (ring + facing arrow), the
+   * current beat bold and labelled, dashed travel lines between beats. list: [{ color, name, marks: [{ position,
+   * facing, beat, current }] }]. Helpers only: never in the lens view or in renders.
+   */
+  setMarks(list) {
+    if (!this.marksRoot) { this.marksRoot = new THREE.Group(); this.marksRoot.name = 'marks'; this.scene.add(this.marksRoot); }
+    for (const c of [...this.marksRoot.children]) { this.marksRoot.remove(c); c.traverse((o) => { if (o.geometry && !o.isSprite) o.geometry.dispose(); if (o.material) { if (o.material.map) o.material.map.dispose(); o.material.dispose(); } }); } // sprites share one geometry: keep it
+    const y = 0.015, ring = new THREE.RingGeometry(0.24, 0.3, 40), arrow = new THREE.BufferGeometry();
+    arrow.setAttribute('position', new THREE.Float32BufferAttribute([-0.09, 0, 0.32, 0.09, 0, 0.32, 0, 0, 0.52], 3));
+    for (const ch of list || []) {
+      const color = new THREE.Color(ch.color || '#f2c14e');
+      if (ch.marks.length > 1) {
+        const geo = new THREE.BufferGeometry().setFromPoints(ch.marks.map((m) => new THREE.Vector3(m.position[0], y, m.position[2])));
+        const line = new THREE.Line(geo, new THREE.LineDashedMaterial({ color, dashSize: 0.18, gapSize: 0.12, transparent: true, opacity: 0.7 }));
+        line.computeLineDistances(); this.marksRoot.add(line);
+      }
+      for (const m of ch.marks) {
+        const g = new THREE.Group(); g.position.set(m.position[0], y, m.position[2]); g.rotation.y = deg(m.facing || 0);
+        const mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: m.current ? 0.95 : 0.35, side: THREE.DoubleSide, depthWrite: false });
+        const r = new THREE.Mesh(ring, mat); r.rotation.x = -Math.PI / 2; g.add(r);
+        g.add(new THREE.Mesh(arrow, mat));
+        this.marksRoot.add(g);
+        if (m.current || ch.marks.length > 1) {
+          const label = makeLabel(m.current ? `${ch.name} · ${m.beat}` : m.beat, m.current ? '#ffe9a6' : '#aab3bf', m.current ? 0.85 : 0.6);
+          label.position.set(m.position[0], 0.32, m.position[2]); this.marksRoot.add(label);
+        }
+      }
+    }
+    this.marksRoot.traverse((o) => o.layers.set(HELPER_LAYER));
+  }
   /** Rebuild shot camera helpers. solved: Map shotId -> solveRig result (for the path of the current shot). */
   setShotHelpers(shots, currentId, solvedCurrent) {
     for (const c of [...this.camerasRoot.children]) this.camerasRoot.remove(c);
@@ -308,9 +347,11 @@ export class Viewport {
       icon.position.set(...A.position); icon.lookAt(new THREE.Vector3(...A.target)); icon.rotateZ(-deg(A.roll || 0));
       icon.traverse((c) => { c.userData.shotId = shot.id; });
       this.camerasRoot.add(icon);
-      const label = makeLabel(shot.name || shot.id, cur ? '#f2c14e' : '#dfe4ea'); label.position.set(...A.position); label.position.y += 0.45; label.scale.set(1.2, 0.26, 1); this.camerasRoot.add(label);
+      const label = makeLabel(shot.name || shot.id, cur ? '#f2c14e' : '#dfe4ea', cur ? 0.9 : 0.7); label.position.set(...A.position); label.position.y += 0.45; this.camerasRoot.add(label);
+      if (cur) { const a = makeLabel('A', '#f2c14e', 0.7); a.position.set(...A.position); a.position.y -= 0.32; this.camerasRoot.add(a); }
       if (cur && shot.keys.B) {
         const B = shot.keys.B;
+        const b = makeLabel('B', '#f2c14e', 0.7); b.position.set(...B.position); b.position.y -= 0.32; this.camerasRoot.add(b);
         const ghost = this.makeCameraIcon(0xf2c14e, vfov, aspect, len, 0.35); ghost.position.set(...B.position); ghost.lookAt(new THREE.Vector3(...B.target)); ghost.rotateZ(-deg(B.roll || 0));
         ghost.traverse((c) => { c.userData.shotId = shot.id; });
         this.camerasRoot.add(ghost);
@@ -435,9 +476,11 @@ export class Viewport {
 
   pick(clientX, clientY) {
     const rect = this.canvas.getBoundingClientRect();
-    const ndc = new THREE.Vector2(((clientX - rect.left) / rect.width) * 2 - 1, -((clientY - rect.top) / rect.height) * 2 + 1);
+    let x = clientX - rect.left, y = clientY - rect.top, w = rect.width, h = rect.height;
+    if (this.lookThrough) { const g = this.gateRect(); if (g) { x -= g.left; y -= g.top; w = g.width; h = g.height; if (x < 0 || y < 0 || x > w || y > h) return null; } }
+    const ndc = new THREE.Vector2((x / w) * 2 - 1, -(y / h) * 2 + 1);
     const ray = new THREE.Raycaster(); ray.layers.enable(HELPER_LAYER); ray.setFromCamera(ndc, this.activeNavCam());
-    const hits = ray.intersectObjects([this.objectsRoot, this.camerasRoot, ...(this.worldGroup ? [this.worldGroup.children[0]] : [])], true);
+    const hits = ray.intersectObjects([this.objectsRoot, ...(this.camerasRoot.visible ? [this.camerasRoot] : []), ...(this.worldGroup ? [this.worldGroup.children[0]] : [])], true);
     for (const h of hits) {
       if (h.object.isSprite) continue;
       if (h.object.userData.shotId) return { shotId: h.object.userData.shotId, point: h.point };
@@ -448,23 +491,59 @@ export class Viewport {
     return null;
   }
 
-  /** Offline still from the shot camera at an exact pixel size, helpers hidden. Returns a 2D canvas with the pixels. */
-  renderStill(pose, cam, w, h, ss = 1) {
+  /** Offline still from the shot camera at an exact pixel size, helpers hidden. Returns a 2D canvas with the pixels.
+   *  opts.keep leaves the renderer at the still size for the next frame of a batch (call endStills() afterwards);
+   *  opts.canvas reuses an output canvas instead of allocating one per frame. */
+  renderStill(pose, cam, w, h, ss = 1, opts = {}) {
     const r = this.renderer;
-    const prevW = this.w, prevH = this.h, prevRatio = r.getPixelRatio();
-    const W = Math.round(w * ss), Hh = Math.round(h * ss); // supersampling: render bigger, filter down (no crawling edges)
+    const cap = Math.min(6144, r.capabilities.maxTextureSize || 4096); // keeps a 4K export within laptop GPU memory
+    ss = Math.max(1, Math.min(ss, cap / w, cap / h)); // supersampling: render bigger, filter down (no crawling edges)
+    const W = Math.round(w * ss), Hh = Math.round(h * ss);
+    if (!this._still) this._still = { prevW: this.w, prevH: this.h, prevRatio: r.getPixelRatio(), W: 0, H: 0 };
+    if (this._still.W !== W || this._still.H !== Hh) { r.setPixelRatio(1); r.setSize(W, Hh, false); this._still.W = W; this._still.H = Hh; }
     this.setShotCamera(pose, cam);
-    r.setPixelRatio(1); r.setSize(W, Hh, false);
     this.shotCam.aspect = w / h; this.shotCam.updateProjectionMatrix();
     const vis = this.camerasRoot.visible; this.camerasRoot.visible = false;
     const selVis = this.selBox.visible; this.selBox.visible = false;
+    const marksVis = this.marksRoot ? this.marksRoot.visible : false; if (this.marksRoot) this.marksRoot.visible = false;
     r.setScissorTest(false); r.setViewport(0, 0, W, Hh); r.clear(); r.render(this.scene, this.shotCam);
-    const out = document.createElement('canvas'); out.width = w; out.height = h;
+    if (this.marksRoot) this.marksRoot.visible = marksVis;
+    const out = opts.canvas || document.createElement('canvas');
+    if (out.width !== w) out.width = w;
+    if (out.height !== h) out.height = h;
     const g = out.getContext('2d'); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
     g.drawImage(this.canvas, 0, 0, W, Hh, 0, 0, w, h);
     this.camerasRoot.visible = vis; this.selBox.visible = selVis;
-    r.setPixelRatio(prevRatio); if (prevW && prevH) r.setSize(prevW, prevH, false);
+    if (!opts.keep) this.endStills();
     return out;
+  }
+  /** Give the renderer its interactive size back after a batch of renderStill(..., { keep: true }). */
+  endStills() {
+    if (!this._still) return;
+    const { prevW, prevH, prevRatio } = this._still; this._still = null;
+    this.renderer.setPixelRatio(prevRatio); if (prevW && prevH) this.renderer.setSize(prevW, prevH, false);
+  }
+  /** Where the shot frame sits in the viewport when looking through: the lens aspect fitted inside (letterbox or
+   *  pillarbox), in CSS pixels from the top-left corner of the canvas. */
+  gateRect(aspect = this.shotCam.aspect || 2.39) {
+    const w = this.w, ins = this.gateInset || { top: 0, bottom: 0 }, h = this.h - ins.top - ins.bottom;
+    if (!w || h < 10) return null;
+    let gw = w, gh = Math.round(w / aspect);
+    if (gh > h) { gh = h; gw = Math.round(h * aspect); }
+    return { left: Math.round((w - gw) / 2), top: ins.top + Math.round((h - gh) / 2), width: gw, height: gh };
+  }
+
+  /** Labels keep their screen size; the ones right next to the camera fade out instead of covering the view. */
+  fadeLabels(cam) {
+    const p = cam.position, w = new THREE.Vector3();
+    for (const root of [this.objectsRoot, this.camerasRoot, this.marksRoot]) {
+      if (!root) continue;
+      root.traverse((o) => {
+        if (!o.isSprite || !o.userData.isLabel) return;
+        const d = o.getWorldPosition(w).distanceTo(p);
+        o.material.opacity = THREE.MathUtils.clamp((d - 0.8) / 1.4, 0, 1);
+      });
+    }
   }
 
   // ------------------------------------------------------------------ render --------------------------------------------
@@ -482,12 +561,20 @@ export class Viewport {
       const labelState = [];
       for (const n of this.nodes.values()) if (n.label) { labelState.push([n.label, n.label.visible]); n.label.visible = false; }
       const selVis = this.selBox.visible; this.selBox.visible = false;
+      const marksVis = this.marksRoot ? this.marksRoot.visible : false; if (this.marksRoot) this.marksRoot.visible = false;
+      // the lens frame keeps its aspect: black bars around it, never a stretched image
+      const g = this.gateRect() || { left: 0, top: 0, width: this.w, height: this.h }, y = this.h - g.top - g.height;
+      const clear = r.getClearColor(new THREE.Color()), clearA = r.getClearAlpha();
+      r.setClearColor(0x000000, 1); r.clear(); r.setClearColor(clear, clearA);
+      r.setViewport(g.left, y, g.width, g.height); r.setScissor(g.left, y, g.width, g.height); r.setScissorTest(true);
       this.shotCam.layers.enable(HELPER_LAYER); r.render(this.scene, this.shotCam); this.shotCam.layers.disable(HELPER_LAYER);
+      r.setScissorTest(false);
       for (const [l, v] of labelState) l.visible = v;
-      this.selBox.visible = selVis;
+      this.selBox.visible = selVis; if (this.marksRoot) this.marksRoot.visible = marksVis;
       this.camerasRoot.visible = vis;
       return;
     }
+    this.fadeLabels(this.flyCam);
     r.render(this.scene, this.flyCam);
     if (pipRect && pipRect.w > 10 && pipRect.h > 10) {
       r.setScissorTest(true); r.setViewport(pipRect.x, pipRect.y, pipRect.w, pipRect.h); r.setScissor(pipRect.x, pipRect.y, pipRect.w, pipRect.h);

@@ -1,7 +1,7 @@
 // Composition metrics: deterministic checks of a framed shot (no AI). Works on the scene JSON + a solved camera pose.
-import { sub, add, scale, norm, dot, len, dist, distXZ, cameraBasis, projectPoint, boxCorners, localToWorld, worldToLocal, worldToLocalDir, rayAABB, facingDir, lerp, toRad, clamp, round, mat3T, mat3MulVec } from './vec.js';
+import { sub, add, scale, norm, dot, len, dist, distXZ, cameraBasis, projectPoint, boxCorners, localToWorld, worldToLocal, worldToLocalDir, rayAABB, facingDir, lerp, toRad, toDeg, clamp, round, mat3T, mat3MulVec, rotateY } from './vec.js';
 import { fovFor, equivalentFocal } from './lens.js';
-import { keypoints, standinParts, charTransform, poseKey } from './standin.js';
+import { keypoints, standinParts, charTransform, poseKey, skeleton } from './standin.js';
 import { SHOT_SIZES } from './framing.js';
 
 /** Oriented box parts (world transform + local centre/size) for any object kind. Shared with the viewer. */
@@ -145,6 +145,19 @@ const SIZE_ORDER = ['EWS', 'WS', 'FS', 'MLS', 'MS', 'MCU', 'CU', 'BCU', 'ECU'];
  * Evaluate a framed moment.
  * @param scene the scene JSON; @param shot the shot; @param pose {position,target,roll}; @param blocking beat blocking map
  */
+/** How the lens sees a stand-in's face: angle off the face axis (0 = straight in) and height above the face plane
+ *  (> 0: looking down on the crown), both in degrees, from the head's own rotation (pose, acting, facing). */
+export function faceReading(ch, eye) {
+  const sk = skeleton(ch.pose || 'stand', ch.height || 1.75, ch.age);
+  const nose = sk.parts.find((p) => p.tag === 'nose'), head = sk.parts.find((p) => p.tag === 'head');
+  if (!nose || !head) return null;
+  const m = nose.m, yaw = ch.facing || 0; // the nose carries the head rotation
+  const fwd = rotateY([m[0][2], m[1][2], m[2][2]], yaw), up = rotateY([m[0][1], m[1][1], m[2][1]], yaw);
+  const v = norm(sub(eye, add(ch.position, rotateY(head.center, yaw))));
+  const offAxis = round(toDeg(Math.acos(clamp(dot(fwd, v), -1, 1))), 0), overHead = round(toDeg(Math.asin(clamp(dot(up, v), -1, 1))), 0);
+  return { offAxis, overHead, reads: offAxis >= 100 ? 'back of head' : overHead >= 40 ? 'crown' : offAxis >= 75 ? 'profile' : 'face' };
+}
+
 export function evaluateFrame(scene, shot, pose, blocking, opts = {}) {
   const lens = Object.assign({ filmback: 'ALEXA35_OG', focal_mm: 35, aspect: 2.39, squeeze: 1 }, shot.camera || {});
   const { vfov, hfov } = fovFor(lens);
@@ -224,17 +237,29 @@ export function evaluateFrame(scene, shot, pose, blocking, opts = {}) {
       // eyeline
       const dh = eye[1] - subjKP.eyes[1];
       res.eyeline = { cameraMinusEyes: round(dh, 2), rel: dh > 0.25 ? 'high angle' : dh < -0.25 ? 'low angle' : 'eye level' };
+      // face reading: a close shot has to see the face, not the crown of a lowered head or the back of it
+      const fr = faceReading(subject, eye);
+      if (fr) {
+        res.face = fr;
+        if (['ECU', 'BCU', 'CU', 'MCU'].includes(requested) && !shot.allowBackOfHead) {
+          if (fr.offAxis >= 100) flag('warn', 'The lens sees the back of the head: move round to the face side.');
+          else if (fr.overHead >= 40) flag('warn', `The lens looks down on the crown (${fr.overHead}° above the face): lower the camera or lift the chin.`);
+          else if (fr.offAxis >= 75) flag('info', 'Close shot in profile: only one eye reads.');
+        }
+      }
       // occlusion: rays to eyes and chest against every other object part
-      const occluders = new Set();
+      const occluders = new Set(), eyesBy = new Set();
       for (const kpName of ['eyes', 'chest']) {
         const dir = norm(sub(subjKP[kpName], eye)), maxT = dist(eye, subjKP[kpName]) - 0.05;
         for (const o of objects) {
           if (o.id === subject.id || o.kind === 'plane' || o.role === 'GROUND') continue;
-          for (const part of objectParts(o)) { const t = rayPart(eye, dir, part); if (t != null && t > 0.02 && t < maxT) { occluders.add(o.name || o.id); break; } }
+          for (const part of objectParts(o)) { const t = rayPart(eye, dir, part); if (t != null && t > 0.02 && t < maxT) { occluders.add(o.name || o.id); if (kpName === 'eyes') eyesBy.add(o.name || o.id); break; } }
         }
       }
-      res.occlusion = { occluded: occluders.size > 0, by: [...occluders] };
-      if (occluders.size) flag(shot.allowOcclusion ? 'info' : 'warn', `Subject partly hidden by ${[...occluders].join(', ')}.`);
+      res.occlusion = { occluded: occluders.size > 0, by: [...occluders], eyes: [...eyesBy] };
+      // a dirty frame may cover the body, never the eyes of the subject in a close or medium shot
+      if (eyesBy.size && shot.allowOcclusion && ['ECU', 'BCU', 'CU', 'MCU', 'MS'].includes(requested)) flag('warn', `The subject's eyes are hidden by ${[...eyesBy].join(', ')}: move the lens wider of the shoulder.`);
+      else if (occluders.size) flag(shot.allowOcclusion ? 'info' : 'warn', `Subject partly hidden by ${[...occluders].join(', ')}.`);
       // distortion
       if (subjectDist < 1.2 && res.lens.ffEquivalent < 35 && ['CU', 'BCU', 'ECU', 'MCU'].includes(requested)) flag('warn', 'Wide lens very close to a face: distortion.');
       res.subjectDistance = round(subjectDist, 2);

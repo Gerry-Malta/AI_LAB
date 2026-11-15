@@ -238,3 +238,40 @@ test('metrics: camera inside an object and a near object filling the frame are f
   const m2 = core.evaluateFrame(scene, shot, { position: [0.3, 0.6, 4.4], target: [0, 1.2, 0], roll: 0 }, {});
   assert.ok(m2.flags.some((f) => /inside Rock/.test(f.msg)), JSON.stringify(m2.flags));
 });
+
+test('metrics: close shots must see the face, not the back of the head or the crown of a lowered head', () => {
+  const ch = { position: [0, 0, 0], facing: 0, pose: 'stand', height: 1.8, age: 38 };
+  const eyes = core.keypoints(ch).eyes;
+  assert.equal(core.faceReading(ch, [eyes[0], eyes[1], 2]).reads, 'face');
+  assert.equal(core.faceReading(ch, [eyes[0], eyes[1], -2]).reads, 'back of head');
+  assert.equal(core.faceReading(ch, [2, eyes[1], 0]).reads, 'profile');
+  const down = { ...ch, pose: { base: 'stand', neck: { pitch: 25 }, head: { pitch: 35 } } };
+  assert.equal(core.faceReading(down, [eyes[0], eyes[1] + 0.3, 1.2]).reads, 'crown');
+  assert.equal(core.faceReading(down, [eyes[0], eyes[1] - 0.6, 1.2]).reads, 'face');
+  const scene = { objects: [{ id: 'S', kind: 'standin', name: 'S', position: [0, 0, 0], rotation: [0, 0, 0], pose: down.pose, height: 1.8, age: 38 }] };
+  const m = core.evaluateFrame(scene, { size: 'CU', subject: 'S', camera: { focal_mm: 65 } }, { position: [0, eyes[1] + 0.3, 1.6], target: [0, eyes[1] - 0.05, 0], roll: 0 }, {});
+  assert.ok(m.flags.some((f) => /crown/.test(f.msg)), JSON.stringify(m.flags));
+  const parts = core.standinParts('stand', 1.8, 38).map((p) => p.tag);
+  assert.ok(parts.includes('eyeL') && parts.includes('eyeR'), 'mannequin has eyes');
+});
+
+test('dialogue: timing inside the shot, subtitles, past-the-cut flag and the frame plan of the edit', () => {
+  const a = { id: 'a', name: '1A', duration_s: 4, dialogue: [{ who: 'X', line: 'Uno.', dur_s: 1.0 }, { who: 'Y', line: 'Due.', dur_s: 1.2 }] };
+  const tl = core.dialogueTimeline(a);
+  assert.equal(tl.length, 2);
+  assert.ok(tl[0].start > 0 && tl[0].start <= 0.8, `first line starts soon after the cut: ${tl[0].start}`);
+  assert.ok(Math.abs(tl[1].start - (tl[0].end + 0.35)) < 1e-9, 'a breath between lines');
+  assert.equal(core.dialogueAt(a, tl[0].start + 0.1).line, 'Uno.');
+  assert.equal(core.dialogueAt(a, tl[1].start + 0.1).line, 'Due.');
+  assert.equal(core.dialogueAt(a, 3.95), null, 'subtitle gone once the line and its hold are over');
+  const b = { id: 'b', name: '1B', duration_s: 2, dialogue: [{ who: 'X', line: 'Una battuta lunga.', dur_s: 2.5, at: 0.2 }] };
+  assert.equal(core.dialogueTimeline(b)[0].start, 0.2, 'explicit start');
+  assert.ok(core.dialogueNotes(b).some((n) => /past the cut/.test(n.msg)));
+  const est = core.dialogueTimeline({ duration_s: 5, dialogue: [{ who: 'X', line: 'Senza voce registrata.' }] })[0];
+  assert.ok(est.dur > 1 && est.dur < 3 && !est.audio, `estimated from the text: ${est.dur}`);
+  const scene = { shots: [a, b] };
+  const seq = core.sequenceDialogue(scene, null, 24);
+  assert.equal(seq.length, 3);
+  assert.ok(Math.abs(seq[2].start - (96 / 24 + 0.2 * (47 / 2) / 24)) < 1e-9, `frame plan: ${seq[2].start}`);
+  assert.equal(core.sequenceDialogue(scene, ['1B'], 24)[0].start, 0.2 * (47 / 2) / 24, 'a subset starts at its own zero');
+});

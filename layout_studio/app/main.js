@@ -2,6 +2,10 @@
 import * as THREE from 'three';
 import * as core from '../core/index.js';
 import { Viewport, ROLE_COLORS } from './scene3d.js';
+import { canEncode, encodeMP4, pickCodec, codecName } from './export_mp4.js';
+import { DialoguePlayer, mixDialogue } from './audio.js';
+import { installTooltips } from './tooltip.js';
+import { FIELD_TIPS } from './tips.js';
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -12,8 +16,14 @@ const rd = (rad) => Math.round(THREE.MathUtils.radToDeg(rad) * 10) / 10;
 const opt = (list, value, label = (x) => x, val = (x) => x) => list.map((x) => `<option value="${esc(val(x))}" ${String(val(x)) === String(value) ? 'selected' : ''}>${esc(label(x))}</option>`).join('');
 
 const S = { scene: null, fileName: '', selectedId: null, shotId: null, t: 0, playing: false, loop: true, lookThrough: false, editKey: 'A', beatId: null, tab: 'outliner', pipSize: 'M', snap: false, undo: [], dirty: false, solvedCache: new Map(), scoreCache: new Map(), version: 0, filter: '', lastEval: null };
-const vp = new Viewport($('#gl'));
-window.LS = { S, vp, core }; // handy for debugging / automation
+const QUERY = new URLSearchParams(location.search);
+const vp = new Viewport($('#gl'), { fast: QUERY.get('render') === 'fast' });
+vp.gateInset = { top: 34, bottom: 50 }; // look-through frame stays clear of the view toolbar and the timeline
+const voice = new DialoguePlayer(); // dialogue clips, in sync with the playhead
+window.LS = { S, vp, core, voice }; // handy for debugging / automation
+// browsers start audio only after a click or a key press
+for (const ev of ['pointerdown', 'keydown']) document.addEventListener(ev, () => voice.unlock(), { capture: true });
+installTooltips(FIELD_TIPS); // rest the cursor on any control for a short explanation
 
 // ------------------------------------------------------------------ accessors ---------------------------------------------
 const shots = () => (S.scene && S.scene.shots) || [];
@@ -56,20 +66,21 @@ const invalidate = () => { S.version++; };
 function snapshot() { S.undo.push(JSON.stringify(S.scene)); if (S.undo.length > 40) S.undo.shift(); }
 function undo() { const j = S.undo.pop(); if (!j) return toast('Nothing to undo'); const keepShot = S.shotId, keepSel = S.selectedId; S.scene = core.normalizeScene(JSON.parse(j)); invalidate(); vp.buildObjects(objects()); S.selectedId = getObj(keepSel) ? keepSel : null; vp.setSelected(S.selectedId); S.shotId = shots().some((s) => s.id === keepShot) ? keepShot : null; vp.applyBlocking(objects(), currentBlocking()); refreshAll(); markDirty(); toast('Undo'); }
 let saveTimer = null;
-function markDirty() { S.dirty = true; refreshTitle(); clearTimeout(saveTimer); saveTimer = setTimeout(() => { try { localStorage.setItem('layout_studio:autosave', JSON.stringify({ name: S.fileName, when: Date.now(), scene: S.scene })); } catch (_) {} }, 800); }
+function markDirty() { S.dirty = true; refreshTitle(); clearTimeout(saveTimer); saveTimer = setTimeout(() => { try { localStorage.setItem('layout_studio:autosave', JSON.stringify({ name: S.fileName, base: S.sceneBase || '', when: Date.now(), scene: S.scene })); } catch (_) {} }, 800); }
 
 // ------------------------------------------------------------------ load --------------------------------------------------
 async function loadFromURL(url) {
   try {
     const r = await fetch(url, { cache: 'no-store' }); if (!r.ok) throw new Error('HTTP ' + r.status);
-    loadScene(await r.json(), url.split('/').pop());
+    loadScene(await r.json(), url.split('/').pop(), url.slice(0, url.lastIndexOf('/') + 1));
   } catch (e) {
     toast(`Cannot load ${url}: ${e.message}`);
     if (!S.scene) loadScene(core.newScene({ project: 'New scene' }), 'new_scene.json');
   }
 }
-function loadScene(json, name) {
+function loadScene(json, name, base = '') {
   const errors = core.validateScene(json);
+  S.sceneBase = base; // folder of the scene file: dialogue clips are relative to it
   if (errors.length) toast('Scene warnings: ' + errors.slice(0, 3).join(' · '));
   S.scene = core.normalizeScene(json); S.fileName = name || 'scene.json';
   S.selectedId = null; S.shotId = null; S.beatId = (beats()[0] || {}).id || null; S.t = 0; S.playing = false; S.undo = []; S.dirty = false; S.lookThrough = false; vp.lookThrough = false;
@@ -78,6 +89,7 @@ function loadScene(json, name) {
   fitShadows();
   frameAll();
   refreshAll();
+  voice.setScene(S.scene, base);
   if (shots().length) selectShot(shots()[0].id, { fly: false });
 }
 function fitShadows() {
@@ -465,12 +477,13 @@ $('#tl-play').addEventListener('click', () => { S.playing = !S.playing; S.seqPla
 $('#tl-playall').addEventListener('click', () => {
   if (!shots().length) return;
   S.seqPlay = !S.seqPlay;
-  if (S.seqPlay) { selectShot(shots()[0].id, { fly: false }); S.playing = true; S.loop = false; $('#tl-loop').checked = false; }
+  if (S.seqPlay) { selectShot(shots()[0].id, { fly: false }); if (!S.lookThrough) setLookThrough(true); S.playing = true; S.loop = false; $('#tl-loop').checked = false; }
   else S.playing = false;
   refreshPlayBtn();
 });
 $('#tl-range').addEventListener('input', (e) => { S.t = (+e.target.value) / 1000; S.playing = false; refreshPlayBtn(); });
 $('#tl-loop').addEventListener('change', (e) => { S.loop = e.target.checked; });
+$('#tl-sound').addEventListener('click', () => { voice.muted = !voice.muted; $('#tl-sound').classList.toggle('active', !voice.muted); if (voice.muted) voice.stop(); });
 $('#tl-prev').addEventListener('click', () => stepShot(-1));
 $('#tl-next').addEventListener('click', () => stepShot(1));
 function stepShot(d) { const list = shots(); if (!list.length) return; const i = Math.max(0, list.findIndex((s) => s.id === S.shotId)); selectShot(list[(i + d + list.length) % list.length].id, { fly: false }); }
@@ -500,7 +513,12 @@ vp.onClick = (e) => {
   const hit = vp.pick(e.clientX, e.clientY);
   if (!hit) { if (!e.shiftKey) selectObject(null); return; }
   if (hit.shotId) { selectShot(hit.shotId, { fly: false }); switchTab('shots'); return; }
-  if (hit.objectId) { selectObject(hit.objectId); if (S.tab !== 'outliner') switchTab('outliner'); return; }
+  if (hit.objectId) {
+    selectObject(hit.objectId);
+    const o = getObj(hit.objectId), want = o && o.kind === 'standin' && S.tab !== 'outliner' ? 'beats' : 'outliner';
+    if (S.tab !== want) switchTab(want);
+    return;
+  }
   selectObject(null);
 };
 vp.onGizmoDrag = (dragging) => { if (dragging) snapshot(); else { invalidate(); updateHelpers(); refreshRight(); refreshShotList(); refreshBeats(); } };
@@ -518,7 +536,27 @@ vp.onGizmoChange = (id, group) => {
 };
 
 // ------------------------------------------------------------------ tabs, toolbar, keys ---------------------------------
-function switchTab(name) { S.tab = name; $$('.tabs button').forEach((b) => b.classList.toggle('active', b.dataset.tab === name)); $$('.tab').forEach((t) => t.classList.toggle('hidden', t.id !== `tab-${name}`)); }
+const STEP_HINTS = {
+  outliner: '<b>1 · Set.</b> Build the location. <b>+</b> adds a proxy at its real size; click one here or in the viewport to edit it. <b>W E R</b> move, rotate, scale · <b>F</b> frame · <b>RMB + WASD</b> fly.',
+  beats: '<b>2 · Blocking.</b> Pick a beat, then an actor, and put them on their mark: drag in the viewport or type the position, then facing, pose and acting. The floor rings are the marks; a dashed line is the move between beats.',
+  shots: '<b>3 · Camera.</b> Pick a shot. Choose lens and rig, then the first and last frame (keys <b>A</b> and <b>B</b>): press <b>L</b> to look through and fly the camera by eye. The score on the right grades the frame.',
+  sound: '<b>4 · Sound.</b> Dialogue per shot and when each line plays. Voices come from Higgsfield (ElevenLabs engine): ask Claude to voice a scene. <b>▶</b> previews a line.',
+  review: '<b>5 · Review.</b> The whole edit at a glance. <b>Play the edit</b> screens it through the lens in real time with voices; <b>Export MP4</b> renders it on your GPU.',
+};
+function switchTab(name) {
+  S.tab = name;
+  $$('.tabs button').forEach((b) => b.classList.toggle('active', b.dataset.tab === name));
+  $$('.tab').forEach((t) => t.classList.toggle('hidden', t.id !== `tab-${name}`));
+  $('#step-hint').innerHTML = STEP_HINTS[name] || '';
+  // the property panel follows the step that edits it: objects in Set, the actor's mark in Blocking
+  const host = name === 'beats' ? $('#blocking-props-host') : $('#tab-outliner');
+  if ($('#props').parentElement !== host) host.appendChild($('#props'));
+  vp.camerasRoot.visible = name !== 'beats'; // blocking reads cleaner without the camera icons
+  if (name === 'beats') refreshCast();
+  if (name === 'sound') refreshSound();
+  if (name === 'review') refreshReview();
+  updateMarks();
+}
 $$('.tabs button').forEach((b) => b.addEventListener('click', () => switchTab(b.dataset.tab)));
 $('#vt-grid').addEventListener('click', () => { vp.setGridVisible(!vp.gridVisible); $('#vt-grid').classList.toggle('active', vp.gridVisible); });
 $('#vt-labels').addEventListener('click', () => { vp.setLabelsVisible(!vp.labelsVisible); $('#vt-labels').classList.toggle('active', vp.labelsVisible); });
@@ -527,6 +565,7 @@ $('#vt-look').addEventListener('click', () => setLookThrough(!S.lookThrough));
 $('#vt-grid').classList.add('active'); $('#vt-labels').classList.add('active');
 
 window.addEventListener('keydown', (e) => {
+  if (!$('#export').classList.contains('hidden')) { if (e.code === 'Escape' && !EX.ctrl) closeExport(); return; }
   if (vp.isTyping()) return;
   const k = e.code;
   if ((e.ctrlKey || e.metaKey) && k === 'KeyZ') { e.preventDefault(); undo(); return; }
@@ -542,12 +581,14 @@ window.addEventListener('keydown', (e) => {
   else if (k === 'KeyL') setLookThrough(!S.lookThrough);
   else if (k === 'KeyG') $('#vt-grid').click();
   else if (k === 'KeyH') $('#vt-labels').click();
+  else if (k === 'KeyM') $('#vt-marks').click();
   else if (k === 'Escape') { if (S.lookThrough) setLookThrough(false); else selectObject(null); }
   else if (k === 'Delete' || k === 'Backspace') { if (S.selectedId) deleteObject(S.selectedId); }
 });
 
 // ------------------------------------------------------------------ files / exports -------------------------------------
-function download(name, text, mime = 'text/plain') { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type: mime })); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500); }
+function downloadBlob(name, blob) { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 60000); }
+function download(name, text, mime = 'text/plain') { downloadBlob(name, new Blob([text], { type: mime })); }
 const baseName = () => `${(S.scene.project || 'scene').replace(/\W+/g, '_')}_sc${String(S.scene.scene.number ?? 1).padStart(3, '0')}`;
 function saveJSON() { if (!S.scene) return; download(`${baseName()}_layout.json`, core.toJSON(S.scene), 'application/json'); S.dirty = false; refreshTitle(); toast('JSON downloaded'); }
 $('#btn-save').addEventListener('click', saveJSON);
@@ -555,7 +596,7 @@ $('#btn-sheet').addEventListener('click', () => { if (!S.scene) return; const ev
 $('#btn-blender').addEventListener('click', () => { if (!S.scene) return; download(`${baseName()}_blender.py`, core.toBlenderScript(S.scene), 'text/x-python'); toast('Run it in Blender: Scripting → Open → Run'); });
 $('#btn-open').addEventListener('click', () => $('#file-open').click());
 $('#file-open').addEventListener('change', (e) => { const f = e.target.files[0]; if (!f) return; f.text().then((t) => { try { loadScene(JSON.parse(t), f.name); toast(`Loaded ${f.name}`); } catch (err) { toast('Invalid JSON: ' + err.message); } }); e.target.value = ''; });
-$('#btn-restore').addEventListener('click', () => { try { const j = JSON.parse(localStorage.getItem('layout_studio:autosave') || 'null'); if (!j) return toast('No autosaved draft'); loadScene(j.scene, j.name); S.dirty = true; refreshTitle(); toast(`Restored draft of ${j.name} (${new Date(j.when).toLocaleString()})`); } catch (e) { toast('Cannot restore: ' + e.message); } });
+$('#btn-restore').addEventListener('click', () => { try { const j = JSON.parse(localStorage.getItem('layout_studio:autosave') || 'null'); if (!j) return toast('No autosaved draft'); loadScene(j.scene, j.name, j.base || ''); S.dirty = true; refreshTitle(); toast(`Restored draft of ${j.name} (${new Date(j.when).toLocaleString()})`); } catch (e) { toast('Cannot restore: ' + e.message); } });
 $('#scene-picker').addEventListener('change', (e) => loadFromURL(e.target.value));
 document.addEventListener('dragover', (e) => { e.preventDefault(); });
 document.addEventListener('drop', (e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (!f) return; if (/\.json$/i.test(f.name)) f.text().then((t) => { try { loadScene(JSON.parse(t), f.name); toast(`Loaded ${f.name}`); } catch (err) { toast('Invalid JSON'); } }); else if (/\.(glb|gltf)$/i.test(f.name)) { const url = URL.createObjectURL(f); const o = addObject('gltf', { name: f.name.replace(/\.(glb|gltf)$/i, ''), url: f.name }); vp.removeObject(o.id); vp.addObjectNode(Object.assign({}, o, { url })); vp.setSelected(o.id); } });
@@ -565,11 +606,12 @@ $('#help').addEventListener('click', (e) => { if (e.target.id === 'help') $('#he
 
 let toastT = null;
 function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2600); }
-function refreshAll() { refreshTitle(); refreshOutliner(); refreshProps(); refreshShotList(); refreshShotEditor(); refreshBeats(); refreshRight(); layoutPip(); updateHelpers(); }
+function refreshAll() { refreshTitle(); refreshOutliner(); refreshProps(); refreshShotList(); refreshShotEditor(); refreshBeats(); refreshCast(); refreshSound(); refreshReview(); refreshRight(); layoutPip(); updateHelpers(); updateMarks(); }
 
 // ------------------------------------------------------------------ main loop -------------------------------------------
-let last = performance.now(), evalTimer = 0;
+let last = performance.now(), evalTimer = 0, marksKey = '';
 function tick(now) {
+  if (S.exporting) { last = now; requestAnimationFrame(tick); return; } // the export owns the renderer
   const dt = Math.min(0.1, (now - last) / 1000); last = now;
   vp.update(dt);
   const sh = currentShot();
@@ -577,7 +619,11 @@ function tick(now) {
     if (S.playing) {
       S.t += dt / (sh.duration_s || 5);
       if (S.t >= 1) {
-        if (S.seqPlay) { const list = shots(); const i = list.findIndex((s) => s.id === sh.id); if (i < list.length - 1) { selectShot(list[i + 1].id, { fly: false }); S.playing = true; } else { S.seqPlay = false; S.playing = false; S.t = 1; } refreshPlayBtn(); }
+        if (S.seqPlay) { // carry the time past the cut into the next shot, so the edit keeps real time
+          const list = shots(); const i = list.findIndex((s) => s.id === sh.id); const over = (S.t - 1) * (sh.duration_s || 5);
+          if (i < list.length - 1) { const nx = list[i + 1]; selectShot(nx.id, { fly: false, t: Math.min(0.999, over / (nx.duration_s || 5)) }); S.playing = true; } else { S.seqPlay = false; S.playing = false; S.t = 1; }
+          refreshPlayBtn();
+        }
         else if (S.loop) S.t -= 1;
         else { S.t = 1; S.playing = false; refreshPlayBtn(); }
       }
@@ -589,8 +635,12 @@ function tick(now) {
     } catch (e) { /* keep rendering */ }
     updateTimelineUI();
   }
+  const mk = `${S.version}|${activeBeatId()}|${S.tab}|${S.marks}|${S.selectedId}`;
+  if (mk !== marksKey) { marksKey = mk; updateMarks(); if (S.tab === 'beats') refreshCast(); }
   vp.render(sh && !S.lookThrough ? pipRect() : null);
-  if (sh && now - evalTimer > 250) { evalTimer = now; refreshRight(); drawGuides(); }
+  updateOverlay(sh);
+  voice.update(sh, S.t * ((sh && sh.duration_s) || 0), S.playing);
+  if (sh && now - evalTimer > 250 && !(S.seqPlay && S.playing)) { evalTimer = now; refreshRight(); drawGuides(); } // no shot check during a screening
   requestAnimationFrame(tick);
 }
 requestAnimationFrame(tick);
@@ -606,14 +656,6 @@ function wrapText(ctx, text, maxW) {
   for (const w of words) { const t = cur ? cur + ' ' + w : w; if (cur && ctx.measureText(t).width > maxW) { lines.push(cur); cur = w; } else cur = t; }
   if (cur) lines.push(cur);
   return lines;
-}
-/** Which dialogue line is on screen at time t: slices proportional to the line length. */
-function dialogueAt(lines, t) {
-  if (!lines || !lines.length) return null;
-  const w = lines.map((d) => 12 + String(d.line || '').length), tot = w.reduce((a, b) => a + b, 0);
-  let acc = 0;
-  for (let i = 0; i < lines.length; i++) { acc += w[i] / tot; if (t <= acc + 1e-9) return lines[i]; }
-  return lines[lines.length - 1];
 }
 function burnIn(canvas, sh, t, fps = 24) {
   const ctx = canvas.getContext('2d'); const W = canvas.width, H = canvas.height, u = H / 804;
@@ -639,26 +681,209 @@ function burnIn(canvas, sh, t, fps = 24) {
     if (lines.length > 2) { lines = lines.slice(0, 2); lines[1] = lines[1].replace(/\s*\S*$/, '') + ' …'; }
     panel(lines, pad, head.y + head.h + Math.round(6 * u), size, { font: sans, weight: 400, color: '#f3e7c8' });
   }
-  const d = dialogueAt(sh.dialogue, t);
+  const d = core.dialogueAt(sh, t * (sh.duration_s || 0));
   if (d) {
     const size = Math.round(36 * u); ctx.font = `600 ${size}px ${sans}`;
     const lines = wrapText(ctx, `${d.who ? d.who + ':  ' : ''}${d.line}`, W * 0.78).slice(0, 2);
     panel(lines, W / 2, H - Math.round(18 * u), size, { font: sans, weight: 600, align: 'center', anchor: 'bottom', bg: 'rgba(0,0,0,0.78)' });
   }
 }
+/** Render one frame of a shot at time t (0..1) at an exact size into a canvas, burn-in included unless opts.burnIn === false. */
+function renderFrameCanvas(sh, t, w = 1920, h = 804, opts = {}) {
+  const pose = solvedFor(sh).pose(t);
+  vp.applyBlocking(objects(), blockingAt(sh, t));
+  const canvas = vp.renderStill(pose, sh.camera, w, h, opts.ss || 1, { keep: opts.keep, canvas: opts.canvas });
+  if (opts.burnIn !== false) burnIn(canvas, sh, t, opts.fps || 24);
+  return canvas;
+}
 /** Render one frame of a shot at time t (0..1) at an exact size; returns a data URL. */
 function renderFrame(shotId, t, w = 1920, h = 804, opts = {}) {
   const sh = shots().find((s) => s.id === shotId); if (!sh) throw new Error('unknown shot ' + shotId);
-  const solved = solvedFor(sh); const pose = solved.pose(t);
-  vp.applyBlocking(objects(), blockingAt(sh, t));
-  const canvas = vp.renderStill(pose, sh.camera, w, h, opts.ss || 1);
-  if (opts.burnIn !== false) burnIn(canvas, sh, t, opts.fps || 24);
-  return canvas.toDataURL(opts.format || 'image/jpeg', opts.quality ?? 0.92);
+  return renderFrameCanvas(sh, t, w, h, opts).toDataURL(opts.format || 'image/jpeg', opts.quality ?? 0.92);
 }
-window.LS.api = { sequence: sequenceInfo, renderFrame, load: (json, name) => loadScene(json, name) };
+
+// ------------------------------------------------------------------ Export MP4: render on this GPU, encode in the browser ---
+/** Same frame timing as tools/render_mp4.mjs: each shot gets round(duration × fps) frames, first and last on keys A and B. */
+function framePlan(list, fps) {
+  const frames = [];
+  for (const sh of list) { const n = Math.max(1, Math.round((sh.duration_s || 0) * fps)); for (let i = 0; i < n; i++) frames.push({ sh, t: n > 1 ? i / (n - 1) : 0 }); }
+  return frames;
+}
+const evenHeight = (w, aspect) => 2 * Math.round(w / aspect / 2);
+/** Render the edit (or some shots) frame by frame and encode it. Returns { blob, codec, codecName, frames, seconds, width, height }. */
+async function exportSequence({ shotIds = null, width = 1920, height = 0, fps = 24, ss = 1.5, burnIn: burn = true, audio = true, maxFrames = 0, signal, onProgress } = {}) {
+  const list = shotIds ? shots().filter((s) => shotIds.includes(s.id) || shotIds.includes(s.name)) : shots();
+  if (!list.length) throw new Error('No shots to export');
+  let frames = framePlan(list, fps); if (maxFrames) frames = frames.slice(0, maxFrames);
+  height = height || evenHeight(width, list[0].camera.aspect || 2.39);
+  const canvas = document.createElement('canvas');
+  // dialogue: the voiced lines of these shots, placed on the frame plan and mixed into one track
+  const mix = audio ? await mixDialogue(core.sequenceDialogue(S.scene, list.map((x) => x.id), fps), frames.length / fps, S.sceneBase || '') : null;
+  S.exporting = true; S.playing = false; S.seqPlay = false; refreshPlayBtn();
+  try {
+    const res = await encodeMP4({
+      width, height, fps, frames: frames.length, signal, audio: mix ? mix.buffer : null,
+      renderFrame: (i) => renderFrameCanvas(frames[i].sh, frames[i].t, width, height, { ss, fps, burnIn: burn, keep: true, canvas }),
+      onProgress: onProgress && ((p) => onProgress(Object.assign(p, { shot: frames[p.done - 1].sh, canvas }))),
+    });
+    return Object.assign(res, { width, height, voicedLines: mix ? mix.placed : 0 });
+  } finally { vp.endStills(); S.exporting = false; }
+}
+/** Batch renders from tools/render_mp4.mjs: pause the live viewport (it would compete for the GPU) and keep the still size. */
+function holdViewport(on) { S.exporting = !!on; if (!on) vp.endStills(); }
+window.LS.api = { sequence: sequenceInfo, renderFrame, exportMP4: exportSequence, hold: holdViewport, load: (json, name) => loadScene(json, name) };
+
+const EX = { ctrl: null, probe: 0 };
+const clock = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+function exportOptions() {
+  const sh = currentShot(); const list = $('#ex-range').value === 'shot' && sh ? [sh] : shots();
+  const fps = +$('#ex-fps').value, width = +$('#ex-size').value, ss = +$('#ex-ss').value;
+  const height = list.length ? evenHeight(width, list[0].camera.aspect || 2.39) : 0;
+  const frames = list.reduce((a, x) => a + Math.max(1, Math.round((x.duration_s || 0) * fps)), 0);
+  const voiced = list.reduce((a, x) => a + (x.dialogue || []).filter((d) => d.audio).length, 0);
+  return { list, fps, width, height, ss, burn: $('#ex-burn').checked, audio: $('#ex-audio').checked, voiced, frames };
+}
+function refreshExportDialog() {
+  const o = exportOptions(), running = !!EX.ctrl;
+  $('#ex-range option[value="shot"]').disabled = !currentShot();
+  const ss = Math.max(1, Math.min(o.ss, 6144 / o.width)); // same cap as Viewport.renderStill
+  $('#ex-summary').textContent = `${o.list.length} shot${o.list.length === 1 ? '' : 's'} · ${o.frames} frames · ${clock(o.frames / o.fps)} · ${o.width}×${o.height} px` + (ss > 1 ? ` · rendered at ${Math.round(o.width * ss)}×${Math.round(o.height * ss)} and filtered down` : '') + (o.audio && o.voiced ? ` · ${o.voiced} voiced line${o.voiced === 1 ? '' : 's'}` : '');
+  for (const el of $$('#export select, #export input')) el.disabled = running;
+  $('#ex-start').disabled = running || !o.frames || !canEncode();
+  $('#ex-close').textContent = running ? 'Cancel' : 'Close';
+}
+function probeEncoder() {
+  const o = exportOptions(), id = ++EX.probe;
+  if (!canEncode()) { $('#ex-codec').textContent = 'This browser cannot encode video (no WebCodecs). Use a recent Chrome, Edge, Safari or Firefox.'; return; }
+  $('#ex-codec').textContent = 'Checking the video encoder…';
+  pickCodec(o.width, o.height, o.fps).then((p) => { if (id !== EX.probe) return; $('#ex-codec').textContent = p ? `Encoder: ${codecName(p.config.codec)} (${p.config.codec}), on this computer.` : 'No encoder for this size in this browser: pick a smaller size.'; });
+}
+function openExport() {
+  if (!S.scene || !shots().length) return toast('No shots to export');
+  if (S.playing) { S.playing = false; S.seqPlay = false; refreshPlayBtn(); }
+  $('#export').classList.remove('hidden'); $('#ex-progress').classList.add('hidden'); $('#ex-status').textContent = '';
+  refreshExportDialog(); probeEncoder();
+}
+function closeExport() { if (EX.ctrl) EX.ctrl.abort(); else $('#export').classList.add('hidden'); }
+async function startExport() {
+  const o = exportOptions(); if (!o.frames || EX.ctrl) return;
+  EX.ctrl = new AbortController(); refreshExportDialog();
+  $('#ex-progress').classList.remove('hidden'); $('#ex-bar').style.width = '0%'; $('#ex-status').textContent = 'Starting…';
+  const pv = $('#ex-preview'); pv.height = Math.round(pv.width * o.height / o.width); pv.getContext('2d').clearRect(0, 0, pv.width, pv.height);
+  const name = `${baseName()}${o.list.length === 1 ? '_' + (o.list[0].name || o.list[0].id) : ''}_previs_${o.width}.mp4`;
+  try {
+    const res = await exportSequence({
+      shotIds: o.list.map((x) => x.id), width: o.width, height: o.height, fps: o.fps, ss: o.ss, burnIn: o.burn, audio: o.audio, signal: EX.ctrl.signal,
+      onProgress: ({ done, total, elapsed, shot, canvas }) => {
+        const rate = done / Math.max(1e-3, elapsed);
+        if (done % 4 === 1 || done === total) { const pv = $('#ex-preview'); pv.getContext('2d').drawImage(canvas, 0, 0, pv.width, pv.height); }
+        $('#ex-bar').style.width = `${(100 * done / total).toFixed(1)}%`;
+        $('#ex-status').textContent = `Frame ${done} / ${total} · shot ${shot.name || shot.id} · ${rate.toFixed(0)} fps · about ${clock((total - done) / rate)} left`;
+      },
+    });
+    downloadBlob(name, res.blob);
+    $('#ex-status').textContent = `Done in ${clock(res.seconds)} (${(res.frames / res.seconds).toFixed(0)} fps) · ${(res.blob.size / 1e6).toFixed(1)} MB · ${res.codecName}${res.audioCodec ? ` + ${res.audioCodec.toUpperCase()} dialogue (${res.voicedLines} lines)` : o.audio && o.voiced ? ' · no audio encoder in this browser, video only' : ''} · saved as ${name}`;
+  } catch (e) {
+    $('#ex-status').textContent = e && e.name === 'AbortError' ? 'Cancelled.' : `Export failed: ${(e && e.message) || e}`;
+  } finally { EX.ctrl = null; refreshExportDialog(); }
+}
+$('#btn-export').addEventListener('click', openExport);
+$('#ex-start').addEventListener('click', startExport);
+$('#ex-close').addEventListener('click', closeExport);
+$('#export').addEventListener('click', (e) => { if (e.target.id === 'export' && !EX.ctrl) closeExport(); });
+for (const id of ['#ex-range', '#ex-ss', '#ex-burn', '#ex-audio']) $(id).addEventListener('change', refreshExportDialog);
+for (const id of ['#ex-size', '#ex-fps']) $(id).addEventListener('change', () => { refreshExportDialog(); probeEncoder(); });
+
+// ------------------------------------------------------------------ look-through overlay: shot label + subtitles, live ---
+let overlayKey = '';
+function updateOverlay(sh) {
+  const ov = $('#lt-overlay');
+  if (!S.lookThrough || !sh) { if (overlayKey) { ov.classList.add('hidden'); overlayKey = ''; } return; }
+  const g = vp.gateRect(sh.camera.aspect || 2.39); if (!g) return;
+  const d = core.dialogueAt(sh, S.t * (sh.duration_s || 0));
+  const key = `${g.left},${g.top},${g.width},${g.height}|${sh.id}|${d ? `${d.who}|${d.line}|${d.index}` : ''}`;
+  if (key === overlayKey) return;
+  overlayKey = key;
+  ov.classList.remove('hidden');
+  Object.assign(ov.style, { left: `${g.left}px`, top: `${g.top}px`, width: `${g.width}px`, height: `${g.height}px`, fontSize: `${Math.max(12, Math.round(g.height * 0.042))}px` });
+  $('#lt-label').textContent = `${sh.name || sh.id} · ${sh.size || ''} · ${sh.camera.focal_mm}mm · ${(sh.rig && sh.rig.type) || 'static'}`;
+  const sub = $('#lt-sub'); sub.textContent = d ? `${d.who ? d.who + ':  ' : ''}${d.line}` : ''; sub.classList.toggle('hidden', !d);
+}
+
+// ------------------------------------------------------------------ step 2: actors list + floor marks ------------------
+function refreshCast() {
+  const box = $('#castlist'); if (!box) return;
+  const b = getBeat(activeBeatId());
+  if (!standins().length) { box.innerHTML = '<div class="empty">No actors yet: add a stand-in in step 1.</div>'; return; }
+  box.innerHTML = standins().map((o) => {
+    const bl = b && b.blocking ? b.blocking[o.id] : null, off = bl && bl.visible === false;
+    const where = bl && bl.position ? `${core.poseKey(bl.pose || o.pose)} · ${bl.position.map((v) => v.toFixed(1)).join(', ')} · ${Math.round(bl.facing ?? 0)}°` : 'no mark in this beat';
+    return `<div class="row ${o.id === S.selectedId ? 'selected' : ''}" data-id="${esc(o.id)}" data-tip="${esc(o.name)}|Click to select, then drag in the viewport or edit the mark below. ${off ? 'Off stage in this beat.' : ''}"><span class="dot" style="background:${esc(o.color || '#ccc')}"></span><span class="name">${esc(o.name)}</span><span class="tag">${esc(off ? 'off stage' : where)}</span></div>`;
+  }).join('');
+}
+$('#castlist').addEventListener('click', (e) => { const row = e.target.closest('.row'); if (row) selectObject(row.dataset.id); refreshCast(); });
+/** Tape marks for the stand-ins: every beat's spot, the active beat bold. Shown in Blocking and Camera (toggle: marks / M). */
+function updateMarks() {
+  const on = S.scene && S.marks !== false && (S.tab === 'beats' || S.tab === 'shots');
+  if (!on) return vp.setMarks([]);
+  const cur = activeBeatId();
+  vp.setMarks(standins().map((o) => ({
+    color: o.color || '#f2c14e', name: (o.name || o.id).replace(/\s*\(.*\)$/, ''),
+    marks: beats().map((b) => ({ b, bl: (b.blocking || {})[o.id] })).filter((x) => x.bl && x.bl.position && x.bl.visible !== false)
+      .map((x) => ({ position: x.bl.position, facing: x.bl.facing ?? 0, beat: x.b.id, current: x.b.id === cur }))
+      .filter((m, i, arr) => m.current || !arr.some((n, j) => j < i && core.dist(n.position, m.position) < 0.05)), // one ring per spot
+  })));
+}
+S.marks = true; $('#vt-marks').classList.add('active');
+$('#vt-marks').addEventListener('click', () => { S.marks = !S.marks; $('#vt-marks').classList.toggle('active', S.marks); updateMarks(); });
+
+// ------------------------------------------------------------------ step 4: sound -----------------------------------------
+function refreshSound() {
+  const box = $('#sound-panel'); if (!box || !S.scene) return;
+  const withLines = shots().filter((sh) => (sh.dialogue || []).length);
+  const all = withLines.flatMap((sh) => sh.dialogue), voiced = all.filter((d) => d.audio).length;
+  const cast = S.scene.cast || {};
+  const whoColor = (who) => { const o = standins().find((x) => (x.name || '').toUpperCase().startsWith(String(who).toUpperCase())); return (o && o.color) || '#aab3bf'; };
+  let html = `<h4 data-tip="Voices|Each character has one voice for the whole scene. The clips live next to the scene file (audio/<scene>/) with a voices.json that says which line each clip belongs to.">Voices</h4>`;
+  const whos = [...new Set(all.map((d) => d.who))];
+  html += whos.length ? `<table class="kv">${whos.map((w) => `<tr><td><span class="dot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${esc(whoColor(w))}"></span> ${esc(w)}</td><td>${cast[w] ? `${esc(cast[w].voice || cast[w].voice_id)} <span class="mini">Higgsfield · ElevenLabs</span>` : '<span class="mini">no voice yet</span>'}</td></tr>`).join('')}</table>` : '<div class="empty">No dialogue in this scene.</div>';
+  html += `<div class="note">${voiced} of ${all.length} lines voiced. To voice or re-voice lines, ask Claude in the chat (for example “voice scene 1, Arthur deeper”): it generates them with Higgsfield and they appear here.</div>`;
+  for (const sh of withLines) {
+    const D = sh.duration_s || 0, tl = core.dialogueTimeline(sh);
+    html += `<div class="dl-shot"><span class="name" data-shot="${esc(sh.id)}" data-tip="${esc(sh.name)}|Open this shot in step 3.">${esc(sh.name)}</span><span class="mini">${esc(sh.size || '')} · ${D}s</span></div>`;
+    html += `<div class="dl-bar" data-tip="Timing|Where each line sits inside the shot. Lines start shortly after the cut; set an explicit start with 'at' in the build script.">${tl.map((l) => `<i style="left:${(100 * l.start / Math.max(D, l.end)).toFixed(1)}%;width:${(100 * l.dur / Math.max(D, l.end)).toFixed(1)}%;background:${esc(whoColor(l.who))}"></i>`).join('')}</div>`;
+    for (const l of tl) {
+      html += `<div class="dl-line"><button class="small" ${l.audio ? `data-play="${esc(l.audio)}" data-tip="Play|Hear this take."` : 'disabled data-tip="No voice|This line has no recorded take yet: its timing is estimated from the text."'}>▶</button><span><span class="who" style="color:${esc(whoColor(l.who))}">${esc(l.who)}</span> ${esc(l.line)}${l.overrun ? ' <span class="badge" style="background:var(--warn);color:#111">past the cut</span>' : ''}</span><span class="t">${l.start.toFixed(1)}–${l.end.toFixed(1)}s${l.audio ? '' : ' · est.'}</span></div>`;
+    }
+  }
+  box.innerHTML = html;
+}
+$('#sound-panel').addEventListener('click', (e) => {
+  const play = e.target.closest('[data-play]'); if (play) { voice.unlock(); voice.preview(play.dataset.play); return; }
+  const shot = e.target.closest('[data-shot]'); if (shot) { selectShot(shot.dataset.shot, { fly: false }); switchTab('shots'); }
+});
+
+// ------------------------------------------------------------------ step 5: review ----------------------------------------
+function refreshReview() {
+  const box = $('#review-list'); if (!box || !S.scene) return;
+  const list = shots(); let total = 0, sum = 0, n = 0, low = 0;
+  box.innerHTML = list.map((sh) => {
+    let score = null; try { score = scoreFor(sh); } catch (e) { score = null; }
+    total += sh.duration_s || 0; if (score != null) { sum += score; n++; if (score < 85) low++; }
+    const cls = score == null ? '' : score >= 85 ? 'ok' : score >= 65 ? 'warn' : 'bad';
+    const lines = (sh.dialogue || []).length, voicedN = (sh.dialogue || []).filter((d) => d.audio).length;
+    return `<div class="row ${sh.id === S.shotId ? 'selected' : ''}" data-id="${esc(sh.id)}" data-tip="${esc(sh.name)} · ${esc(sh.size || '')}|${esc(sh.intent || 'No action text.')}"><span class="score ${cls}">${score ?? '–'}</span><span class="name"><b>${esc(sh.name)}</b> <span class="tag">${esc(sh.size || '')} · ${esc(sh.camera.focal_mm)}mm · ${esc((sh.rig && sh.rig.type) || 'static')}</span></span><span class="tag">${lines ? `♪${voicedN}/${lines} · ` : ''}${sh.duration_s}s</span></div>`;
+  }).join('') || '<div class="empty">No shots yet.</div>';
+  $('#review-summary').innerHTML = list.length ? `<b>${list.length} shots · ${clock(total)}</b> · average score ${n ? Math.round(sum / n) : '–'}${low ? ` · <span style="color:var(--warn)">${low} to review</span>` : ' · all clean'}. Click a shot to look through it.` : '';
+}
+$('#review-list').addEventListener('click', (e) => { const row = e.target.closest('.row'); if (!row) return; selectShot(row.dataset.id, { fly: false }); if (!S.lookThrough) setLookThrough(true); refreshReview(); });
+$('#btn-screen').addEventListener('click', () => { if (S.seqPlay) $('#tl-playall').click(); $('#tl-playall').click(); });
+$('#btn-review-export').addEventListener('click', openExport);
+$('#btn-review-sheet').addEventListener('click', () => $('#btn-sheet').click());
+$('#btn-review-blender').addEventListener('click', () => $('#btn-blender').click());
 
 // ------------------------------------------------------------------ boot ------------------------------------------------
-const params = new URLSearchParams(location.search);
-const initial = params.get('scene') || 'scenes/demo/street_corner.json';
+const initial = QUERY.get('scene') || 'scenes/demo/street_corner.json';
 const picker = $('#scene-picker'); if (![...picker.options].some((o) => o.value === initial)) { const o = document.createElement('option'); o.value = initial; o.textContent = initial; picker.appendChild(o); } picker.value = initial;
+switchTab(S.tab || 'outliner');
 loadFromURL(initial);
