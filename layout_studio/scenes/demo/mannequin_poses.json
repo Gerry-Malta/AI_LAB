@@ -1,0 +1,426 @@
+{
+ "format": "layout-studio/scene",
+ "version": 1,
+ "project": "DEMO",
+ "scene": {
+  "number": 0,
+  "heading": "MANNEQUIN POSES",
+  "int_ext": "INT",
+  "location": "Stage",
+  "time": "DAY",
+  "pages": "",
+  "synopsis": "Every stand-in pose, adult 1.80 m and child 1.15 m (6 years)."
+ },
+ "world": {
+  "ground": {
+   "size": 120,
+   "color": "#7c807e"
+  },
+  "sky": "#cfd8e0",
+  "sun": {
+   "azimuth": 200,
+   "elevation": 40
+  }
+ },
+ "objects": [
+  {
+   "id": "ENV_floor",
+   "name": "Floor",
+   "role": "ENV",
+   "kind": "box",
+   "position": [
+    0,
+    -0.02,
+    0
+   ],
+   "size": [
+    24,
+    0.02,
+    10
+   ],
+   "color": "#8d918f",
+   "source": "inferred"
+  },
+  {
+   "id": "CHAR_adult_stand",
+   "name": "stand",
+   "role": "CHAR",
+   "kind": "standin",
+   "position": [
+    -10.0,
+    0,
+    0
+   ],
+   "rotation": [
+    0,
+    30,
+    0
+   ],
+   "height": 1.8,
+   "age": 35,
+   "pose": "stand",
+   "color": "#9aa3ad",
+   "source": "inferred"
+  },
+  {
+   "id": "CHAR_child_stand",
+   "name": "stand (6 y)",
+   "role": "CHAR",
+   "kind": "standin",
+   "position": [
+    -10.0,
+    0,
+    -2.6
+   ],
+   "rotation": [
+    0,
+    30,
+    0
+   ],
+   "height": 1.15,
+   "age": 6,
+   "pose": "stand",
+   "color": "#c79a6b",
+   "source": "inferred"
+  },
+  {
+   "id": "CHAR_adult_walk",
+   "name": "walk",
+   "role": "CHAR",
+   "kind": "standin",
+   "position": [
+    -7.5,
+    0,
+    0
+   ],
+   "rotation": [
+    0,
+    30,
+    0
+   ],
+   "height": 1.8,
+   "age": 35,
+   "pose": "walk",
+   "color": "#9aa3ad",
+   "source": "inferred"
+  },
+  {
+   "id": "CHAR_child_walk",
+   "name": "walk (6 y)",
+   "role": "CHAR",
+   "kind": "standin",
+   "position": [
+    -7.5,
+    0,
+    -2.6
+   ],
+   "rotation": [
+    0,
+    30,
+    0
+   ],
+   "height": 1.15,
+   "age": 6,
+   "pose": "walk",
+   "color": "#c79a6b",
+   "source": "inferred"
+  },
+  {
+   "id": "CHAR_adult_sit_ground",
+   "name": "sit_ground",
+   "role": "CHAR",
+   "kind": "standin",
+   "position": [
+    -5.0,
+    0,
+    0
+   ],
+   "rotation": [
+    0,
+    30,
+    0
+   ],
+   "height": 1.8,
+   "age": 35,
+   "pose": "sit_ground",
+   "color": "#9aa3ad",
+   "source": "inferred"
+  },
+  {
+   "id": "CHAR_child_sit_ground",
+   "name": "sit_ground (6 y)",
+   "role": "CHAR",
+   "kind": "standin",
+   "position": [
+    -5.0,
+    0,
+    -2.6
+   ],
+   "rotation": [
+    0,
+    30,
+    0
+   ],
+   "height": 1.15,
+   "age": 6,
+   "pose": "sit_ground",
+   "color": "#c79a6b",
+   "source": "inferred"
+  },
+  {
+   "id": "CHAR_adult_sit_cross",
+   "name": "sit_cross",
+   "role": "CHAR",
+   "kind": "standin",
+   "position": [
+    -2.5,
+    0,
+    0
+   ],
+   "rotation": [
+    0,
+    30,
+    0
+   ],
+   "height": 1.8,
+   "age": 35,
+   "pose": "sit_cross",
+   "color": "#9aa3ad",
+   "source": "inferred"
+  },
+  {
+   "id": "CHAR_child_sit_cross",
+   "name": "sit_cross (6 y)",
+   "role": "CHAR",
+   "kind": "standin",
+   "position": [
+    -2.5,
+    0,
+    -2.6
+   ],
+   "rotation": [
+    0,
+    30,
+    0
+   ],
+   "height": 1.15,
+   "age": 6,
+   "pose": "sit_cross",
+   "color": "#c79a6b",
+   "source": "inferred"
+  },
+  {
+   "id": "CHAR_adult_sit_chair",
+   "name": "sit_chair",
+   "role": "CHAR",
+   "kind": "standin",
+   "position": [
+    0.0,
+    0,
+    0
+   ],
+   "rotation": [
+    0,
+    30,
+    0
+   ],
+   "height": 1.8,
+   "age": 35,
+   "pose": "sit_chair",
+   "color": "#9aa3ad",
+   "source": "inferred"
+  },
+  {
+   "id": "CHAR_child_sit_chair",
+   "name": "sit_chair (6 y)",
+   "role": "CHAR",
+   "kind": "standin",
+   "position": [
+    0.0,
+    0,
+    -2.6
+   ],
+   "rotation": [
+    0,
+    30,
+    0
+   ],
+   "height": 1.15,
+   "age": 6,
+   "pose": "sit_chair",
+   "color": "#c79a6b",
+   "source": "inferred"
+  },
+  {
+   "id": "CHAR_adult_crouch",
+   "name": "crouch",
+   "role": "CHAR",
+   "kind": "standin",
+   "position": [
+    2.5,
+    0,
+    0
+   ],
+   "rotation": [
+    0,
+    30,
+    0
+   ],
+   "height": 1.8,
+   "age": 35,
+   "pose": "crouch",
+   "color": "#9aa3ad",
+   "source": "inferred"
+  },
+  {
+   "id": "CHAR_child_crouch",
+   "name": "crouch (6 y)",
+   "role": "CHAR",
+   "kind": "standin",
+   "position": [
+    2.5,
+    0,
+    -2.6
+   ],
+   "rotation": [
+    0,
+    30,
+    0
+   ],
+   "height": 1.15,
+   "age": 6,
+   "pose": "crouch",
+   "color": "#c79a6b",
+   "source": "inferred"
+  },
+  {
+   "id": "CHAR_adult_kneel",
+   "name": "kneel",
+   "role": "CHAR",
+   "kind": "standin",
+   "position": [
+    5.0,
+    0,
+    0
+   ],
+   "rotation": [
+    0,
+    30,
+    0
+   ],
+   "height": 1.8,
+   "age": 35,
+   "pose": "kneel",
+   "color": "#9aa3ad",
+   "source": "inferred"
+  },
+  {
+   "id": "CHAR_child_kneel",
+   "name": "kneel (6 y)",
+   "role": "CHAR",
+   "kind": "standin",
+   "position": [
+    5.0,
+    0,
+    -2.6
+   ],
+   "rotation": [
+    0,
+    30,
+    0
+   ],
+   "height": 1.15,
+   "age": 6,
+   "pose": "kneel",
+   "color": "#c79a6b",
+   "source": "inferred"
+  },
+  {
+   "id": "CHAR_adult_lie_prone",
+   "name": "lie_prone",
+   "role": "CHAR",
+   "kind": "standin",
+   "position": [
+    7.5,
+    0,
+    0
+   ],
+   "rotation": [
+    0,
+    30,
+    0
+   ],
+   "height": 1.8,
+   "age": 35,
+   "pose": "lie_prone",
+   "color": "#9aa3ad",
+   "source": "inferred"
+  },
+  {
+   "id": "CHAR_child_lie_prone",
+   "name": "lie_prone (6 y)",
+   "role": "CHAR",
+   "kind": "standin",
+   "position": [
+    7.5,
+    0,
+    -2.6
+   ],
+   "rotation": [
+    0,
+    30,
+    0
+   ],
+   "height": 1.15,
+   "age": 6,
+   "pose": "lie_prone",
+   "color": "#c79a6b",
+   "source": "inferred"
+  },
+  {
+   "id": "CHAR_adult_lie_supine",
+   "name": "lie_supine",
+   "role": "CHAR",
+   "kind": "standin",
+   "position": [
+    10.0,
+    0,
+    0
+   ],
+   "rotation": [
+    0,
+    30,
+    0
+   ],
+   "height": 1.8,
+   "age": 35,
+   "pose": "lie_supine",
+   "color": "#9aa3ad",
+   "source": "inferred"
+  },
+  {
+   "id": "CHAR_child_lie_supine",
+   "name": "lie_supine (6 y)",
+   "role": "CHAR",
+   "kind": "standin",
+   "position": [
+    10.0,
+    0,
+    -2.6
+   ],
+   "rotation": [
+    0,
+    30,
+    0
+   ],
+   "height": 1.15,
+   "age": 6,
+   "pose": "lie_supine",
+   "color": "#c79a6b",
+   "source": "inferred"
+  }
+ ],
+ "beats": [],
+ "shots": [],
+ "notes": ""
+}

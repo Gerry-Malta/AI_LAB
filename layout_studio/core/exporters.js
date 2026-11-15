@@ -1,9 +1,10 @@
 // Exporters: camera sheet (Markdown), Blender rebuild script (Python), JSON.
 import { sub, norm, cross, dot, eulerXYZToMat3, mat3Mul, mat3T, mat3MulVec, add, dist, round } from './vec.js';
 import { fovFor, getFilmback, lensLabel } from './lens.js';
-import { solveRig, describeMove } from './rigs.js';
+import { describeMove } from './rigs.js';
+import { solveShot } from './shot.js';
 import { objectParts, applyBlocking, resolveSubject } from './metrics.js';
-import { standinParts, charTransform } from './standin.js';
+import { standinParts, charTransform, poseKey } from './standin.js';
 
 export const toJSON = (scene) => JSON.stringify(scene, null, 2);
 
@@ -28,7 +29,7 @@ export function toCameraSheet(scene, evaluations = {}) {
   for (const shot of scene.shots || []) {
     const blocking = blockingFor(scene, shot);
     const subject = resolveSubject(scene, shot, blocking);
-    const solved = solveRig(shot, { subject: subject && subject.position });
+    const solved = solveShot(scene, shot);
     const A = shot.keys && shot.keys.A, B = (shot.keys && shot.keys.B) || A;
     const cam = Object.assign({ filmback: 'ALEXA35_OG', focal_mm: 35, aspect: 2.39 }, shot.camera || {});
     const notes = [];
@@ -131,20 +132,18 @@ export function toBlenderScript(scene, opts = {}) {
     const rgb = py(hexToRGB(o.color));
     const target = o.kind === 'standin' ? 'c_char' : (o.role === 'PROP' || o.role === 'HERO') ? 'c_prop' : 'c_env';
     if (o.kind === 'standin') {
-      const ch = { position: o.position, facing: (o.rotation || [0, 0, 0])[1], pose: o.pose || 'stand', height: o.height || 1.75 };
-      const T = charTransform(ch);
-      L.push(`# ${o.name || o.id} (${ch.pose}, ${ch.height} m)`);
+      const ch = { position: o.position, facing: (o.rotation || [0, 0, 0])[1], pose: o.pose || 'stand', height: o.height || 1.75, age: o.age };
+      L.push(`# ${o.name || o.id} (${poseKey(ch.pose)}, ${ch.height} m${o.age != null ? `, ${o.age} y` : ''}) — mannequin`);
       L.push(`root = bpy.data.objects.new(${pyName(o.id)}, None); root.empty_display_type = "PLAIN_AXES"; root.empty_display_size = 0.3; c_char.objects.link(root)`);
       L.push(`root.matrix_world = Matrix.Translation(Vector(${py(C(o.position))})) @ ${pyMat3(toBlenderRot(eulerXYZToMat3(0, ch.facing, 0)).map((r) => r.map((v) => +v.toFixed(6))))}.to_4x4()`);
-      L.push(`m_ = mat(${pyName('M_' + o.id)}, ${rgb})`);
-      for (const part of standinParts(ch.pose, ch.height)) {
-        const kind = part.kind === 'sphere' ? 'sphere' : 'cube';
-        let size, center = part.center;
-        if (part.kind === 'sphere') size = [part.radius * 2, part.radius * 2, part.radius * 2];
-        else if (part.kind === 'box') size = part.size;
-        else { const d = part.radius * 2, Lc = part.length + d; size = part.axis === 'z' ? [d, d, Lc] : part.axis === 'x' ? [Lc, d, d] : [d, Lc, d]; }
+      L.push(`m_ = mat(${pyName('M_' + o.id)}, ${rgb}); mj_ = mat("M_mannequin_joint", (0.165, 0.18, 0.21)); ma_ = mat(${pyName('M_' + o.id + '_accent')}, ${py(hexToRGB(o.color).map((v) => v * 0.72))})`);
+      for (const part of standinParts(ch.pose, ch.height, ch.age)) {
+        const kind = part.kind === 'box' ? 'cube' : part.kind === 'capsule' ? 'cylinder' : 'sphere';
+        const size = part.kind === 'capsule' ? [part.radius * 2, part.length, part.radius * 2] : part.size;
         const bsize = [size[0], size[2], size[1]];
-        L.push(`p_ = prim("${kind}", ${pyName(o.id + '_' + part.tag)}, ${py(C(center))}, Matrix.Identity(3), ${py(bsize)}, c_char, m_); p_.parent = root; p_.matrix_parent_inverse = Matrix.Identity(4)`);
+        const Rb = toBlenderRot(part.m).map((r) => r.map((v) => +v.toFixed(6)));
+        const mv = part.mat === 'joint' ? 'mj_' : part.mat === 'accent' ? 'ma_' : 'm_';
+        L.push(`p_ = prim("${kind}", ${pyName(o.id + '_' + part.tag)}, ${py(C(part.center))}, ${pyMat3(Rb)}, ${py(bsize)}, c_char, ${mv}); p_.parent = root; p_.matrix_parent_inverse = Matrix.Identity(4)`);
       }
       continue;
     }
@@ -176,7 +175,7 @@ export function toBlenderScript(scene, opts = {}) {
     const { gate } = fovFor(cam);
     const blocking = blockingFor(scene, shot);
     const subject = resolveSubject(scene, shot, blocking);
-    const solved = solveRig(shot, { subject: subject && subject.position });
+    const solved = solveShot(scene, shot);
     const n = Math.max(1, Math.round((shot.duration_s || 4) * fps));
     const resY = Math.round(resX / cam.aspect);
     const name = `CAM_${shot.name || shot.id}`.replace(/[^A-Za-z0-9_.-]/g, '_');

@@ -10,14 +10,19 @@ export const CURVE_PRESETS = {
   cinematic:    { type: 'bezier',   name: 'Cinematic (soft start, long settle)', p: [0.33, 0, 0.18, 1] },
   quickStart:   { type: 'bezier',   name: 'Quick start, slow landing', p: [0.1, 0.6, 0.3, 1] },
   holdMoveHold: { type: 'hmh',      name: 'Hold · move · hold', hold: [0.15, 0.15], inner: 'smoothstep' },
+  easeInOutCubic: { type: 'bezier', name: 'Smooth S (cubic): slow start, slow landing', p: [0.65, 0, 0.35, 1] },
+  easeInOutQuint: { type: 'bezier', name: 'Very smooth S (quint)', p: [0.83, 0, 0.17, 1] },
 };
 export const CURVE_IDS = Object.keys(CURVE_PRESETS);
 
 export function resolveCurve(c) {
   if (!c) return CURVE_PRESETS.easeInOut;
   if (typeof c === 'string') return CURVE_PRESETS[c] || CURVE_PRESETS.easeInOut;
+  if (Array.isArray(c)) return { type: 'bezier', p: c };
   return c;
 }
+/** Bezier control points of a curve (for editors), or null when the curve is not a bezier. */
+export function curvePoints(c) { const r = resolveCurve(c); return r.type === 'bezier' ? r.p.slice() : r.type === 'linear' ? [0, 0, 1, 1] : null; }
 
 /** CSS-style cubic bezier easing: control points (x1,y1),(x2,y2); solve x(t)=x for t then return y(t). */
 export function cubicBezier(x1, y1, x2, y2, x) {

@@ -143,3 +143,98 @@ test('metrics: analytic cone occlusion does not use the bounding box', () => {
   const m2 = core.evaluateFrame(scene, shot, { position: [0, 1.4, 5], target: [0, 1.2, 0], roll: 0 }, {});
   assert.ok(m2.occlusion.occluded, 'cone on the sight line hides the subject');
 });
+
+test('mannequin: every pose rests on the ground and keeps its bone lengths', () => {
+  for (const [H, age] of [[1.8, 35], [1.15, 6], [1.62, undefined]]) {
+    const rest = core.skeleton('stand', H, age).joints;
+    const bone = (j, a, b) => core.dist(j[a], j[b]);
+    for (const pose of core.POSES) {
+      const sk = core.skeleton(pose, H, age);
+      const low = Math.min(...sk.parts.map(core.partMinY));
+      assert.ok(Math.abs(low) < 1e-6, `${pose} ${H}: lowest point ${low}`);
+      for (const [a, b] of [['shoulderL', 'elbowL'], ['elbowR', 'wristR'], ['hipL', 'kneeL'], ['kneeR', 'ankleR']]) {
+        assert.ok(Math.abs(bone(sk.joints, a, b) - bone(rest, a, b)) < 1e-9, `${pose}: ${a}-${b} changed length`);
+      }
+    }
+  }
+});
+
+test('mannequin: adult and child proportions', () => {
+  const a = core.skeleton('stand', 1.8, 30).keypoints;
+  const r = (k) => a[k][1] / 1.8;
+  assert.ok(Math.abs(r('eyes') - 0.936) < 0.006 && Math.abs(r('shoulders') - 0.818) < 0.006 && Math.abs(r('hips') - 0.53) < 0.006 && Math.abs(r('knees') - 0.285) < 0.006);
+  assert.ok(Math.abs(a.feet[1]) < 0.01 && Math.abs(a.headTop[1] - 1.8) < 0.01, 'stands on the ground, head at full height');
+  const c = core.skeleton('stand', 1.15, 6).keypoints;
+  assert.ok((c.headTop[1] - c.chin[1]) / 1.15 > 0.16, 'a 6-year-old has a larger head');
+  assert.equal(Math.round(core.ageFor(1.15)), 6, 'age is estimated from the height of a child');
+  assert.equal(core.ageFor(1.8), core.DEFAULT_AGE);
+});
+
+test('mannequin: poses touch the ground with the right parts', () => {
+  const low = (sk, tags) => Math.min(...sk.parts.filter((p) => tags.includes(p.tag)).map(core.partMinY));
+  const sit = core.skeleton('sit_ground', 1.8);
+  assert.ok(low(sit, ['pelvis']) < 0.01 && low(sit, ['footL', 'footR']) < 0.01, 'sitting on the ground: seat and feet down');
+  assert.ok(sit.keypoints.knees[1] > sit.keypoints.hips[1], 'knees up');
+  const prone = core.skeleton('lie_prone', 1.8);
+  assert.ok(low(prone, ['pelvis']) < 0.01 && low(prone, ['foreArmL', 'foreArmR', 'elbowL', 'elbowR']) < 0.01, 'prone: hips and forearms down');
+  assert.ok(prone.keypoints.eyes[1] > 0.25, 'prone: propped on the elbows, head up');
+  const kneel = core.skeleton('kneel', 1.8);
+  assert.ok(low(kneel, ['kneeL', 'kneeR', 'shinL', 'shinR']) < 0.015 && kneel.keypoints.hips[1] > 0.45, 'kneeling upright');
+  const chair = core.skeleton('sit_chair', 1.8);
+  assert.ok(chair.keypoints.hips[1] > 0.4 && chair.keypoints.hips[1] < 0.55, 'chair seat height');
+});
+
+test('blocking: a character gets up, moves facing the travel direction and settles', () => {
+  const scene = core.normalizeScene({
+    objects: [{ id: 'A', kind: 'standin', name: 'A', position: [0, 0, 0], rotation: [0, 0, 0], height: 1.8, pose: 'sit_ground' }],
+    beats: [{ id: 'b1', blocking: { A: { position: [0, 0, 0], facing: 0, pose: 'sit_ground' } } }, { id: 'b2', blocking: { A: { position: [3, 0, 0], facing: 180, pose: 'crouch' } } }],
+  });
+  const shot = { beat: 'b2', beatA: 'b1', beatB: 'b2' };
+  const s0 = core.blockingAt(scene, shot, 0).A, s5 = core.blockingAt(scene, shot, 0.5).A, s1 = core.blockingAt(scene, shot, 1).A;
+  assert.equal(s0.pose, 'sit_ground'); assert.deepEqual(s0.position, [0, 0, 0]);
+  assert.equal(s5.pose, 'stand'); assert.ok(s5.position[0] > 0.5 && s5.position[0] < 2.5); assert.ok(Math.abs(s5.facing - 90) < 1e-6, 'faces +X while moving');
+  assert.equal(s1.pose, 'crouch'); assert.deepEqual(s1.position, [3, 0, 0]); assert.ok(Math.abs(core.angleDelta(s1.facing, 180)) < 1e-6);
+  const s15 = core.blockingAt(scene, shot, 0.15).A;
+  assert.ok(typeof s15.pose === 'object' && s15.pose.a === 'sit_ground', 'getting up is a pose blend');
+  assert.ok(core.skeleton(s15.pose, 1.8).keypoints.hips[1] > core.skeleton('sit_ground', 1.8).keypoints.hips[1], 'the hips rise while getting up');
+});
+
+test('metrics: a mannequin between camera and subject occludes it', () => {
+  const scene = { objects: [
+    { id: 'S', kind: 'standin', name: 'S', position: [0, 0, 0], rotation: [0, 0, 0], pose: 'stand', height: 1.8 },
+    { id: 'X', kind: 'standin', name: 'X', position: [0, 0, 2.5], rotation: [0, 180, 0], pose: 'stand', height: 1.8 },
+  ] };
+  const shot = { size: 'MS', subject: 'S', camera: { focal_mm: 35 } };
+  const m = core.evaluateFrame(scene, shot, { position: [0, 1.6, 6], target: [0, 1.4, 0], roll: 0 }, {});
+  assert.ok(m.occlusion.occluded && m.occlusion.by.includes('X'));
+  scene.objects[1].position = [1.2, 0, 2.5];
+  const m2 = core.evaluateFrame(scene, shot, { position: [0, 1.6, 6], target: [0, 1.4, 0], roll: 0 }, {});
+  assert.ok(!m2.occlusion.occluded, 'moved aside: clear');
+});
+
+test('rigs: a follow shot keeps a moving subject in frame', () => {
+  const scene = core.normalizeScene({
+    objects: [{ id: 'A', kind: 'standin', name: 'A', position: [0, 0, 0], rotation: [0, 0, 0], height: 1.8, pose: 'sit_ground' }],
+    beats: [{ id: 'b1', blocking: { A: { position: [0, 0, 0], facing: 180, pose: 'sit_ground' } } }, { id: 'b2', blocking: { A: { position: [0, 0, -5], facing: 180, pose: 'crouch' } } }],
+  });
+  const mk = (rig) => core.normalizeScene(Object.assign({}, scene, { shots: [{ id: 's', beat: 'b2', beatA: 'b1', beatB: 'b2', subject: 'A', size: 'MS', camera: { focal_mm: 40 }, rig, duration_s: 10,
+    keys: { A: { position: [0, 1.0, 1.6], target: [0, 0.7, 0] }, B: { position: [0, 0.9, -1.8], target: [0, 0.7, -5] } } }] }));
+  const headIn = (sc) => { const sh = sc.shots[0], solved = core.solveShot(sc, sh), p = solved.pose(0.5); const kp = core.keypoints(core.resolveSubject(sc, sh, core.blockingAt(sc, sh, 0.5)));
+    const { vfov } = core.fovFor(sh.camera); return core.projectPoint(kp.headTop, p.position, core.cameraBasis(p.position, p.target), vfov, 2.39).inFrame; };
+  assert.ok(headIn(mk({ type: 'steadicam', follow: true, noise: false })), 'follow keeps the head in frame mid-move');
+  assert.ok(!headIn(mk({ type: 'steadicam', noise: false })), 'without follow the standing actor leaves the frame');
+  const solved = core.solveShot(mk({ type: 'steadicam', follow: true }), mk({ type: 'steadicam', follow: true }).shots[0]);
+  assert.ok(core.dist(solved.pose(1).position, [0, 0.9, -1.8]) < 0.1, 'lands on key B');
+});
+
+test('metrics: camera inside an object and a near object filling the frame are flagged', () => {
+  const scene = { objects: [
+    { id: 'S', kind: 'standin', name: 'S', position: [0, 0, 0], rotation: [0, 0, 0], pose: 'stand', height: 1.8 },
+    { id: 'R', kind: 'sphere', name: 'Rock', position: [0.3, 0, 4.4], size: [1.4, 1.6, 1.2] },
+  ] };
+  const shot = { size: 'MS', subject: 'S', camera: { focal_mm: 35 } };
+  const m = core.evaluateFrame(scene, shot, { position: [0.3, 1.0, 5.4], target: [0, 1.2, 0], roll: 0 }, {});
+  assert.ok(m.flags.some((f) => /Rock fills/.test(f.msg)), JSON.stringify(m.flags));
+  const m2 = core.evaluateFrame(scene, shot, { position: [0.3, 0.6, 4.4], target: [0, 1.2, 0], roll: 0 }, {});
+  assert.ok(m2.flags.some((f) => /inside Rock/.test(f.msg)), JSON.stringify(m2.flags));
+});

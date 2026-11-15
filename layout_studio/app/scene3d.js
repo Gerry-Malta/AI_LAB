@@ -34,6 +34,16 @@ function makeLabel(text, color = '#ffffff') {
   return sprite;
 }
 
+const _m4 = new THREE.Matrix4();
+/** Place a mannequin part mesh from its centre and 3x3 rotation (character-local frame). */
+function setPartTransform(mesh, p) {
+  const m = p.m;
+  _m4.set(m[0][0], m[0][1], m[0][2], 0, m[1][0], m[1][1], m[1][2], 0, m[2][0], m[2][1], m[2][2], 0, 0, 0, 0, 1);
+  mesh.quaternion.setFromRotationMatrix(_m4);
+  mesh.position.set(p.center[0], p.center[1], p.center[2]);
+}
+const standinTop = (obj, pose) => core.skeleton(pose || obj.pose || 'stand', obj.height || 1.75, obj.age).keypoints.headTop[1] + 0.3;
+
 export class Viewport {
   constructor(canvas) {
     this.canvas = canvas;
@@ -92,12 +102,25 @@ export class Viewport {
     const dir = new THREE.DirectionalLight(0xfff2dd, 2.6);
     const az = deg(sun.azimuth), el = deg(sun.elevation);
     dir.position.set(Math.sin(az) * Math.cos(el) * 150, Math.sin(el) * 150, Math.cos(az) * Math.cos(el) * 150);
-    dir.castShadow = true; dir.shadow.mapSize.set(2048, 2048);
+    dir.castShadow = true; dir.shadow.mapSize.set(4096, 4096);
     Object.assign(dir.shadow.camera, { left: -60, right: 60, top: 60, bottom: -60, near: 1, far: 500 });
     dir.shadow.bias = -0.0006; dir.shadow.normalBias = 0.02;
+    this.sunLight = dir; this.sunDir = new THREE.Vector3(Math.sin(az) * Math.cos(el), Math.sin(el), Math.cos(az) * Math.cos(el));
     this.worldGroup.add(hemi, dir, dir.target);
     this.scene.add(this.worldGroup);
     this.setGridVisible(this.gridVisible);
+  }
+  /** Concentrate the sun's shadow map on the area where the action is: sharp shadows, no acne or crawling edges. */
+  fitShadows(center, radius) {
+    const dir = this.sunLight; if (!dir) return;
+    const r = Math.max(8, Math.min(60, radius));
+    dir.position.set(center[0] + this.sunDir.x * 150, this.sunDir.y * 150, center[2] + this.sunDir.z * 150);
+    dir.target.position.set(center[0], 0, center[2]);
+    dir.target.updateMatrixWorld();
+    Object.assign(dir.shadow.camera, { left: -r, right: r, top: r, bottom: -r, near: 1, far: 400 });
+    dir.shadow.camera.updateProjectionMatrix();
+    dir.shadow.bias = -0.0002; dir.shadow.normalBias = 0.012 * Math.max(1, r / 20);
+    dir.shadow.needsUpdate = true;
   }
   setGridVisible(v) { this.gridVisible = v; if (this.grids) for (const g of this.grids) g.visible = v; }
   labelWanted(obj) { return obj.kind !== 'plane' && (obj.kind === 'standin' || obj.role === 'HERO' || obj.role === 'SET' || obj.role === 'CHAR' || obj.id === this.selectedId); }
@@ -126,18 +149,23 @@ export class Viewport {
         break;
       }
       case 'standin': {
-        const H = obj.height || 1.75;
-        const mat = this.material(color, { roughness: 0.7 });
-        for (const p of core.standinParts(obj.pose || 'stand', H)) {
+        // Unreal-style mannequin: body plates in the character colour, dark joints and shoes, a nose to read the facing
+        const mats = {
+          body: new THREE.MeshStandardMaterial({ color: new THREE.Color(color), roughness: 0.42, metalness: 0.08 }),
+          joint: new THREE.MeshStandardMaterial({ color: new THREE.Color('#2a2e35'), roughness: 0.55, metalness: 0.05 }),
+          accent: new THREE.MeshStandardMaterial({ color: new THREE.Color(color).multiplyScalar(0.72), roughness: 0.45, metalness: 0.05 }),
+        };
+        const meshes = [];
+        for (const p of core.standinParts(obj.pose || 'stand', obj.height || 1.75, obj.age)) {
+          const mat = mats[p.mat] || mats.body;
           let m;
-          if (p.kind === 'sphere') { m = add(new THREE.Mesh(unitGeo.sphere, mat)); m.scale.setScalar(p.radius * 2); }
-          else if (p.kind === 'box') { m = add(new THREE.Mesh(unitGeo.box, this.material('#222'))); m.scale.set(...p.size); }
-          else {
-            m = add(new THREE.Mesh(new THREE.CapsuleGeometry(p.radius, p.length, 4, 12), mat));
-            if (p.axis === 'z') m.rotation.x = Math.PI / 2; else if (p.axis === 'x') m.rotation.z = Math.PI / 2;
-          }
-          m.position.set(...p.center);
+          if (p.kind === 'capsule') m = add(new THREE.Mesh(new THREE.CapsuleGeometry(p.radius, p.length, 4, 14), mat));
+          else { m = add(new THREE.Mesh(p.kind === 'box' ? unitGeo.box : unitGeo.sphere, mat)); m.scale.set(p.size[0], p.size[1], p.size[2]); }
+          setPartTransform(m, p);
+          m.userData.partTag = p.tag;
+          meshes.push(m);
         }
+        group.userData.partMeshes = meshes;
         break;
       }
       case 'gltf': {
@@ -164,11 +192,11 @@ export class Viewport {
     this.buildMeshes(obj, group);
     const labelText = obj.kind === 'standin' ? (obj.name || obj.id) : (obj.name || obj.id);
     const label = makeLabel(labelText, obj.kind === 'standin' ? '#ffe9a6' : '#ffffff');
-    const top = obj.kind === 'standin' ? (obj.height || 1.75) + 0.3 : (obj.size ? obj.size[1] * (obj.scale ? obj.scale[1] : 1) + 0.3 : 1);
+    const top = obj.kind === 'standin' ? standinTop(obj) : (obj.size ? obj.size[1] * (obj.scale ? obj.scale[1] : 1) + 0.3 : 1);
     label.position.set(0, top, 0); label.visible = this.labelsVisible && this.labelWanted(obj);
     group.add(label);
     this.objectsRoot.add(group);
-    const node = { group, data: obj, label, pose: obj.pose, kind: obj.kind, sizeKey: JSON.stringify([obj.size, obj.color, obj.height]) };
+    const node = { group, data: obj, label, pose: obj.pose, kind: obj.kind, sizeKey: this.shapeKey(obj) };
     this.nodes.set(obj.id, node);
     this.applyTransform(obj, group);
     group.visible = obj.visible !== false;
@@ -179,35 +207,47 @@ export class Viewport {
     const r = obj.rotation || [0, 0, 0]; group.rotation.set(deg(r[0]), deg(r[1]), deg(r[2]), 'XYZ');
     const sc = obj.scale || [1, 1, 1]; group.scale.set(sc[0], sc[1], sc[2]);
   }
-  /** Re-sync a node from its JSON (transform, visibility; rebuild meshes if shape/pose/colour changed). */
+  /** What forces a mesh rebuild: shape, colour, body measures. A stand-in's pose only moves its parts. */
+  shapeKey(obj) { return JSON.stringify([obj.size, obj.color, obj.height, obj.age, obj.kind, obj.name, obj.url, obj.kind === 'standin' ? null : obj.pose]); }
+  /** Re-sync a node from its JSON (transform, visibility; rebuild meshes if shape/colour/measures changed). */
   refreshObject(obj) {
     const n = this.nodes.get(obj.id);
     if (!n) return this.addObjectNode(obj);
-    const key = JSON.stringify([obj.size, obj.color, obj.height, obj.kind, obj.pose, obj.name]);
-    if (key !== n.sizeKey || n.pose !== obj.pose) {
+    const key = this.shapeKey(obj);
+    if (key !== n.sizeKey) {
       for (const c of [...n.group.children]) n.group.remove(c);
+      n.group.userData.partMeshes = null;
       this.buildMeshes(obj, n.group);
       n.label = makeLabel(obj.name || obj.id, obj.kind === 'standin' ? '#ffe9a6' : '#ffffff');
-      const top = obj.kind === 'standin' ? (obj.height || 1.75) + 0.3 : (obj.size ? obj.size[1] + 0.3 : 1);
+      const top = obj.kind === 'standin' ? standinTop(obj) : (obj.size ? obj.size[1] + 0.3 : 1);
       n.label.position.set(0, top, 0); n.label.visible = this.labelsVisible && this.labelWanted(obj);
       n.group.add(n.label);
-      n.sizeKey = key; n.pose = obj.pose;
+      n.sizeKey = key;
     }
     n.data = obj;
+    if (obj.kind === 'standin') this.poseStandin(n, obj, obj.pose);
     this.applyTransform(obj, n.group);
     n.group.visible = obj.visible !== false;
     if (this.selectedId === obj.id) this.selBox.setFromObject(n.group);
   }
+  /** Move a mannequin's parts to a pose (library name, blend or angle set) without rebuilding geometry. */
+  poseStandin(n, obj, pose) {
+    const meshes = n.group.userData.partMeshes;
+    if (!meshes) return;
+    const sk = core.skeleton(pose || 'stand', obj.height || 1.75, obj.age);
+    for (let i = 0; i < meshes.length && i < sk.parts.length; i++) setPartTransform(meshes[i], sk.parts[i]);
+    if (n.label) n.label.position.y = sk.keypoints.headTop[1] + 0.3;
+    n.pose = pose;
+  }
   removeObject(id) { const n = this.nodes.get(id); if (!n) return; if (this.gizmo.object === n.group) this.gizmo.detach(); this.objectsRoot.remove(n.group); this.nodes.delete(id); if (this.selectedId === id) this.setSelected(null); }
 
-  /** Apply a blocking state to stand-ins (position / facing / pose) without touching the JSON. */
+  /** Apply a blocking state to stand-ins (position / facing / pose, possibly a pose blend) without touching the JSON. */
   applyBlocking(objects, blocking) {
     for (const o of objects) {
       if (o.kind !== 'standin') continue;
       const n = this.nodes.get(o.id); if (!n) continue;
       const b = (blocking && blocking[o.id]) || {};
-      const pose = b.pose || o.pose || 'stand';
-      if (pose !== n.pose) { this.refreshObject(Object.assign({}, o, { pose })); n.pose = pose; }
+      this.poseStandin(n, o, b.pose || o.pose || 'stand');
       const pos = b.position || o.position;
       n.group.position.set(pos[0], pos[1], pos[2]);
       n.group.rotation.set(0, deg(b.facing ?? (o.rotation || [0, 0, 0])[1]), 0, 'XYZ');
@@ -409,17 +449,19 @@ export class Viewport {
   }
 
   /** Offline still from the shot camera at an exact pixel size, helpers hidden. Returns a 2D canvas with the pixels. */
-  renderStill(pose, cam, w, h) {
+  renderStill(pose, cam, w, h, ss = 1) {
     const r = this.renderer;
     const prevW = this.w, prevH = this.h, prevRatio = r.getPixelRatio();
+    const W = Math.round(w * ss), Hh = Math.round(h * ss); // supersampling: render bigger, filter down (no crawling edges)
     this.setShotCamera(pose, cam);
-    r.setPixelRatio(1); r.setSize(w, h, false);
+    r.setPixelRatio(1); r.setSize(W, Hh, false);
     this.shotCam.aspect = w / h; this.shotCam.updateProjectionMatrix();
     const vis = this.camerasRoot.visible; this.camerasRoot.visible = false;
     const selVis = this.selBox.visible; this.selBox.visible = false;
-    r.setScissorTest(false); r.setViewport(0, 0, w, h); r.clear(); r.render(this.scene, this.shotCam);
+    r.setScissorTest(false); r.setViewport(0, 0, W, Hh); r.clear(); r.render(this.scene, this.shotCam);
     const out = document.createElement('canvas'); out.width = w; out.height = h;
-    out.getContext('2d').drawImage(this.canvas, 0, 0, w, h);
+    const g = out.getContext('2d'); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
+    g.drawImage(this.canvas, 0, 0, W, Hh, 0, 0, w, h);
     this.camerasRoot.visible = vis; this.selBox.visible = selVis;
     r.setPixelRatio(prevRatio); if (prevW && prevH) r.setSize(prevW, prevH, false);
     return out;

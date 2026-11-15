@@ -10,7 +10,7 @@ export function charAt(scene, id, beatId) {
   if (!o) throw new Error(`unknown character ${id}`);
   const beat = (scene.beats || []).find((b) => b.id === beatId);
   const bl = (beat && beat.blocking && beat.blocking[id]) || {};
-  return { id, position: bl.position || o.position, facing: bl.facing ?? ((o.rotation || [0, 0, 0])[1]), pose: bl.pose || o.pose || 'stand', height: o.height || 1.75 };
+  return { id, position: bl.position || o.position, facing: bl.facing ?? ((o.rotation || [0, 0, 0])[1]), pose: bl.pose || o.pose || 'stand', height: o.height || 1.75, age: o.age };
 }
 
 /** Solve one key definition. Returns {position, target, roll, meta} or null. May adjust lens.focal_mm for OTS fitSize. */
