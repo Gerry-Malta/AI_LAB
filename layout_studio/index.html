@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Layout Studio</title>
+<meta name="description" content="Previz layout tool: blockout, stand-ins, real lenses and camera rigs, shot checks. Part of AI Lab — District Zero.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f1114; --panel: #161a1f; --panel-2: #1d2229; --line: #262c34; --text: #d9dde3; --dim: #8a929d; --faint: #5b636d;
+    --accent: #f2c14e; --accent-2: #7fb4ff; --ok: #6ccf8a; --warn: #f0b35a; --bad: #ef6b6b; --sel: #f2c14e;
+    --mono: 'DM Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; background: var(--bg); color: var(--text); font: 12px/1.45 var(--mono); overflow: hidden; }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  button { background: var(--panel-2); border: 1px solid var(--line); border-radius: 4px; padding: 4px 8px; cursor: pointer; }
+  button:hover { border-color: var(--dim); }
+  button.primary { background: var(--accent); color: #111; border-color: var(--accent); font-weight: 500; }
+  button.small { padding: 2px 6px; font-size: 11px; }
+  button.active { border-color: var(--accent); color: var(--accent); }
+  input, select, textarea { background: #0c0e11; border: 1px solid var(--line); border-radius: 4px; padding: 3px 5px; width: 100%; min-width: 0; }
+  input[type=number] { width: 100%; }
+  input[type=checkbox] { width: auto; }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent-2); }
+  textarea { resize: vertical; min-height: 44px; }
+  a { color: var(--accent-2); }
+  #app { display: grid; grid-template-rows: 44px 1fr; height: 100%; }
+  header { display: flex; align-items: center; gap: 10px; padding: 0 12px; border-bottom: 1px solid var(--line); background: var(--panel); }
+  header .brand { font-weight: 500; letter-spacing: 0.12em; color: var(--accent); }
+  header .brand small { color: var(--dim); letter-spacing: 0; font-weight: 300; margin-left: 8px; }
+  header .spacer { flex: 1; }
+  header .actions { display: flex; gap: 6px; align-items: center; }
+  main { display: grid; grid-template-columns: 318px 1fr 300px; min-height: 0; }
+  aside { background: var(--panel); border-right: 1px solid var(--line); display: flex; flex-direction: column; min-height: 0; }
+  aside#right { border-right: 0; border-left: 1px solid var(--line); overflow: auto; padding: 10px; }
+  .tabs { display: flex; border-bottom: 1px solid var(--line); }
+  .tabs button { flex: 1; border: 0; border-radius: 0; background: transparent; padding: 8px 0; color: var(--dim); border-bottom: 2px solid transparent; }
+  .tabs button.active { color: var(--text); border-bottom-color: var(--accent); }
+  .tab { display: flex; flex-direction: column; min-height: 0; flex: 1; }
+  .tab.hidden { display: none; }
+  .toolbar { display: flex; flex-wrap: wrap; gap: 4px; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+  .list { overflow: auto; flex: 1 1 40%; min-height: 120px; border-bottom: 1px solid var(--line); }
+  .row { display: flex; align-items: center; gap: 6px; padding: 3px 8px; cursor: pointer; border-left: 2px solid transparent; white-space: nowrap; }
+  .row:hover { background: var(--panel-2); }
+  .row.selected { border-left-color: var(--sel); background: #22272e; }
+  .row .name { flex: 1; overflow: hidden; text-overflow: ellipsis; }
+  .row .tag { color: var(--dim); font-size: 10px; }
+  .row .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+  .row .eye { color: var(--faint); cursor: pointer; }
+  .row .eye.off { color: var(--bad); }
+  .group { padding: 6px 8px 2px; color: var(--faint); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; }
+  .props { overflow: auto; flex: 1 1 60%; padding: 8px; }
+  .props h4 { margin: 8px 0 6px; font-size: 11px; color: var(--dim); font-weight: 400; letter-spacing: 0.08em; text-transform: uppercase; }
+  .field { display: grid; grid-template-columns: 86px 1fr; gap: 6px; align-items: center; margin: 4px 0; }
+  .field label { color: var(--dim); }
+  .field .xyz { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; }
+  .field .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+  .btnrow { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0; }
+  .note { color: var(--dim); font-size: 11px; margin: 6px 0; }
+  .badge { display: inline-block; padding: 0 6px; border-radius: 10px; font-size: 10px; background: var(--panel-2); color: var(--dim); }
+  .badge.ok { color: var(--ok); } .badge.warn { color: var(--warn); } .badge.bad { color: var(--bad); }
+  .score { font-size: 22px; font-weight: 500; }
+  .flag { padding: 3px 6px; margin: 3px 0; border-left: 2px solid var(--faint); background: var(--panel-2); border-radius: 0 4px 4px 0; }
+  .flag.warn { border-left-color: var(--warn); } .flag.bad { border-left-color: var(--bad); } .flag.info { border-left-color: var(--accent-2); }
+  table.kv { width: 100%; border-collapse: collapse; }
+  table.kv td { padding: 2px 4px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  table.kv td:first-child { color: var(--dim); width: 44%; }
+  #viewport-wrap { position: relative; min-width: 0; min-height: 0; background: #000; }
+  #gl { width: 100%; height: 100%; display: block; outline: none; }
+  #hud { position: absolute; left: 10px; top: 8px; color: var(--dim); font-size: 11px; pointer-events: none; text-shadow: 0 1px 2px #000; }
+  #hud b { color: var(--text); font-weight: 500; }
+  #viewtools { position: absolute; right: 10px; top: 8px; display: flex; gap: 4px; }
+  #pip { position: absolute; right: 12px; bottom: 56px; pointer-events: none; border: 1px solid rgba(255,255,255,0.35); box-shadow: 0 0 0 1px #000, 0 10px 30px rgba(0,0,0,0.6); }
+  #pip.hidden { display: none; }
+  #pip svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  #pip-label { position: absolute; left: 6px; top: 4px; font-size: 10px; color: #fff; text-shadow: 0 1px 2px #000; }
+  #pip-size { position: absolute; right: 4px; top: 2px; pointer-events: auto; display: flex; gap: 2px; }
+  #pip-size button { padding: 0 4px; font-size: 10px; background: rgba(0,0,0,0.5); }
+  #timeline { position: absolute; left: 0; right: 0; bottom: 0; height: 46px; display: flex; align-items: center; gap: 10px; padding: 0 12px; background: rgba(15,17,20,0.92); border-top: 1px solid var(--line); }
+  #timeline.hidden { display: none; }
+  #timeline input[type=range] { flex: 1; }
+  #timeline .time { min-width: 110px; color: var(--dim); }
+  #toast { position: fixed; left: 50%; bottom: 60px; transform: translateX(-50%); background: #22272e; border: 1px solid var(--line); padding: 8px 14px; border-radius: 6px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 20; }
+  #toast.show { opacity: 1; }
+  .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 30; }
+  .modal.hidden { display: none; }
+  .modal .box { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 18px 22px; max-width: 720px; max-height: 80vh; overflow: auto; }
+  .modal h2 { margin: 0 0 10px; font-size: 14px; letter-spacing: 0.1em; color: var(--accent); }
+  .modal kbd { background: #0c0e11; border: 1px solid var(--line); border-radius: 3px; padding: 0 5px; }
+  .modal td { padding: 2px 10px 2px 0; vertical-align: top; }
+  .mini { font-size: 10px; color: var(--faint); }
+  .empty { padding: 14px; color: var(--faint); text-align: center; }
+  @media (max-width: 1100px) { main { grid-template-columns: 280px 1fr 260px; } }
+</style>
+<script>
+// three.js: use the vendored copy when it is present next to this page (offline / self-contained), else the CDN.
+(function () {
+  var base = 'https://cdn.jsdelivr.net/npm/three@0.170.0/';
+  try { var x = new XMLHttpRequest(); x.open('HEAD', './vendor/three/build/three.module.min.js', false); x.send(); if (x.status >= 200 && x.status < 300) base = './vendor/three/'; } catch (e) {}
+  var im = document.createElement('script'); im.type = 'importmap';
+  im.textContent = JSON.stringify({ imports: { 'three': base + 'build/three.module.min.js', 'three/addons/': base + 'examples/jsm/' } });
+  document.currentScript.after(im);
+})();
+</script>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="brand">LAYOUT STUDIO<small id="scene-title">—</small></div>
+    <select id="scene-picker" style="width:auto;max-width:260px">
+      <option value="scenes/demo/street_corner.json">Demo · Street corner</option>
+      <option value="scenes/timeless/sc001.json">TIMELESS · Sc. 1 (local only)</option>
+    </select>
+    <div class="spacer"></div>
+    <div class="actions">
+      <button id="btn-open" title="Open a scene JSON">Open</button>
+      <input type="file" id="file-open" accept="application/json,.json" hidden>
+      <button id="btn-restore" title="Restore the last autosaved draft from this browser">Restore draft</button>
+      <button id="btn-save" class="primary" title="Download the scene JSON (Ctrl+S)">Save JSON</button>
+      <button id="btn-sheet" title="Download the camera sheet (Markdown)">Camera sheet</button>
+      <button id="btn-blender" title="Download a Blender script that rebuilds proxies, stand-ins and animated cameras">Blender .py</button>
+      <button id="btn-help" title="Controls">?</button>
+    </div>
+  </header>
+  <main>
+    <aside id="left">
+      <nav class="tabs">
+        <button data-tab="outliner" class="active">Outliner</button>
+        <button data-tab="shots">Shots</button>
+        <button data-tab="beats">Beats</button>
+      </nav>
+      <section id="tab-outliner" class="tab">
+        <div class="toolbar" id="outliner-tools">
+          <button class="small" data-add="box">+ Box</button>
+          <button class="small" data-add="cylinder">+ Cyl</button>
+          <button class="small" data-add="cone">+ Cone</button>
+          <button class="small" data-add="sphere">+ Sphere</button>
+          <button class="small" data-add="tree">+ Tree</button>
+          <button class="small" data-add="standin">+ Stand-in</button>
+          <button class="small" data-add="gltf">+ GLB…</button>
+          <input type="file" id="file-gltf" accept=".glb,.gltf" hidden>
+          <input id="outliner-filter" placeholder="filter…" style="width:90px;margin-left:auto">
+        </div>
+        <div id="outliner" class="list"></div>
+        <div id="props" class="props"><div class="empty">Click an object in the viewport or in the list.</div></div>
+      </section>
+      <section id="tab-shots" class="tab hidden">
+        <div class="toolbar">
+          <button class="small" id="btn-add-shot">+ Shot</button>
+          <button class="small" id="btn-dup-shot">Duplicate</button>
+          <button class="small" id="btn-del-shot">Delete</button>
+          <button class="small" id="btn-check-all" title="Re-evaluate every shot">Check all</button>
+        </div>
+        <div id="line-issues"></div>
+        <div id="shotlist" class="list"></div>
+        <div id="shot-editor" class="props"><div class="empty">Select a shot.</div></div>
+      </section>
+      <section id="tab-beats" class="tab hidden">
+        <div class="toolbar"><button class="small" id="btn-add-beat">+ Beat</button><span class="note" style="margin:0 0 0 6px">Select a beat to pose stand-ins for it.</span></div>
+        <div id="beatlist" class="list"></div>
+        <div id="beat-editor" class="props"></div>
+      </section>
+    </aside>
+    <section id="viewport-wrap">
+      <canvas id="gl" tabindex="0"></canvas>
+      <div id="hud"><b>RMB</b> look · <b>WASD QE</b> fly (RMB held) · <b>wheel</b> speed/dolly · <b>MMB</b> pan · <b>Alt+LMB</b> orbit · <b>F</b> frame · <b>W/E/R</b> move/rotate/scale · <b>L</b> look through · <b>?</b> help</div>
+      <div id="viewtools">
+        <button class="small" id="vt-grid" class="active" title="Toggle grid (G)">grid</button>
+        <button class="small" id="vt-labels" title="Toggle labels (H)">labels</button>
+        <button class="small" id="vt-snap" title="Toggle snapping (0.1 m / 5°)">snap</button>
+        <button class="small" id="vt-look" title="Look through the shot camera (L)">look through</button>
+      </div>
+      <div id="pip" class="hidden">
+        <svg id="pip-guides"></svg>
+        <div id="pip-label"></div>
+        <div id="pip-size"><button data-size="S">S</button><button data-size="M">M</button><button data-size="L">L</button></div>
+      </div>
+      <div id="timeline" class="hidden">
+        <button id="tl-prev" class="small" title="Previous shot ([">◀</button>
+        <button id="tl-play" class="small" title="Play / pause (Space)">▶</button>
+        <button id="tl-next" class="small" title="Next shot (])">▶▶</button>
+        <input type="range" id="tl-range" min="0" max="1000" value="0">
+        <span class="time" id="tl-time">0.0 / 0.0 s</span>
+        <label class="mini"><input type="checkbox" id="tl-loop" checked> loop</label>
+        <span class="mini">key</span>
+        <button id="tl-keyA" class="small active" title="Edit key A when driving the camera in look-through">A</button>
+        <button id="tl-keyB" class="small" title="Edit key B">B</button>
+      </div>
+    </section>
+    <aside id="right">
+      <h4 style="margin:0 0 6px;color:var(--dim);font-weight:400;letter-spacing:.08em">SHOT CHECK</h4>
+      <div id="metrics"><div class="empty">Select a shot to evaluate the frame.</div></div>
+      <h4 style="margin:14px 0 6px;color:var(--dim);font-weight:400;letter-spacing:.08em">RIG · MOVE</h4>
+      <div id="riginfo"></div>
+      <h4 style="margin:14px 0 6px;color:var(--dim);font-weight:400;letter-spacing:.08em">LENS</h4>
+      <div id="lensinfo"></div>
+    </aside>
+  </main>
+</div>
+<div id="help" class="modal hidden">
+  <div class="box">
+    <h2>LAYOUT STUDIO · CONTROLS</h2>
+    <table>
+      <tr><td><kbd>RMB</kbd> drag</td><td>look around (Unreal style). Hold RMB and use <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> to fly, <kbd>Q</kbd>/<kbd>E</kbd> down/up, <kbd>Shift</kbd> faster, mouse wheel changes fly speed.</td></tr>
+      <tr><td><kbd>wheel</kbd></td><td>dolly forward/back when RMB is not held.</td></tr>
+      <tr><td><kbd>MMB</kbd> drag</td><td>pan (track).</td></tr>
+      <tr><td><kbd>Alt</kbd>+<kbd>LMB</kbd></td><td>orbit around the focus point.</td></tr>
+      <tr><td><kbd>LMB</kbd> click</td><td>select object or shot camera. <kbd>Esc</kbd> deselects.</td></tr>
+      <tr><td><kbd>W</kbd> <kbd>E</kbd> <kbd>R</kbd></td><td>gizmo: move / rotate / scale (when RMB is not held). <kbd>Del</kbd> deletes the selection.</td></tr>
+      <tr><td><kbd>F</kbd></td><td>frame the selection.</td></tr>
+      <tr><td><kbd>Space</kbd></td><td>play / pause the current shot. <kbd>[</kbd> <kbd>]</kbd> previous / next shot.</td></tr>
+      <tr><td><kbd>L</kbd></td><td>look through the shot camera. While looking through, RMB + WASD drive the shot camera itself and write the active key (A/B) when you release.</td></tr>
+      <tr><td><kbd>G</kbd> <kbd>H</kbd></td><td>toggle grid / labels.</td></tr>
+      <tr><td><kbd>Ctrl</kbd>+<kbd>Z</kbd></td><td>undo. <kbd>Ctrl</kbd>+<kbd>S</kbd> download the JSON.</td></tr>
+    </table>
+    <p class="note">Stand-ins are posed per beat: with a shot or a beat selected, moving a stand-in edits that beat's blocking. Shots with different start/end beats interpolate the blocking during the move.</p>
+    <p class="note">Shot check is deterministic: size read from the body keypoints, headroom, lead room, thirds, horizon, depth layers (FG / MG / BG), occlusion, eyeline, rig limits and the 180° line between shots that declare the same axis.</p>
+    <div style="text-align:right"><button id="help-close" class="primary">Close</button></div>
+  </div>
+</div>
+<div id="toast"></div>
+<script type="module" src="./app/main.js"></script>
+</body>
+</html>
