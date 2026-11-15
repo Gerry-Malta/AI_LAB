@@ -1,6 +1,6 @@
 // Render a scene's shots in sequence to an MP4 (previs of the edit), frame by frame from the shot cameras.
 // usage: node tools/render_mp4.mjs <scene.json path relative to layout_studio> <out.mp4> [--fps 24] [--width 1920] [--height 804] [--ss 1.5] [--fast] [--shots 1A,1B] [--limit N] [--crf 18] [--no-audio]
-// Recorded dialogue (see tools/mix_dialogue.mjs) is laid onto the video unless --no-audio.
+// The scene's sound (dialogue, effects, ambience; see tools/mix_dialogue.mjs) is laid onto the video unless --no-audio.
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -8,7 +8,7 @@ import { once } from 'node:events';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
-import { mixDialogueInto } from './mix_dialogue.mjs';
+import { mixSoundInto } from './mix_dialogue.mjs';
 const { chromium } = createRequire(import.meta.url)('playwright');
 
 const args = process.argv.slice(2);
@@ -67,8 +67,8 @@ ff.stdin.end();
 await ffDone;
 await browser.close(); server.close();
 if (!noAudio) {
-  const mix = mixDialogueInto(path.join(root, scenePath), videoPath, out, { fps, shots: onlyShots, ffmpeg: ffmpegBin });
-  if (mix.placed) { fs.unlinkSync(videoPath); console.log(`dialogue: ${mix.placed} line(s) mixed${mix.missing ? `, ${mix.missing} clip(s) missing` : ''}`); }
+  const mix = mixSoundInto(path.join(root, scenePath), videoPath, out, { fps, shots: onlyShots, ffmpeg: ffmpegBin });
+  if (mix.placed) { fs.unlinkSync(videoPath); console.log(`sound: ${mix.placed} clip(s) mixed, ${mix.lines} dialogue line(s)${mix.missing ? `, ${mix.missing} file(s) missing` : ''}`); }
   else fs.renameSync(videoPath, path.resolve(out));
 }
 const size = fs.statSync(path.resolve(out)).size;

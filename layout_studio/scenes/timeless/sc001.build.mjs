@@ -18,18 +18,18 @@ const R = rng(2026);
 
 // ---------------------------------------------------------------- set / props --------------------------------
 B.box('PROP_blanket', 'Telo da picnic', 'HERO', [0, 0, 0], [2.0, 0.02, 1.6], { color: '#a8463a', source: 'script' });
-B.box('PROP_basket', 'Cestino', 'PROP', [0.15, 0.02, 0.5], [0.45, 0.28, 0.3], { color: '#b08a5a', source: 'inferred' });
+B.box('PROP_basket', 'Cestino', 'PROP', [1.05, 0.02, 0.45], [0.45, 0.28, 0.3], { color: '#b08a5a', source: 'inferred' });
 B.cylinder('PROP_plate', 'Piatto dei panini', 'PROP', [0.55, 0.02, 0.35], [0.32, 0.03, 0.32], { color: '#e9e4d8', source: 'script' });
-B.cylinder('PROP_bottle_1', 'Bibita', 'PROP', [-0.1, 0.02, 0.6], [0.07, 0.24, 0.07], { color: '#3a5f8a', source: 'script' });
-B.cylinder('PROP_bottle_2', 'Bibita', 'PROP', [0.0, 0.02, 0.62], [0.07, 0.24, 0.07], { color: '#8a3a3a', source: 'script' });
-B.box('PROP_chips', 'Sacchetto di patatine', 'PROP', [0.3, 0.02, 0.15], [0.18, 0.22, 0.08], { color: '#d9b43a', source: 'script' });
+B.cylinder('PROP_bottle_1', 'Bibita', 'PROP', [0.88, 0.02, -0.25], [0.07, 0.24, 0.07], { color: '#3a5f8a', source: 'script' });
+B.cylinder('PROP_bottle_2', 'Bibita', 'PROP', [0.98, 0.02, -0.12], [0.07, 0.24, 0.07], { color: '#8a3a3a', source: 'script' });
+B.box('PROP_chips', 'Sacchetto di patatine', 'PROP', [0.82, 0.02, 0.18], [0.18, 0.22, 0.08], { color: '#d9b43a', source: 'script' });
 B.box('PROP_phone', 'Telefono di Claire (a faccia in giù)', 'PROP', [-0.35, 0.022, 0.42], [0.07, 0.01, 0.15], { color: '#222', source: 'script' });
 
 // Rebecca's corner
 B.box('PROP_teddy', 'Orsacchiotto (orecchio scucito)', 'HERO', [2.28, 0, -3.3], [0.22, 0.3, 0.14], { color: '#a67c52', source: 'script' });
 B.box('PROP_drawing_1', 'Disegno 1 (tre figure)', 'HERO', [2.35, 0.002, -3.55], [0.3, 0.004, 0.21], { color: '#efe9d8', rotation: [0, 10, 0], source: 'script' });
 B.box('PROP_drawing_2', 'Disegno 2', 'PROP', [2.72, 0.002, -3.62], [0.3, 0.004, 0.21], { color: '#efe9d8', rotation: [0, -8, 0], source: 'script' });
-B.box('PROP_drawing_3', 'Disegno 3', 'PROP', [2.52, 0.006, -3.3], [0.3, 0.004, 0.21], { color: '#efe9d8', rotation: [0, 4, 0], source: 'script' });
+B.box('PROP_drawing_3', 'Disegno 3', 'PROP', [2.98, 0.006, -3.42], [0.3, 0.004, 0.21], { color: '#efe9d8', rotation: [0, 4, 0], source: 'script' });
 B.box('PROP_sheets', 'Fogli nuovi', 'PROP', [2.15, 0.002, -3.3], [0.3, 0.008, 0.21], { color: '#f6f2e8', source: 'script' });
 B.box('PROP_crayons', 'Pastelli', 'PROP', [2.9, 0.002, -3.4], [0.18, 0.02, 0.09], { color: '#d9a441', source: 'script' });
 
@@ -77,117 +77,214 @@ B.standin('CHAR_arthur', 'ARTHUR (38)', 1.82, '#3b6ea5', [0.55, 0, 0], 340, 'sit
 B.standin('CHAR_claire', 'CLAIRE (36)', 1.70, '#c2743b', [-0.55, 0, 0.1], 15, 'sit_ground', { age: 36, notes: 'elegante anche in jeans, telefono in mano' });
 B.standin('CHAR_rebecca', 'REBECCA (6)', 1.15, '#7a4b2b', [2.6, 0, -2.8], 180, 'lie_prone', { age: 6, notes: 'felpa marrone, pantaloncini chiari, voglia sulla guancia sinistra' });
 
-// acting adjustments on top of the library poses (see core/standin.js)
+
+// a blade of grass Arthur tears at the end (only in his hand in the last beats)
+B.box('PROP_grass_blade', "Filo d'erba (nelle dita di Arthur)", 'HERO', [0.16, 0.58, 0.32], [0.012, 0.14, 0.004], { color: '#7fae4a', visible: false, source: 'script' });
+
+// ---------------------------------------------------------------- acting (on top of the library poses) ---------
 const ARTHUR_SANDWICHES = { base: 'sit_ground', spine: { pitch: 30 }, shoulder: { flex: 62, abd: 10 }, elbow: { flex: 44 }, head: { pitch: 22 } };
-const ARTHUR_CHIPS = { base: 'sit_ground', shoulderR: { flex: 72, abd: 22 }, elbowR: { flex: 46 }, head: { pitch: 4 } };
+const ARTHUR_LOOKS = { base: 'sit_ground', spine: { pitch: 10, yaw: 12 }, head: { pitch: 0, yaw: 10 } }; // turned toward Rebecca, chin up
 const ARTHUR_PICKS_UP = { base: 'crouch', head: { pitch: 10 }, shoulder: { flex: 72, abd: 10 }, elbow: { flex: 34 } }; // sheets lifted toward the face
+const ARTHUR_KISS = { base: 'kneel', root: { pitch: 60 }, spine: { pitch: 25 }, neck: { pitch: 15 }, head: { pitch: 10 } }; // bowed over her head
+const ARTHUR_OFFERS = { base: 'sit_ground', spine: { pitch: 12 }, shoulderL: { flex: 75, abd: 8 }, elbowL: { flex: 12 }, head: { pitch: 4 } }; // the bag held out
+const ARTHUR_WATCHES_PHONE = { base: 'sit_ground', spine: { pitch: 18 }, head: { pitch: 20 } }; // eyes on the phone in her hands
+const ARTHUR_TALKS = { base: 'sit_ground', spine: { pitch: 24 }, head: { pitch: -4 } };
+const ARTHUR_GRASS = { base: 'sit_ground', spine: { pitch: 26 }, head: { pitch: 30 }, shoulder: { flex: 50, abd: -10 }, elbow: { flex: 100 } };
 const CLAIRE_PHONE = { base: 'sit_ground', neck: { pitch: 6 }, head: { pitch: 18 }, shoulder: { flex: 34, abd: 16 }, elbow: { flex: 124 }, wrist: { flex: 18 } }; // phone at chest height
+const CLAIRE_FACES = { base: 'sit_ground', spine: { pitch: 22 }, head: { pitch: -2 } };
+const CLAIRE_LOOKS_DOWN = { base: 'sit_ground', spine: { pitch: 24 }, neck: { pitch: 8 }, head: { pitch: 26 } }; // at the phone buzzing on the blanket
 const REBECCA_DRAWS = { base: 'lie_prone', head: { pitch: 30 } };
 const REBECCA_LOOKS_UP = { base: 'lie_prone', neck: { pitch: -32 }, head: { pitch: -6 } };
-const ARTHUR_TALKS = { base: 'sit_ground', spine: { pitch: 24 }, head: { pitch: -4 } };
-const ARTHUR_GRASS = { base: 'sit_ground', spine: { pitch: 26 }, head: { pitch: 30 }, shoulder: { flex: 46, abd: 8 }, elbow: { flex: 96 } };
-const CLAIRE_FACES = { base: 'sit_ground', spine: { pitch: 22 }, head: { pitch: -2 } };
-const ARTHUR_LOOKS = { base: 'sit_ground', spine: { pitch: 10, yaw: 12 }, head: { pitch: 0, yaw: 10 } }; // turned toward Rebecca, chin up
+
+// props that change hands: the phone (in Claire's hands, face down on the blanket, back in her hands), the chips bag
+const PHONE_IN_HAND = { position: [-0.28, 0.6, 0.1], facing: 90 };
+const PHONE_WHILE_PICNIC = { position: [-0.48, 0.6, 0.37], facing: 15 }; // in her hands while she types, facing the camera side
+const BAG_HELD_OUT = { position: [-0.04, 0.36, 0.37], facing: 276 };
+const BLADE = { visible: true };
 
 // ---------------------------------------------------------------- beats --------------------------------------
+const A_ = 'CHAR_arthur', C_ = 'CHAR_claire', R_ = 'CHAR_rebecca';
+const at = (pos, facing, pose) => ({ position: pos, facing, pose });
+const ARTHUR_BLANKET = [0.55, 0, 0], CLAIRE_BLANKET = [-0.55, 0, 0.1], REBECCA_SPOT = [2.6, 0, -2.8];
 B.beat('b1', 'Radura: Arthur sistema i panini, Claire al telefono, Rebecca disegna sul prato', 0, 12, {
-  CHAR_arthur: { position: [0.55, 0, 0], facing: 340, pose: ARTHUR_SANDWICHES },
-  CHAR_claire: { position: [-0.55, 0, 0.1], facing: 15, pose: CLAIRE_PHONE },
-  CHAR_rebecca: { position: [2.6, 0, -2.8], facing: 180, pose: REBECCA_DRAWS },
-});
+  [A_]: at(ARTHUR_BLANKET, 340, ARTHUR_SANDWICHES), [C_]: at(CLAIRE_BLANKET, 15, CLAIRE_PHONE), [R_]: at(REBECCA_SPOT, 180, REBECCA_DRAWS),
+  PROP_phone: PHONE_WHILE_PICNIC });
 B.beat('b1b', 'Arthur alza gli occhi dai panini e si gira a guardare Rebecca', 12, 14, {
-  CHAR_arthur: { position: [0.55, 0, 0], facing: 120, pose: ARTHUR_LOOKS },
-  CHAR_claire: { position: [-0.55, 0, 0.1], facing: 15, pose: CLAIRE_PHONE },
-  CHAR_rebecca: { position: [2.6, 0, -2.8], facing: 180, pose: REBECCA_DRAWS },
-});
-B.beat('b2', 'Arthur si avvicina, si accovaccia accanto a Rebecca, guarda i disegni, la bacia', 14, 44, {
-  CHAR_arthur: { position: [1.9, 0, -2.6], facing: 110, pose: ARTHUR_PICKS_UP },
-  CHAR_claire: { position: [-0.55, 0, 0.1], facing: 15, pose: CLAIRE_PHONE },
-  CHAR_rebecca: { position: [2.6, 0, -2.8], facing: 180, pose: REBECCA_DRAWS },
-});
-B.beat('b3', 'Arthur torna al telo. Rebecca alza lo sguardo: la montagna oltre gli alberi. Foglio nuovo', 44, 54, {
-  CHAR_arthur: { position: [0.55, 0, 0], facing: 340, pose: 'sit_ground' },
-  CHAR_claire: { position: [-0.55, 0, 0.1], facing: 15, pose: CLAIRE_PHONE },
-  CHAR_rebecca: { position: [2.6, 0, -2.8], facing: 180, pose: REBECCA_LOOKS_UP },
-});
-B.beat('b4', 'Sul telo: le patatine, "che giorno è oggi", Claire al telefono', 54, 80, {
-  CHAR_arthur: { position: [0.55, 0, 0], facing: 276, pose: ARTHUR_CHIPS },
-  CHAR_claire: { position: [-0.55, 0, 0.1], facing: 90, pose: CLAIRE_PHONE },
-  CHAR_rebecca: { position: [2.6, 0, -2.8], facing: 180, pose: REBECCA_DRAWS },
-});
-B.beat('b5', 'Claire posa il telefono a faccia in giù: il confronto', 80, 108, {
-  CHAR_arthur: { position: [0.55, 0, 0], facing: 276, pose: ARTHUR_TALKS },
-  CHAR_claire: { position: [-0.55, 0, 0.1], facing: 90, pose: CLAIRE_FACES },
-  CHAR_rebecca: { position: [2.6, 0, -2.8], facing: 180, pose: REBECCA_DRAWS },
-});
-B.beat('b6', 'Il telefono vibra: Claire lo guarda, poi lo prende. Arthur strappa un filo d\'erba', 108, 125, {
-  CHAR_arthur: { position: [0.55, 0, 0], facing: 290, pose: ARTHUR_GRASS },
-  CHAR_claire: { position: [-0.55, 0, 0.1], facing: 90, pose: CLAIRE_PHONE },
-  CHAR_rebecca: { position: [2.6, 0, -2.8], facing: 180, pose: REBECCA_DRAWS },
-});
+  [A_]: at(ARTHUR_BLANKET, 120, ARTHUR_LOOKS), [C_]: at(CLAIRE_BLANKET, 15, CLAIRE_PHONE), [R_]: at(REBECCA_SPOT, 180, REBECCA_DRAWS),
+  PROP_phone: PHONE_WHILE_PICNIC });
+B.beat('b2', '"Posso?" Arthur accovacciato accanto a Rebecca raccoglie i fogli', 14, 34, {
+  [A_]: at([1.9, 0, -2.6], 110, ARTHUR_PICKS_UP), [C_]: at(CLAIRE_BLANKET, 15, CLAIRE_PHONE), [R_]: at(REBECCA_SPOT, 180, REBECCA_DRAWS),
+  PROP_phone: PHONE_WHILE_PICNIC });
+B.beat('b2k', 'Rimette i fogli in ordine e la bacia sulla testa: "Ti voglio bene, scimmietta"', 34, 40, {
+  [A_]: at([2.08, 0, -2.78], 132, ARTHUR_KISS), [C_]: at(CLAIRE_BLANKET, 15, CLAIRE_PHONE), [R_]: at(REBECCA_SPOT, 180, REBECCA_DRAWS),
+  PROP_phone: PHONE_WHILE_PICNIC });
+B.beat('b3', 'Arthur torna al telo. Rebecca alza lo sguardo: la montagna oltre gli alberi', 40, 54, {
+  [A_]: at(ARTHUR_BLANKET, 340, 'sit_ground'), [C_]: at(CLAIRE_BLANKET, 15, CLAIRE_PHONE), [R_]: at(REBECCA_SPOT, 180, REBECCA_LOOKS_UP),
+  PROP_phone: PHONE_WHILE_PICNIC });
+B.beat('b3d', 'Rebecca prende un foglio nuovo e disegna la montagna', 54, 58, {
+  [A_]: at(ARTHUR_BLANKET, 340, 'sit_ground'), [C_]: at(CLAIRE_BLANKET, 15, CLAIRE_PHONE), [R_]: at(REBECCA_SPOT, 180, REBECCA_DRAWS),
+  PROP_phone: PHONE_WHILE_PICNIC });
+B.beat('b4', 'Sul telo: Arthur porge le patatine. "Ne vuoi?" "No, grazie."', 58, 66, {
+  [A_]: at(ARTHUR_BLANKET, 276, ARTHUR_OFFERS), [C_]: at(CLAIRE_BLANKET, 90, CLAIRE_PHONE), [R_]: at(REBECCA_SPOT, 180, REBECCA_DRAWS),
+  PROP_phone: PHONE_IN_HAND, PROP_chips: BAG_HELD_OUT });
+B.beat('b4c', 'Arthur mangia una patatina e guarda il telefono nelle mani di lei: "Che giorno è oggi?"', 66, 80, {
+  [A_]: at(ARTHUR_BLANKET, 276, ARTHUR_WATCHES_PHONE), [C_]: at(CLAIRE_BLANKET, 90, CLAIRE_PHONE), [R_]: at(REBECCA_SPOT, 180, REBECCA_DRAWS),
+  PROP_phone: PHONE_IN_HAND });
+B.beat('b5', 'Claire posa il telefono a faccia in giù e lo guarda: il confronto', 80, 104, {
+  [A_]: at(ARTHUR_BLANKET, 276, ARTHUR_TALKS), [C_]: at(CLAIRE_BLANKET, 90, CLAIRE_FACES), [R_]: at(REBECCA_SPOT, 180, REBECCA_DRAWS) });
+B.beat('b6', 'Il telefono vibra contro il telo. Lei lo guarda. Non lo prende', 104, 114, {
+  [A_]: at(ARTHUR_BLANKET, 290, ARTHUR_GRASS), [C_]: at(CLAIRE_BLANKET, 90, CLAIRE_LOOKS_DOWN), [R_]: at(REBECCA_SPOT, 180, REBECCA_DRAWS),
+  PROP_grass_blade: BLADE });
+B.beat('b6t', 'Poi lo prende. Arthur arrotola il filo d\'erba tra le dita', 114, 125, {
+  [A_]: at(ARTHUR_BLANKET, 290, ARTHUR_GRASS), [C_]: at(CLAIRE_BLANKET, 90, CLAIRE_PHONE), [R_]: at(REBECCA_SPOT, 180, REBECCA_DRAWS),
+  PROP_phone: PHONE_IN_HAND, PROP_grass_blade: BLADE });
 
-// ---------------------------------------------------------------- shots --------------------------------------
-const LINE = ['CHAR_claire', 'CHAR_arthur'];
-const ts = B.core.solveTwoShot({ a: B.char('CHAR_claire', 'b1'), b: B.char('CHAR_arthur', 'b1'), size: 'FS', lens: { focal_mm: 32 }, side: 1, cameraHeight: 0.85 });
+// ---------------------------------------------------------------- sound library ------------------------------
+B.sounds(path.join(here, 'audio', 'sc001', 'sounds.json'));
 
-B.shot({ id: 'sh010', name: '1A', beat: 'b1', size: 'EWS', subject: null, intent: 'Apertura: il mare di pini, Rushmore lontano; scendendo la montagna dalla cima spezzata si alza più vicina, poi il telo nella radura.', lens: { focal_mm: 18 }, rig: { type: 'drone' }, duration_s: 18, curve: [0.55, 0, 0.45, 1], notes: 'Drone. Da riprendere in location con il sole basso; qui serve solo per il timing della rivelazione.',
-  A: { type: 'raw', position: [12, 95, 60], target: [-1200, 110, -2600] }, B: { type: 'raw', position: [4.5, 10, 17], target: [1.0, 0.5, -1.0] } });
-B.shot({ id: 'sh020', name: '1B', beat: 'b1', size: 'WS', subject: 'CHAR_arthur', intent: 'Campo del telo, lento push-in oltre l\'erba in primo piano: Arthur e Claire ai due lati, il mezzo metro vuoto al centro; Rebecca piccola sul prato dietro di loro.', lens: { focal_mm: 32 }, rig: { type: 'dolly' }, duration_s: 9, curve: 'easeInOutCubic', wantForeground: true, line: LINE,
-  A: { type: 'two', a: 'CHAR_claire', b: 'CHAR_arthur', size: 'WS', side: 1, cameraHeight: 0.85, distance: +(ts.distance + 2.2).toFixed(2) }, B: { type: 'two', a: 'CHAR_claire', b: 'CHAR_arthur', size: 'FS', side: 1, cameraHeight: 0.85, wantForeground: false } });
-B.shot({ id: 'sh030', name: '1C', beat: 'b1', size: 'MS', subject: 'CHAR_rebecca', intent: 'Rebecca a pancia in giù disegna, orsacchiotto in primo piano, i genitori sfocati sullo sfondo.', lens: { focal_mm: 35, fstop: 2 }, rig: { type: 'static' }, duration_s: 6, wantForeground: true,
-  A: { type: 'single', azimuth: -55, cameraHeight: 0.32, leadRoom: 0.1 } });
-B.shot({ id: 'sh040', name: '1D', beat: 'b2', beatA: 'b1b', beatB: 'b2', size: 'FS', subject: 'CHAR_arthur', intent: 'Arthur la guarda, si alza e la raggiunge: Steadicam lo segue dal telo fino a Rebecca e si posa sul due.', lens: { focal_mm: 40 }, rig: { type: 'steadicam', follow: true, followVertical: 1 }, duration_s: 10, curve: 'easeInOut',
-  A: { type: 'single', beat: 'b1b', azimuth: -80, cameraHeight: 0.85, leadRoom: 0.15, size: 'MCU' }, B: { type: 'two', beat: 'b2', a: 'CHAR_arthur', b: 'CHAR_rebecca', size: 'FS', side: 1, cameraHeight: 0.8, azimuthOffset: -20 } });
-B.shot({ id: 'sh050', name: '1E', beat: 'b2', size: 'MCU', subject: 'CHAR_arthur', intent: '"Posso?" Arthur accovacciato raccoglie i fogli e li guarda. Macchina a mano appena viva.', lens: { focal_mm: 65, fstop: 2 }, rig: { type: 'handheld', seed: 3, shake: 0.8 }, duration_s: 8, dialogue: [{ who: 'ARTHUR', line: 'Posso?', at: 0.3 }],
-  A: { type: 'single', azimuth: -35, cameraHeight: 0.75 }, B: { type: 'single', azimuth: -35, cameraHeight: 0.75 } }); // below his eyes: he looks down at the sheets
-B.shot({ id: 'sh060', name: '1F', beat: 'b2', size: 'INSERT', subject: 'PROP_drawing_1', intent: 'Inserto: il disegno. Tre figure. La mamma e il papà senza piedi, galleggiano sopra la linea del prato.', lens: { focal_mm: 75, fstop: 2.8 }, rig: { type: 'static' }, duration_s: 4,
-  A: { type: 'object', object: 'PROP_drawing_1', elevation: 72, azimuth: 20, fill: 0.75 } });
-B.shot({ id: 'sh070', name: '1G', beat: 'b2', size: 'BCU', subject: 'CHAR_arthur', intent: 'Il sorriso di Arthur si spegne. Sfoglia ancora. Sempre senza piedi.', lens: { focal_mm: 75, fstop: 1.8 }, rig: { type: 'static' }, duration_s: 5,
-  A: { type: 'single', azimuth: -15, cameraHeight: 0.62, leadRoom: 0.1 } }); // low: the smile fading has to read
-B.shot({ id: 'sh080', name: '1H', beat: 'b2', beatA: 'b2', beatB: 'b3', size: 'FS', subject: 'CHAR_arthur', intent: 'Profilo: Arthur bacia Rebecca sulla testa, "Ti voglio bene, scimmietta", si alza e torna al telo; la macchina panoramica con lui e ritrova Claire.', lens: { focal_mm: 35 }, rig: { type: 'static', aim: 'subject' }, duration_s: 9, curve: 'holdMoveHold', dialogue: [{ who: 'ARTHUR', line: 'Ti voglio bene, scimmietta.' }],
-  A: { type: 'two', beat: 'b2', a: 'CHAR_arthur', b: 'CHAR_rebecca', size: 'FS', side: -1, cameraHeight: 0.9, margin: 0.1 }, B: { type: 'single', beat: 'b3', azimuth: 40, cameraHeight: 0.9, size: 'WS' } });
-B.shot({ id: 'sh090', name: '1I', beat: 'b3', size: 'CU', subject: 'CHAR_rebecca', intent: 'Rebecca alza lo sguardo oltre la macchina: la montagna. La fissa.', lens: { focal_mm: 65, fstop: 2 }, rig: { type: 'static' }, duration_s: 5,
-  A: { type: 'single', azimuth: 15, cameraHeight: 0.3, leadRoom: 0.05 } });
-B.shot({ id: 'sh100', name: '1J', beat: 'b3', size: 'WS', subject: 'ENV_mountain_main', intent: 'Soggettiva di Rebecca: oltre gli alberi, la montagna dalla cima spezzata. Lento tilt verso la vetta.', lens: { focal_mm: 40 }, rig: { type: 'handheld', seed: 5, lowMode: true, shake: 0.7 }, duration_s: 6, curve: 'easeInOutCubic',
-  A: { type: 'raw', position: [2.6, 0.32, -2.3], target: [250, 120, -1100] }, B: { type: 'raw', position: [2.6, 0.32, -2.3], target: [250, 630, -1100] } });
-B.shot({ id: 'sh110', name: '1K', beat: 'b3', size: 'INSERT', subject: 'PROP_sheets', intent: 'Inserto: prende un foglio nuovo e comincia a disegnare la montagna.', lens: { focal_mm: 75 }, rig: { type: 'static' }, duration_s: 3,
-  A: { type: 'object', object: 'PROP_sheets', elevation: 55, azimuth: -30, fill: 0.7 } });
-// ---- on the blanket: the confrontation, covered line by line (180° line Claire–Arthur, camera south) ----
-const A_ = 'CHAR_arthur', C_ = 'CHAR_claire';
+// ---------------------------------------------------------------- the edit -----------------------------------
+// Visual idea: two worlds. Rebecca's is low and close to the grass; her parents' is eye level, separated by the empty
+// half metre. The argument is covered so we watch the one who listens (lines over the other's face, J and L cuts),
+// the frame tightens as it escalates, and the silences are held.
+const LINE = [C_, A_];
 const otsOnArthur = (fit) => ({ type: 'ots', fg: C_, bg: A_, side: -1, fitSize: fit });
-const otsOnClaire = (fit) => ({ type: 'ots', fg: A_, bg: C_, side: 1, fitSize: fit, heightOffset: -0.06, lateral: 1.25, back: 1.5 }); // low (she looks down at the phone) and wide of his raised arm: her face reads, his shoulder frames the edge
-B.shot({ id: 'sh120', name: '1L', beat: 'b4', size: 'FS', subject: C_, intent: 'Sul telo, due. Arthur porge a Claire un sacchetto di patatine. Il mezzo metro vuoto tra loro al centro del quadro.', lens: { focal_mm: 40 }, rig: { type: 'static' }, duration_s: 6, line: LINE,
-  dialogue: [{ who: 'ARTHUR', line: 'Ne vuoi?' }, { who: 'CLAIRE', line: 'No, grazie.' }],
+const otsOnClaire = (fit) => ({ type: 'ots', fg: A_, bg: C_, side: 1, fitSize: fit, heightOffset: -0.06, lateral: 1.25, back: 1.5 }); // low (she looks down at the phone) and wide of his raised arm
+const ts = B.core.solveTwoShot({ a: B.char(C_, 'b1'), b: B.char(A_, 'b1'), size: 'FS', lens: { focal_mm: 32 }, side: 1, cameraHeight: 0.5 });
+
+// ---- 1. the place
+B.shot({ id: 'sh010', name: '1A', beat: 'b1', size: 'EWS', subject: null, lens: { focal_mm: 18 }, rig: { type: 'drone' }, duration_s: 12, curve: 'easeInOutCubic', move: [1.0, 11.4],
+  intent: 'Il mare di pini; in lontananza i quattro volti del Rushmore. Il drone gira e scende: più vicina, senza volti, la montagna dalla cima spezzata.',
+  notes: 'Drone. Si apre sul Rushmore e lo lascia: la montagna senza volti prende il quadro.',
+  A: { type: 'raw', position: [70, 190, 620], target: [-3600, 130, -5080] }, B: { type: 'raw', position: [64, 172, 596], target: [290, 470, -1070] } });
+B.shot({ id: 'sh020', name: '1B', beat: 'b1', size: 'WS', subject: C_, lens: { focal_mm: 24 }, rig: { type: 'drone' }, duration_s: 8, curve: 'easeInOutCubic', move: [0, 7.4],
+  intent: 'Dall\'alto, scendendo sulla radura: il telo, i due ai lati, il mezzo metro vuoto tra loro. Rebecca da sola, a qualche passo.',
+  A: { type: 'raw', position: [4, 34, 18], target: [0.8, 0, -1.0] }, B: { type: 'raw', position: [1.2, 7.5, 4.2], target: [0.6, 0, -0.9] } });
+B.shot({ id: 'sh030', name: '1C', beat: 'b1', size: 'WS', subject: A_, lens: { focal_mm: 32 }, rig: { type: 'dolly' }, duration_s: 7, curve: 'easeInOutCubic', move: [0.4, 7], wantForeground: true, line: LINE,
+  intent: 'Ad altezza d\'erba, simmetrico: Claire a sinistra scrive sul telefono, Arthur a destra sistema i panini, il telo vuoto al centro. Il carrello entra piano oltre l\'erba alta.',
+  sfx: [{ sound: 'paper', at: 2.4, gain: 0.25 }],
+  A: { type: 'two', a: C_, b: A_, size: 'WS', side: 1, cameraHeight: 0.5, distance: +(ts.distance + 2.4).toFixed(2) }, B: { type: 'two', a: C_, b: A_, size: 'FS', side: 1, cameraHeight: 0.5, wantForeground: false } });
+B.shot({ id: 'sh040', name: '1D', beat: 'b1', size: 'MS', subject: R_, lens: { focal_mm: 35, fstop: 2 }, rig: { type: 'static' }, duration_s: 6, wantForeground: true,
+  intent: 'Il mondo di Rebecca, a filo d\'erba: a pancia in giù disegna, l\'orsacchiotto con l\'orecchio scucito in primo piano, i genitori lontani e sfocati.',
+  sfx: [{ sound: 'crayon', at: 0.5, gain: 0.35, align: 'start' }, { sound: 'crayon', at: 3.3, gain: 0.3, align: 'start' }],
+  A: { type: 'single', azimuth: -55, cameraHeight: 0.28, leadRoom: 0.1 } });
+// ---- 2. Arthur and the drawings
+B.shot({ id: 'sh050', name: '1E', beat: 'b2', beatA: 'b1b', beatB: 'b2', size: 'FS', subject: A_, lens: { focal_mm: 40 }, rig: { type: 'steadicam', follow: true, followVertical: 1 }, duration_s: 12, curve: 'easeInOut',
+  action: [1.5, 10.0], move: [1.6, 11.7],
+  intent: 'Arthur la guarda. Tiene lo sguardo, poi si alza e la raggiunge: la Steadicam parte con lui e si posa sul due, accanto a lei.',
+  sfx: [{ sound: 'footsteps', at: 3.2, gain: 0.32, align: 'start' }],
+  A: { type: 'single', beat: 'b1b', azimuth: -80, cameraHeight: 0.85, leadRoom: 0.15, size: 'MCU' }, B: { type: 'two', beat: 'b2', a: A_, b: R_, size: 'FS', side: 1, cameraHeight: 0.8, azimuthOffset: -20 } });
+B.shot({ id: 'sh060', name: '1F', beat: 'b2', size: 'MCU', subject: A_, lens: { focal_mm: 40, fstop: 2 }, rig: { type: 'static' }, duration_s: 5.5,
+  intent: '"Posso?" Dal basso, da dove lo vede Rebecca: lei non alza gli occhi. Arthur raccoglie i fogli sparsi.',
+  dialogue: [{ who: 'ARTHUR', line: 'Posso?', at: 1.0 }],
+  sfx: [{ sound: 'crayon', at: 0.2, gain: 0.3, align: 'start' }, { sound: 'paper', at: 3.9, gain: 0.55 }],
+  A: { type: 'ots', fg: R_, bg: A_, side: 1, fitSize: 'MCU', heightOffset: 0.3, lateral: 0.28, back: 1.3 } });
+B.shot({ id: 'sh070', name: '1G', beat: 'b2', size: 'INSERT', subject: 'PROP_drawing_1', lens: { focal_mm: 50, fstop: 2.8 }, rig: { type: 'gimbal' }, duration_s: 4, curve: 'easeInOut', move: [0.2, 4],
+  intent: 'Il primo disegno: tre figure. Una donna con un telefono, un uomo con una matita, in mezzo una bambina. Lentamente dentro.',
+  sfx: [{ sound: 'paper', at: 0.15, gain: 0.35 }],
+  A: { type: 'object', object: 'PROP_drawing_1', elevation: 68, azimuth: 20, fill: 0.62 }, B: { type: 'object', object: 'PROP_drawing_1', elevation: 72, azimuth: 20, fill: 0.86 } });
+B.shot({ id: 'sh080', name: '1H', beat: 'b2', size: 'INSERT', subject: 'PROP_drawing_2', lens: { focal_mm: 50, fstop: 2.8 }, rig: { type: 'static' }, duration_s: 1.5,
+  intent: 'Il secondo: le stesse figure.', sfx: [{ sound: 'paper', at: 0.1, gain: 0.4 }],
+  A: { type: 'object', object: 'PROP_drawing_2', elevation: 70, azimuth: -10, fill: 0.78 } });
+B.shot({ id: 'sh090', name: '1I', beat: 'b2', size: 'INSERT', subject: 'PROP_drawing_3', lens: { focal_mm: 50, fstop: 2.8 }, rig: { type: 'static' }, duration_s: 1.5,
+  intent: 'Il terzo: le stesse. Mamma e papà senza piedi, galleggiano sopra la linea del prato.', sfx: [{ sound: 'paper', at: 0.1, gain: 0.4 }],
+  A: { type: 'object', object: 'PROP_drawing_3', elevation: 70, azimuth: 30, fill: 0.84 } });
+B.shot({ id: 'sh100', name: '1J', beat: 'b2', size: 'BCU', subject: A_, lens: { focal_mm: 75, fstop: 1.8 }, rig: { type: 'static' }, duration_s: 4,
+  intent: 'Il sorriso di Arthur si spegne. Sfoglia ancora. Sempre senza piedi. Teniamo il silenzio.',
+  A: { type: 'single', azimuth: -15, cameraHeight: 0.62, leadRoom: 0.1 } });
+B.shot({ id: 'sh110', name: '1K', beat: 'b2k', beatA: 'b2', beatB: 'b2k', size: 'FS', subject: A_, lens: { focal_mm: 50, fstop: 2 }, rig: { type: 'static' }, duration_s: 5.6, allowOcclusion: true,
+  action: [1.0, 2.6],
+  intent: 'Profilo basso: rimette i fogli in ordine, con cura. Si china e la bacia sulla testa. "Ti voglio bene, scimmietta." Lei continua a disegnare.',
+  dialogue: [{ who: 'ARTHUR', line: 'Ti voglio bene, scimmietta.', at: 2.9 }],
+  sfx: [{ sound: 'paper', at: 0.6, gain: 0.3 }],
+  A: { type: 'single', beat: 'b2', azimuth: -90, cameraHeight: 0.5, size: 'FS', leadRoom: 0.22 } });
+B.shot({ id: 'sh120', name: '1L', beat: 'b3', beatA: 'b2k', beatB: 'b3', size: 'MCU', subject: R_, lens: { focal_mm: 65, fstop: 2 }, rig: { type: 'handheld', lowMode: true, shake: 0.25, seed: 9 }, duration_s: 6.5, allowBackOfHead: true,
+  action: { [A_]: [0.1, 3.4], [R_]: [4.3, 5.4] },
+  intent: 'Restiamo con lei mentre Arthur si alza ed esce di quadro. Rebecca disegna, sola. Poi alza lo sguardo.',
+  sfx: [{ sound: 'footsteps', at: 0.4, gain: 0.25, align: 'start' }, { sound: 'crayon', at: 1.6, gain: 0.35, align: 'start' }],
+  A: { type: 'single', beat: 'b3', azimuth: 12, cameraHeight: 0.12, leadRoom: 0.08, headroom: 0.05 } });
+B.shot({ id: 'sh130', name: '1M', beat: 'b3', size: 'WS', subject: 'ENV_mountain_main', lens: { focal_mm: 40 }, rig: { type: 'handheld', seed: 5, lowMode: true, shake: 0.5 }, duration_s: 5.5, curve: 'easeInOutCubic', move: [0.6, 4.6], allowOcclusion: true,
+  intent: 'Soggettiva di Rebecca, dal basso: oltre gli alberi la montagna dalla cima spezzata. Lento tilt sulle due punte.',
+  notes: 'Le due punte appartengono alla stessa montagna: la copertura reciproca è voluta.',
+  A: { type: 'raw', position: [2.6, 0.28, -3.45], target: [250, 110, -1100] }, B: { type: 'raw', position: [2.6, 0.28, -3.45], target: [285, 560, -1070] } });
+B.shot({ id: 'sh140', name: '1N', beat: 'b3d', size: 'INSERT', subject: 'PROP_sheets', lens: { focal_mm: 65 }, rig: { type: 'static' }, duration_s: 3.6,
+  intent: 'Prende un foglio nuovo e comincia a disegnarla.',
+  sfx: [{ sound: 'crayon', at: 0.4, gain: 0.45, align: 'start' }],
+  A: { type: 'object', object: 'PROP_sheets', elevation: 58, azimuth: -30, fill: 0.72 } });
+// ---- 3. on the blanket
+B.shot({ id: 'sh150', name: '1O', beat: 'b4', beatA: 'b4', beatB: 'b4c', size: 'FS', subject: C_, lens: { focal_mm: 40 }, rig: { type: 'static' }, duration_s: 6.2, line: LINE,
+  action: [4.0, 5.2],
+  intent: 'Sul telo, due, il vuoto tra loro al centro. Arthur porge il sacchetto. Lei non alza gli occhi. Lui mangia una patatina.',
+  dialogue: [{ who: 'ARTHUR', line: 'Ne vuoi?', at: -0.5 }, { who: 'CLAIRE', line: 'No, grazie.', at: 1.5 }],
+  sfx: [{ sound: 'chips_bag', at: -0.2, gain: 0.35, align: 'start' }, { sound: 'chip_crunch', at: 5.0, gain: 0.45 }],
   A: { type: 'two', a: C_, b: A_, side: 1, cameraHeight: 1.0 } });
-B.shot({ id: 'sh130', name: '1M', beat: 'b4', size: 'MCU', subject: A_, intent: 'Arthur mangia una patatina. Guarda il telefono nelle mani di lei.', lens: { focal_mm: 50 }, rig: { type: 'static' }, duration_s: 4, line: LINE,
-  dialogue: [{ who: 'ARTHUR', line: 'Che giorno è oggi?' }], A: otsOnArthur('MCU') });
-B.shot({ id: 'sh140', name: '1N', beat: 'b4', size: 'MCU', subject: C_, intent: 'Claire risponde senza alzare gli occhi dal telefono.', lens: { focal_mm: 50 }, rig: { type: 'static' }, duration_s: 3.5, line: LINE,
-  dialogue: [{ who: 'CLAIRE', line: 'Sabato. Perché?' }], A: otsOnClaire('MCU') });
-B.shot({ id: 'sh150', name: '1O', beat: 'b4', size: 'MCU', subject: A_, intent: 'Arthur insiste, a voce bassa.', lens: { focal_mm: 50 }, rig: { type: 'static' }, duration_s: 4, line: LINE,
-  dialogue: [{ who: 'ARTHUR', line: 'Sabato. Avevamo detto niente lavoro.' }], A: otsOnArthur('MCU') });
-B.shot({ id: 'sh160', name: '1P', beat: 'b4', size: 'MCU', subject: C_, intent: 'Claire, gli occhi sempre sullo schermo.', lens: { focal_mm: 50 }, rig: { type: 'static' }, duration_s: 3, line: LINE,
-  dialogue: [{ who: 'CLAIRE', line: 'È una cosa veloce.' }], A: otsOnClaire('MCU') });
-B.shot({ id: 'sh170', name: '1Q', beat: 'b4', size: 'CU', subject: A_, intent: 'Più stretti su Arthur.', lens: { focal_mm: 65 }, rig: { type: 'static' }, duration_s: 3.5, line: LINE,
-  dialogue: [{ who: 'ARTHUR', line: 'È sempre una cosa veloce.' }], A: otsOnArthur('CU') });
-B.shot({ id: 'sh180', name: '1R', beat: 'b5', size: 'INSERT', subject: 'PROP_phone', intent: 'Claire posa il telefono sul telo, a faccia in giù.', lens: { focal_mm: 75, fstop: 2.8 }, rig: { type: 'static' }, duration_s: 3,
+B.shot({ id: 'sh160', name: '1P', beat: 'b4c', size: 'INSERT', subject: 'PROP_phone', lens: { focal_mm: 75, fstop: 2 }, rig: { type: 'static' }, duration_s: 2.4,
+  intent: 'Lo sguardo di Arthur: il telefono nelle mani di lei.',
+  dialogue: [{ who: 'ARTHUR', line: 'Che giorno è oggi?', at: 1.4, lap: true }],
+  A: { type: 'object', object: 'PROP_phone', elevation: 35, azimuth: 150, fill: 0.45 } });
+B.shot({ id: 'sh170', name: '1Q', beat: 'b4c', size: 'MCU', subject: C_, lens: { focal_mm: 50 }, rig: { type: 'static' }, duration_s: 4.6, line: LINE,
+  intent: 'Claire, senza alzare gli occhi. La domanda finisce su di lei; lei si prende il suo tempo.',
+  dialogue: [{ who: 'CLAIRE', line: 'Sabato. Perché?', at: 1.3 }],
+  A: otsOnClaire('MCU') });
+B.shot({ id: 'sh180', name: '1R', beat: 'b4c', size: 'MCU', subject: A_, lens: { focal_mm: 50 }, rig: { type: 'static' }, duration_s: 4.6, line: LINE,
+  intent: 'Arthur. La sua battuta parte su di lei e arriva su di lui; poi ascolta la scusa.',
+  dialogue: [{ who: 'ARTHUR', line: 'Sabato. Avevamo detto niente lavoro.', at: -0.6 }, { who: 'CLAIRE', line: 'È una cosa veloce.', at: 2.9 }],
+  A: otsOnArthur('MCU') });
+B.shot({ id: 'sh190', name: '1S', beat: 'b5', beatA: 'b4c', beatB: 'b5', size: 'MCU', subject: C_, lens: { focal_mm: 50 }, rig: { type: 'static' }, duration_s: 4.4, line: LINE,
+  action: { [C_]: [2.0, 3.4], [A_]: [0.2, 1.4] },
+  intent: '"È sempre una cosa veloce" la colpisce. Smette di scrivere. Posa il telefono sul telo, a faccia in giù.',
+  dialogue: [{ who: 'ARTHUR', line: 'È sempre una cosa veloce.', at: -0.2 }],
+  sfx: [{ sound: 'phone_down', at: 2.75, gain: 0.55 }],
+  A: otsOnClaire('MCU') });
+B.shot({ id: 'sh200', name: '1T', beat: 'b5', size: 'INSERT', subject: 'PROP_phone', lens: { focal_mm: 75, fstop: 2.8 }, rig: { type: 'static' }, duration_s: 2.0,
+  intent: 'Il telefono a faccia in giù. Silenzio.',
   A: { type: 'object', object: 'PROP_phone', elevation: 58, azimuth: 30, fill: 0.55 } });
-B.shot({ id: 'sh190', name: '1S', beat: 'b5', size: 'CU', subject: C_, intent: 'Claire lo guarda, finalmente.', lens: { focal_mm: 65 }, rig: { type: 'static' }, duration_s: 3.5, line: LINE,
-  dialogue: [{ who: 'CLAIRE', line: 'Vuoi farlo adesso? Qui?' }], A: otsOnClaire('CU') });
-B.shot({ id: 'sh200', name: '1T', beat: 'b5', size: 'CU', subject: A_, intent: 'Arthur.', lens: { focal_mm: 65 }, rig: { type: 'static' }, duration_s: 4, line: LINE,
-  dialogue: [{ who: 'ARTHUR', line: 'Voglio solo una giornata. Una.' }], A: otsOnArthur('CU') });
-B.shot({ id: 'sh210', name: '1U', beat: 'b5', size: 'CU', subject: C_, intent: 'Claire abbassa la voce. Il carrello entra lentissimo sul suo viso, primo piano pulito.', lens: { focal_mm: 75, fstop: 2 }, rig: { type: 'slider' }, duration_s: 6, curve: 'easeInOutCubic', line: LINE,
-  dialogue: [{ who: 'CLAIRE', line: 'Siamo qui per lei, Arthur.' }, { who: 'CLAIRE', line: 'Lo sappiamo tutti e due.' }],
+B.shot({ id: 'sh210', name: '1U', beat: 'b5', size: 'CU', subject: C_, lens: { focal_mm: 75, fstop: 2 }, rig: { type: 'static' }, duration_s: 3.6, line: LINE,
+  intent: 'Claire lo guarda, finalmente. Primo piano pulito: lo sguardo è l\'evento, la battuta viene dopo.',
+  dialogue: [{ who: 'CLAIRE', line: 'Vuoi farlo adesso? Qui?', at: 0.9 }],
+  A: { type: 'single', azimuth: -26, cameraHeight: 0.9, size: 'CU' } });
+B.shot({ id: 'sh220', name: '1V', beat: 'b5', size: 'CU', subject: A_, lens: { focal_mm: 75, fstop: 2 }, rig: { type: 'static' }, duration_s: 3.3, line: LINE,
+  intent: 'Arthur, primo piano pulito.',
+  dialogue: [{ who: 'ARTHUR', line: 'Voglio solo una giornata. Una.', at: 0.3 }],
+  A: { type: 'single', azimuth: 26, cameraHeight: 0.95 } });
+B.shot({ id: 'sh230', name: '1W', beat: 'b5', size: 'CU', subject: C_, lens: { focal_mm: 75, fstop: 2 }, rig: { type: 'slider' }, duration_s: 5.0, curve: 'easeInOutCubic', move: [0.3, 5.0], line: LINE,
+  intent: 'Claire abbassa la voce. Il carrello entra lentissimo sul suo viso.',
+  dialogue: [{ who: 'CLAIRE', line: 'Siamo qui per lei, Arthur. Lo sappiamo tutti e due.', at: 0.7, lap: true }],
   A: { type: 'single', azimuth: -28, cameraHeight: 0.9, size: 'CU' }, B: { type: 'single', azimuth: -24, cameraHeight: 0.9, size: 'BCU' } });
-B.shot({ id: 'sh220', name: '1V', beat: 'b5', size: 'CU', subject: A_, intent: 'Arthur, primo piano pulito.', lens: { focal_mm: 75, fstop: 2 }, rig: { type: 'static' }, duration_s: 3, line: LINE,
-  dialogue: [{ who: 'ARTHUR', line: 'Anch\'io sono qui.' }], A: { type: 'single', azimuth: 26, cameraHeight: 0.95 } });
-B.shot({ id: 'sh230', name: '1W', beat: 'b5', size: 'CU', subject: C_, intent: 'Claire.', lens: { focal_mm: 75, fstop: 2 }, rig: { type: 'static' }, duration_s: 4, line: LINE,
-  dialogue: [{ who: 'CLAIRE', line: 'Sei seduto qui. È diverso.' }], A: { type: 'single', azimuth: -24, cameraHeight: 0.9, size: 'BCU' } });
-B.shot({ id: 'sh240', name: '1X', beat: 'b5', size: 'BCU', subject: A_, intent: 'Arthur apre la bocca. La richiude.', lens: { focal_mm: 85, fstop: 1.8 }, rig: { type: 'static' }, duration_s: 4, line: LINE,
+B.shot({ id: 'sh240', name: '1X', beat: 'b5', size: 'MLS', subject: R_, lens: { focal_mm: 65, fstop: 2.8 }, rig: { type: 'static' }, duration_s: 2.8,
+  intent: '"Lei." Dal telo, oltre l\'erba: Rebecca piccola e sola, disegna la montagna. Non sa niente.',
+  A: { type: 'raw', position: [-0.3, 0.82, -0.35], target: [2.55, 0.03, -3.0] } });
+B.shot({ id: 'sh250', name: '1Y', beat: 'b5', size: 'CU', subject: A_, lens: { focal_mm: 75, fstop: 2 }, rig: { type: 'static' }, duration_s: 2.9, line: LINE,
+  intent: 'Arthur. Poi riceve la risposta, e la prima metà gli arriva in faccia.',
+  dialogue: [{ who: 'ARTHUR', line: 'Anch\'io sono qui.', at: -0.5 }, { who: 'CLAIRE', line: 'Sei seduto qui. È diverso.', at: 1.6, lap: true }],
+  A: { type: 'single', azimuth: 24, cameraHeight: 0.95 } });
+B.shot({ id: 'sh260', name: '1Z', beat: 'b5', size: 'BCU', subject: C_, lens: { focal_mm: 85, fstop: 2 }, rig: { type: 'static' }, duration_s: 2.6, line: LINE,
+  intent: 'Claire: "È diverso." Lo tiene.',
+  A: { type: 'single', azimuth: -24, cameraHeight: 0.9, size: 'BCU' } });
+B.shot({ id: 'sh270', name: '1AA', beat: 'b5', size: 'BCU', subject: A_, lens: { focal_mm: 85, fstop: 1.8 }, rig: { type: 'static' }, duration_s: 4.6, line: LINE,
+  intent: 'Arthur apre la bocca. La richiude. Il silenzio dura. Poi, sotto, il telefono vibra contro il telo.',
+  sfx: [{ sound: 'phone_buzz', at: 3.7, gain: 0.6, align: 'start' }],
   A: { type: 'single', azimuth: 22, cameraHeight: 0.95 } });
-B.shot({ id: 'sh250', name: '1Y', beat: 'b6', size: 'INSERT', subject: 'PROP_phone', intent: 'Il telefono di Claire vibra contro il telo.', lens: { focal_mm: 100, fstop: 2.8 }, rig: { type: 'static' }, duration_s: 3,
+B.shot({ id: 'sh280', name: '1AB', beat: 'b6', size: 'INSERT', subject: 'PROP_phone', lens: { focal_mm: 100, fstop: 2.8 }, rig: { type: 'static' }, duration_s: 2.5,
+  intent: 'Il telefono vibra, a faccia in giù.',
+  sfx: [{ sound: 'phone_buzz', at: 1.0, gain: 0.55, align: 'start' }],
   A: { type: 'object', object: 'PROP_phone', elevation: 62, azimuth: 10, fill: 0.6 } });
-B.shot({ id: 'sh260', name: '1Z', beat: 'b6', size: 'FS', subject: C_, intent: 'Lei lo guarda. Non lo prende. Poi lo prende. Arthur strappa un filo d\'erba e lo arrotola tra le dita. Il carrello si allontana piano.', lens: { focal_mm: 40 }, rig: { type: 'dolly' }, duration_s: 10, curve: 'easeInOutCubic', line: LINE,
-  A: { type: 'two', a: C_, b: A_, size: 'FS', side: 1, cameraHeight: 0.95 }, B: { type: 'two', a: C_, b: A_, size: 'WS', side: 1, cameraHeight: 0.95 } });
+B.shot({ id: 'sh290', name: '1AC', beat: 'b6t', beatA: 'b6', beatB: 'b6t', size: 'MCU', subject: C_, lens: { focal_mm: 65, fstop: 2 }, rig: { type: 'static' }, duration_s: 6.4, line: LINE,
+  action: { [C_]: [3.8, 5.0] },
+  intent: 'Lei lo guarda. Non lo prende. Teniamo. Poi lo prende.',
+  A: { type: 'single', beat: 'b6t', azimuth: -60, cameraHeight: 0.5, size: 'MCU' } });
+B.shot({ id: 'sh300', name: '1AD', beat: 'b6t', size: 'INSERT', subject: 'PROP_grass_blade', lens: { focal_mm: 75, fstop: 2 }, rig: { type: 'static' }, duration_s: 4.2, allowOcclusion: true,
+  intent: 'Le dita di Arthur: strappa un filo d\'erba e lo arrotola. L\'unico gesto che lo tiene a terra.',
+  sfx: [{ sound: 'grass', at: 0.9, gain: 0.5 }],
+  A: { type: 'object', object: 'PROP_grass_blade', elevation: 55, azimuth: 150, fill: 0.3 } });
+B.shot({ id: 'sh310', name: '1AE', beat: 'b6t', size: 'WS', subject: C_, lens: { focal_mm: 32 }, rig: { type: 'crane', arm: 9 }, duration_s: 11, curve: 'easeInOutCubic', move: [1.4, 10.4], line: LINE,
+  intent: 'Il braccio si alza piano: i due sul telo, il vuoto tra loro; oltre, Rebecca piccola sul prato con la sua montagna.',
+  A: { type: 'two', a: C_, b: A_, size: 'FS', side: 1, cameraHeight: 1.0 }, B: { type: 'raw', position: [0.9, 5.2, 6.2], target: [1.1, 0.2, -1.2] } });
+
+// ---------------------------------------------------------------- ambience -----------------------------------
+B.ambience([
+  { sound: 'high', gain: 0.32, from: '1A', to: '1B', fadeIn: 1.5, fadeOut: 2.5 },
+  { sound: 'clearing', gain: 0.2, from: '1B', fadeIn: 3.0, fadeOut: 3.0 },
+]);
 
 console.log('voiced lines:', B.voices(path.join(here, 'audio', 'sc001', 'voices.json')));
 console.log(B.report());

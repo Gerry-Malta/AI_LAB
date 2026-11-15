@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import * as core from '../core/index.js';
 import { Viewport, ROLE_COLORS } from './scene3d.js';
 import { canEncode, encodeMP4, pickCodec, codecName } from './export_mp4.js';
-import { DialoguePlayer, mixDialogue } from './audio.js';
+import { SoundPlayer, mixEdit } from './audio.js';
 import { installTooltips } from './tooltip.js';
 import { FIELD_TIPS } from './tips.js';
 
@@ -19,10 +19,10 @@ const S = { scene: null, fileName: '', selectedId: null, shotId: null, t: 0, pla
 const QUERY = new URLSearchParams(location.search);
 const vp = new Viewport($('#gl'), { fast: QUERY.get('render') === 'fast' });
 vp.gateInset = { top: 34, bottom: 50 }; // look-through frame stays clear of the view toolbar and the timeline
-const voice = new DialoguePlayer(); // dialogue clips, in sync with the playhead
-window.LS = { S, vp, core, voice }; // handy for debugging / automation
+const sound = new SoundPlayer(); // dialogue, effects and ambience on the edit clock
+window.LS = { S, vp, core, sound }; // handy for debugging / automation
 // browsers start audio only after a click or a key press
-for (const ev of ['pointerdown', 'keydown']) document.addEventListener(ev, () => voice.unlock(), { capture: true });
+for (const ev of ['pointerdown', 'keydown']) document.addEventListener(ev, () => sound.unlock(), { capture: true });
 installTooltips(FIELD_TIPS); // rest the cursor on any control for a short explanation
 
 // ------------------------------------------------------------------ accessors ---------------------------------------------
@@ -89,7 +89,7 @@ function loadScene(json, name, base = '') {
   fitShadows();
   frameAll();
   refreshAll();
-  voice.setScene(S.scene, base);
+  sound.setScene(S.scene, base); liveKey = -1;
   if (shots().length) selectShot(shots()[0].id, { fly: false });
 }
 function fitShadows() {
@@ -312,6 +312,11 @@ function refreshShotEditor() {
   if (core.RIGS[rig.type].noise) html += `<div class="field"><label>shake</label><div class="xyz"><label class="mini"><input type="checkbox" data-f="rig.noiseOn" ${rig.noise === false ? '' : 'checked'}> on</label><input type="number" step="0.1" min="0" max="3" data-f="rig.shake" value="${rig.shake ?? 1}" title="intensity (1 = default)"><input type="number" step="1" data-f="rig.seed" value="${rig.seed ?? 7}" title="seed"></div></div>`;
   html += `<div class="field"><label>options</label><div class="pair"><label class="mini"><input type="checkbox" data-f="rig.aimSubject" ${rig.aim === 'subject' ? 'checked' : ''}> aim follows subject</label><label class="mini"><input type="checkbox" data-f="rig.follow" ${rig.follow ? 'checked' : ''}> camera follows subject</label><label class="mini"><input type="checkbox" data-f="rig.lowMode" ${rig.lowMode ? 'checked' : ''}> low mode</label></div></div>`;
   html += `<div class="field"><label>duration s</label><input type="number" step="0.5" data-f="duration_s" value="${sh.duration_s}"></div>`;
+  { const mv = Array.isArray(sh.move) ? sh.move : null, ac = sh.action;
+    html += `<div class="field"><label>move s</label><div class="pair"><input type="number" step="0.1" data-f="move.0" value="${mv ? mv[0] : ''}" placeholder="0"><input type="number" step="0.1" data-f="move.1" value="${mv && mv[1] != null ? mv[1] : ''}" placeholder="${sh.duration_s}"></div></div>`;
+    if (sh.beatA && sh.beatB && sh.beatA !== sh.beatB) html += Array.isArray(ac) || !ac
+      ? `<div class="field"><label>action s</label><div class="pair"><input type="number" step="0.1" data-f="action.0" value="${ac ? ac[0] : ''}" placeholder="0"><input type="number" step="0.1" data-f="action.1" value="${ac && ac[1] != null ? ac[1] : ''}" placeholder="${sh.duration_s}"></div></div>`
+      : `<div class="field"><label>action s</label><span class="mini" data-tip="Action per actor|This shot times each actor separately (in the build script): ${esc(Object.entries(ac).map(([k, w]) => `${(getObj(k) || {}).name || k} ${w[0]}–${w[1]} s`).join(', '))}.">per actor · ${esc(Object.entries(ac).map(([k, w]) => `${w[0]}–${w[1]}`).join(' · '))} s</span></div>`; }
   html += `<div class="field"><label>curve</label><select data-f="curve">${opt([...core.CURVE_IDS, 'custom'], typeof sh.curve === 'string' ? sh.curve : 'custom', (c) => (c === 'custom' ? 'Custom bezier…' : core.CURVE_PRESETS[c].name))}</select></div>`;
   const cp = core.curvePoints(sh.curve);
   if (cp) html += `<div class="field"><label>bezier x1 y1 x2 y2</label><div class="xyz" style="grid-template-columns:repeat(4,1fr)">${cp.map((v, i) => `<input type="number" step="0.05" data-f="curvep.${i}" value="${r3(v)}">`).join('')}</div></div>`;
@@ -340,6 +345,12 @@ $('#shot-editor').addEventListener('change', (e) => {
   else if (f === 'rig.follow') { if (v) sh.rig.follow = true; else delete sh.rig.follow; }
   else if (f === 'camera.aspect' || f === 'camera.squeeze' || f === 'camera.focal_mm') { setPath(sh, f, parseFloat(v)); }
   else if (f === 'camera.focus_m') sh.camera.focus_m = v || null;
+  else if (f.startsWith('move.') || f.startsWith('action.')) { // timing windows: empty = the whole shot
+    const [key, idx] = f.split('.'), D = sh.duration_s || 0, raw = el.value.trim();
+    const w = Array.isArray(sh[key]) ? sh[key].slice() : [0, D]; w[+idx] = raw === '' ? (+idx ? D : 0) : clampN(parseFloat(raw), 0, D);
+    if (w[1] < w[0]) w[1] = w[0];
+    if (w[0] <= 0.001 && w[1] >= D - 0.001) delete sh[key]; else sh[key] = w;
+  }
   else if (f.startsWith('line.')) { sh.line = sh.line || [null, null]; sh.line[+f.split('.')[1]] = v || null; if (!sh.line[0] && !sh.line[1]) sh.line = null; }
   else if (f === 'beat' || f === 'beatA' || f === 'beatB') { sh[f] = v || null; }
   else if (f === 'curve') { sh.curve = v === 'custom' ? { type: 'bezier', p: core.curvePoints(sh.curve) || [0.65, 0, 0.35, 1] } : v; }
@@ -483,7 +494,7 @@ $('#tl-playall').addEventListener('click', () => {
 });
 $('#tl-range').addEventListener('input', (e) => { S.t = (+e.target.value) / 1000; S.playing = false; refreshPlayBtn(); });
 $('#tl-loop').addEventListener('change', (e) => { S.loop = e.target.checked; });
-$('#tl-sound').addEventListener('click', () => { voice.muted = !voice.muted; $('#tl-sound').classList.toggle('active', !voice.muted); if (voice.muted) voice.stop(); });
+$('#tl-sound').addEventListener('click', () => { sound.muted = !sound.muted; $('#tl-sound').classList.toggle('active', !sound.muted); if (sound.muted) sound.stop(); });
 $('#tl-prev').addEventListener('click', () => stepShot(-1));
 $('#tl-next').addEventListener('click', () => stepShot(1));
 function stepShot(d) { const list = shots(); if (!list.length) return; const i = Math.max(0, list.findIndex((s) => s.id === S.shotId)); selectShot(list[(i + d + list.length) % list.length].id, { fly: false }); }
@@ -540,7 +551,7 @@ const STEP_HINTS = {
   outliner: '<b>1 · Set.</b> Build the location. <b>+</b> adds a proxy at its real size; click one here or in the viewport to edit it. <b>W E R</b> move, rotate, scale · <b>F</b> frame · <b>RMB + WASD</b> fly.',
   beats: '<b>2 · Blocking.</b> Pick a beat, then an actor, and put them on their mark: drag in the viewport or type the position, then facing, pose and acting. The floor rings are the marks; a dashed line is the move between beats.',
   shots: '<b>3 · Camera.</b> Pick a shot. Choose lens and rig, then the first and last frame (keys <b>A</b> and <b>B</b>): press <b>L</b> to look through and fly the camera by eye. The score on the right grades the frame.',
-  sound: '<b>4 · Sound.</b> Dialogue per shot and when each line plays. Voices come from Higgsfield (ElevenLabs engine): ask Claude to voice a scene. <b>▶</b> previews a line.',
+  sound: '<b>4 · Sound.</b> Voices, effects and ambience, and where each one sits in its shot. They come from Higgsfield: ask Claude to voice a scene or add a sound. <b>▶</b> previews a take.',
   review: '<b>5 · Review.</b> The whole edit at a glance. <b>Play the edit</b> screens it through the lens in real time with voices; <b>Export MP4</b> renders it on your GPU.',
 };
 function switchTab(name) {
@@ -608,6 +619,21 @@ let toastT = null;
 function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2600); }
 function refreshAll() { refreshTitle(); refreshOutliner(); refreshProps(); refreshShotList(); refreshShotEditor(); refreshBeats(); refreshCast(); refreshSound(); refreshReview(); refreshRight(); layoutPip(); updateHelpers(); updateMarks(); }
 
+// ------------------------------------------------------------------ the edit's sounds -----------------------------------
+let liveSounds = null, liveKey = -1, fpsSounds = null;
+/** Sounds of the whole edit in plain seconds (live playback, overlay); rebuilt when the scene changes. */
+function soundsLive() {
+  if (liveKey !== S.version || !liveSounds) { liveKey = S.version; liveSounds = core.editSounds(S.scene || { shots: [] }); sound.setSounds(liveSounds); }
+  return liveSounds;
+}
+/** Sounds of the whole edit on the frame plan of an export (burn-in subtitles). */
+function soundsAt(fps) {
+  if (!fpsSounds || fpsSounds.key !== S.version || fpsSounds.fps !== fps) fpsSounds = { key: S.version, fps, s: core.editSounds(S.scene, { fps }) };
+  return fpsSounds.s;
+}
+/** Edit time (seconds) of the playhead in the current shot. */
+function liveTime(sh) { const p = soundsLive().plan.shots.find((x) => x.shot === sh); return (p ? p.start : 0) + S.t * (sh.duration_s || 0); }
+
 // ------------------------------------------------------------------ main loop -------------------------------------------
 let last = performance.now(), evalTimer = 0, marksKey = '';
 function tick(now) {
@@ -639,7 +665,7 @@ function tick(now) {
   if (mk !== marksKey) { marksKey = mk; updateMarks(); if (S.tab === 'beats') refreshCast(); }
   vp.render(sh && !S.lookThrough ? pipRect() : null);
   updateOverlay(sh);
-  voice.update(sh, S.t * ((sh && sh.duration_s) || 0), S.playing);
+  if (sh) sound.update(liveTime(sh), S.playing); else sound.update(0, false);
   if (sh && now - evalTimer > 250 && !(S.seqPlay && S.playing)) { evalTimer = now; refreshRight(); drawGuides(); } // no shot check during a screening
   requestAnimationFrame(tick);
 }
@@ -681,7 +707,7 @@ function burnIn(canvas, sh, t, fps = 24) {
     if (lines.length > 2) { lines = lines.slice(0, 2); lines[1] = lines[1].replace(/\s*\S*$/, '') + ' …'; }
     panel(lines, pad, head.y + head.h + Math.round(6 * u), size, { font: sans, weight: 400, color: '#f3e7c8' });
   }
-  const d = core.dialogueAt(sh, t * (sh.duration_s || 0));
+  const es = soundsAt(fps), pl = es.plan.shots.find((x) => x.shot === sh); const d = pl ? core.subtitleAt(es.dialogue, pl.at(t * (sh.duration_s || 0))) : null;
   if (d) {
     const size = Math.round(36 * u); ctx.font = `600 ${size}px ${sans}`;
     const lines = wrapText(ctx, `${d.who ? d.who + ':  ' : ''}${d.line}`, W * 0.78).slice(0, 2);
@@ -717,8 +743,8 @@ async function exportSequence({ shotIds = null, width = 1920, height = 0, fps = 
   let frames = framePlan(list, fps); if (maxFrames) frames = frames.slice(0, maxFrames);
   height = height || evenHeight(width, list[0].camera.aspect || 2.39);
   const canvas = document.createElement('canvas');
-  // dialogue: the voiced lines of these shots, placed on the frame plan and mixed into one track
-  const mix = audio ? await mixDialogue(core.sequenceDialogue(S.scene, list.map((x) => x.id), fps), frames.length / fps, S.sceneBase || '') : null;
+  // sound: the lines, effects and ambience of these shots, placed on the frame plan and mixed into one track
+  const mix = audio ? await mixEdit(core.editSounds(S.scene, { fps, shotIds: list.map((x) => x.id) }), frames.length / fps, S.sceneBase || '') : null;
   S.exporting = true; S.playing = false; S.seqPlay = false; refreshPlayBtn();
   try {
     const res = await encodeMP4({
@@ -726,7 +752,7 @@ async function exportSequence({ shotIds = null, width = 1920, height = 0, fps = 
       renderFrame: (i) => renderFrameCanvas(frames[i].sh, frames[i].t, width, height, { ss, fps, burnIn: burn, keep: true, canvas }),
       onProgress: onProgress && ((p) => onProgress(Object.assign(p, { shot: frames[p.done - 1].sh, canvas }))),
     });
-    return Object.assign(res, { width, height, voicedLines: mix ? mix.placed : 0 });
+    return Object.assign(res, { width, height, voicedLines: mix ? mix.lines : 0, sounds: mix ? mix.placed : 0 });
   } finally { vp.endStills(); S.exporting = false; }
 }
 /** Batch renders from tools/render_mp4.mjs: pause the live viewport (it would compete for the GPU) and keep the still size. */
@@ -741,13 +767,14 @@ function exportOptions() {
   const height = list.length ? evenHeight(width, list[0].camera.aspect || 2.39) : 0;
   const frames = list.reduce((a, x) => a + Math.max(1, Math.round((x.duration_s || 0) * fps)), 0);
   const voiced = list.reduce((a, x) => a + (x.dialogue || []).filter((d) => d.audio).length, 0);
-  return { list, fps, width, height, ss, burn: $('#ex-burn').checked, audio: $('#ex-audio').checked, voiced, frames };
+  const effects = list.reduce((a, x) => a + (x.sfx || []).filter((e) => e.file).length, 0), beds = ((S.scene.sound || {}).ambience || []).filter((b) => b.file).length;
+  return { list, fps, width, height, ss, burn: $('#ex-burn').checked, audio: $('#ex-audio').checked, voiced, effects, beds, frames };
 }
 function refreshExportDialog() {
   const o = exportOptions(), running = !!EX.ctrl;
   $('#ex-range option[value="shot"]').disabled = !currentShot();
   const ss = Math.max(1, Math.min(o.ss, 6144 / o.width)); // same cap as Viewport.renderStill
-  $('#ex-summary').textContent = `${o.list.length} shot${o.list.length === 1 ? '' : 's'} · ${o.frames} frames · ${clock(o.frames / o.fps)} · ${o.width}×${o.height} px` + (ss > 1 ? ` · rendered at ${Math.round(o.width * ss)}×${Math.round(o.height * ss)} and filtered down` : '') + (o.audio && o.voiced ? ` · ${o.voiced} voiced line${o.voiced === 1 ? '' : 's'}` : '');
+  $('#ex-summary').textContent = `${o.list.length} shot${o.list.length === 1 ? '' : 's'} · ${o.frames} frames · ${clock(o.frames / o.fps)} · ${o.width}×${o.height} px` + (ss > 1 ? ` · rendered at ${Math.round(o.width * ss)}×${Math.round(o.height * ss)} and filtered down` : '') + (o.audio && (o.voiced || o.effects || o.beds) ? ` · sound: ${o.voiced} voiced line${o.voiced === 1 ? '' : 's'}${o.effects ? `, ${o.effects} effects` : ''}${o.beds ? ', ambience' : ''}` : '');
   for (const el of $$('#export select, #export input')) el.disabled = running;
   $('#ex-start').disabled = running || !o.frames || !canEncode();
   $('#ex-close').textContent = running ? 'Cancel' : 'Close';
@@ -782,7 +809,7 @@ async function startExport() {
       },
     });
     downloadBlob(name, res.blob);
-    $('#ex-status').textContent = `Done in ${clock(res.seconds)} (${(res.frames / res.seconds).toFixed(0)} fps) · ${(res.blob.size / 1e6).toFixed(1)} MB · ${res.codecName}${res.audioCodec ? ` + ${res.audioCodec.toUpperCase()} dialogue (${res.voicedLines} lines)` : o.audio && o.voiced ? ' · no audio encoder in this browser, video only' : ''} · saved as ${name}`;
+    $('#ex-status').textContent = `Done in ${clock(res.seconds)} (${(res.frames / res.seconds).toFixed(0)} fps) · ${(res.blob.size / 1e6).toFixed(1)} MB · ${res.codecName}${res.audioCodec ? ` + ${res.audioCodec.toUpperCase()} sound (${res.sounds} clips)` : o.audio && (o.voiced || o.effects || o.beds) ? ' · no audio encoder in this browser, video only' : ''} · saved as ${name}`;
   } catch (e) {
     $('#ex-status').textContent = e && e.name === 'AbortError' ? 'Cancelled.' : `Export failed: ${(e && e.message) || e}`;
   } finally { EX.ctrl = null; refreshExportDialog(); }
@@ -800,7 +827,7 @@ function updateOverlay(sh) {
   const ov = $('#lt-overlay');
   if (!S.lookThrough || !sh) { if (overlayKey) { ov.classList.add('hidden'); overlayKey = ''; } return; }
   const g = vp.gateRect(sh.camera.aspect || 2.39); if (!g) return;
-  const d = core.dialogueAt(sh, S.t * (sh.duration_s || 0));
+  const d = core.subtitleAt(soundsLive().dialogue, liveTime(sh));
   const key = `${g.left},${g.top},${g.width},${g.height}|${sh.id}|${d ? `${d.who}|${d.line}|${d.index}` : ''}`;
   if (key === overlayKey) return;
   overlayKey = key;
@@ -840,26 +867,37 @@ $('#vt-marks').addEventListener('click', () => { S.marks = !S.marks; $('#vt-mark
 // ------------------------------------------------------------------ step 4: sound -----------------------------------------
 function refreshSound() {
   const box = $('#sound-panel'); if (!box || !S.scene) return;
-  const withLines = shots().filter((sh) => (sh.dialogue || []).length);
-  const all = withLines.flatMap((sh) => sh.dialogue), voiced = all.filter((d) => d.audio).length;
+  const list = shots().filter((sh) => (sh.dialogue || []).length || (sh.sfx || []).length);
+  const all = shots().flatMap((sh) => sh.dialogue || []), voiced = all.filter((d) => d.audio).length;
+  const nFx = shots().reduce((a, sh) => a + (sh.sfx || []).length, 0), beds = (S.scene.sound && S.scene.sound.ambience) || [];
   const cast = S.scene.cast || {};
   const whoColor = (who) => { const o = standins().find((x) => (x.name || '').toUpperCase().startsWith(String(who).toUpperCase())); return (o && o.color) || '#aab3bf'; };
-  let html = `<h4 data-tip="Voices|Each character has one voice for the whole scene. The clips live next to the scene file (audio/<scene>/) with a voices.json that says which line each clip belongs to.">Voices</h4>`;
+  const playBtn = (file, tip) => `<button class="small" ${file ? `data-play="${esc(file)}" data-tip="${esc(tip)}"` : 'disabled data-tip="No recording|Timing estimated from the text."'}>▶</button>`;
+  let html = `<h4 data-tip="Voices|One voice per character for the whole scene. Takes live next to the scene file (audio/<scene>/) with voices.json, which says which take belongs to which line.">Voices</h4>`;
   const whos = [...new Set(all.map((d) => d.who))];
   html += whos.length ? `<table class="kv">${whos.map((w) => `<tr><td><span class="dot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${esc(whoColor(w))}"></span> ${esc(w)}</td><td>${cast[w] ? `${esc(cast[w].voice || cast[w].voice_id)} <span class="mini">Higgsfield · ElevenLabs</span>` : '<span class="mini">no voice yet</span>'}</td></tr>`).join('')}</table>` : '<div class="empty">No dialogue in this scene.</div>';
-  html += `<div class="note">${voiced} of ${all.length} lines voiced. To voice or re-voice lines, ask Claude in the chat (for example “voice scene 1, Arthur deeper”): it generates them with Higgsfield and they appear here.</div>`;
-  for (const sh of withLines) {
-    const D = sh.duration_s || 0, tl = core.dialogueTimeline(sh);
+  html += `<h4 data-tip="Ambience|Beds of room tone under the edit, looped and faded, from one shot to another. Generated with Higgsfield (Mirelo); sounds.json lists them.">Ambience</h4>`;
+  html += beds.length ? `<table class="kv">${beds.map((b) => `<tr><td>${playBtn(b.file, 'Play|Hear the bed.')} ${esc(b.name || b.file)}</td><td class="mini">${esc(b.from || 'start')} → ${esc(b.to || 'end')} · level ${Math.round((b.gain ?? 0.5) * 100)}%</td></tr>`).join('')}</table>` : '<div class="note">No ambience yet.</div>';
+  html += `<div class="note">${voiced} of ${all.length} lines voiced · ${nFx} effects. To voice lines or add sounds, ask Claude in the chat (for example “a dog barking far away in 1D”): it generates them with Higgsfield and they appear here.</div>`;
+  for (const sh of list) {
+    const D = sh.duration_s || 0, tl = core.dialogueTimeline(sh), fx = sh.sfx || [];
+    const lo = Math.min(0, ...tl.map((l) => l.start), ...fx.map((e) => e.at || 0)), hi = Math.max(D, ...tl.map((l) => l.end), ...fx.map((e) => (e.at || 0) + (e.dur_s || 0)));
+    const X = (t) => (100 * (t - lo) / Math.max(1e-6, hi - lo)).toFixed(1);
     html += `<div class="dl-shot"><span class="name" data-shot="${esc(sh.id)}" data-tip="${esc(sh.name)}|Open this shot in step 3.">${esc(sh.name)}</span><span class="mini">${esc(sh.size || '')} · ${D}s</span></div>`;
-    html += `<div class="dl-bar" data-tip="Timing|Where each line sits inside the shot. Lines start shortly after the cut; set an explicit start with 'at' in the build script.">${tl.map((l) => `<i style="left:${(100 * l.start / Math.max(D, l.end)).toFixed(1)}%;width:${(100 * l.dur / Math.max(D, l.end)).toFixed(1)}%;background:${esc(whoColor(l.who))}"></i>`).join('')}</div>`;
+    html += `<div class="dl-bar" data-tip="Timing|The shot is the lit band; lines (colour of the speaker) and effects (grey) may start before the cut or run past it.">`
+      + `<i style="left:${X(0)}%;width:${(X(D) - X(0)).toFixed(1)}%;background:#2a3038;top:0;bottom:0;opacity:1"></i>`
+      + fx.map((e) => `<i style="left:${X(e.at || 0)}%;width:${Math.max(0.6, X((e.at || 0) + (e.dur_s || 0.3)) - X(e.at || 0)).toFixed(1)}%;background:#8a929d;top:5px;bottom:0"></i>`).join('')
+      + tl.map((l) => `<i style="left:${X(l.start)}%;width:${(X(l.end) - X(l.start)).toFixed(1)}%;background:${esc(whoColor(l.who))};bottom:3px"></i>`).join('') + '</div>';
     for (const l of tl) {
-      html += `<div class="dl-line"><button class="small" ${l.audio ? `data-play="${esc(l.audio)}" data-tip="Play|Hear this take."` : 'disabled data-tip="No voice|This line has no recorded take yet: its timing is estimated from the text."'}>▶</button><span><span class="who" style="color:${esc(whoColor(l.who))}">${esc(l.who)}</span> ${esc(l.line)}${l.overrun ? ' <span class="badge" style="background:var(--warn);color:#111">past the cut</span>' : ''}</span><span class="t">${l.start.toFixed(1)}–${l.end.toFixed(1)}s${l.audio ? '' : ' · est.'}</span></div>`;
+      const cut = l.start < 0 ? ' <span class="badge" data-tip="J-cut|The line starts over the previous shot and the cut lands inside it.">starts before the cut</span>' : l.end > D + 1e-6 ? ` <span class="badge" ${l.lap ? 'data-tip="L-cut|The line carries over the next shot: we watch the listener."' : 'style="background:var(--warn);color:#111"'}>${l.lap ? 'runs into the next shot' : 'past the cut'}</span>` : '';
+      html += `<div class="dl-line">${playBtn(l.audio, 'Play|Hear this take.')}<span><span class="who" style="color:${esc(whoColor(l.who))}">${esc(l.who)}</span> ${esc(l.line)}${cut}</span><span class="t">${l.start.toFixed(1)}–${l.end.toFixed(1)}s${l.audio ? '' : ' · est.'}</span></div>`;
     }
+    for (const e of fx) html += `<div class="dl-line">${playBtn(e.file, 'Play|Hear this effect.')}<span class="mini">effect · ${esc(e.name || e.file)}${(e.gain ?? 1) < 1 ? ` · ${Math.round((e.gain ?? 1) * 100)}%` : ''}</span><span class="t">${(e.at || 0).toFixed(1)}s</span></div>`;
   }
   box.innerHTML = html;
 }
 $('#sound-panel').addEventListener('click', (e) => {
-  const play = e.target.closest('[data-play]'); if (play) { voice.unlock(); voice.preview(play.dataset.play); return; }
+  const play = e.target.closest('[data-play]'); if (play) { sound.unlock(); sound.preview(play.dataset.play); return; }
   const shot = e.target.closest('[data-shot]'); if (shot) { selectShot(shot.dataset.shot, { fly: false }); switchTab('shots'); }
 });
 
