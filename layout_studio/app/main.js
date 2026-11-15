@@ -431,9 +431,16 @@ function drawGuides() {
 $('#pip-size').addEventListener('click', (e) => { const s = e.target.dataset.size; if (s) { S.pipSize = s; layoutPip(); } });
 
 // ------------------------------------------------------------------ timeline / playback ---------------------------------
-function refreshPlayBtn() { $('#tl-play').textContent = S.playing ? '❚❚' : '▶'; }
+function refreshPlayBtn() { $('#tl-play').textContent = S.playing ? '❚❚' : '▶'; $('#tl-playall').classList.toggle('active', !!S.seqPlay); }
 function updateTimelineUI() { const sh = currentShot(); if (!sh) return; const d = sh.duration_s || 0; $('#tl-range').value = Math.round(S.t * 1000); $('#tl-time').textContent = `${(S.t * d).toFixed(1)} / ${d.toFixed(1)} s`; }
-$('#tl-play').addEventListener('click', () => { S.playing = !S.playing; if (S.playing && S.t >= 1) S.t = 0; refreshPlayBtn(); });
+$('#tl-play').addEventListener('click', () => { S.playing = !S.playing; S.seqPlay = false; if (S.playing && S.t >= 1) S.t = 0; refreshPlayBtn(); });
+$('#tl-playall').addEventListener('click', () => {
+  if (!shots().length) return;
+  S.seqPlay = !S.seqPlay;
+  if (S.seqPlay) { selectShot(shots()[0].id, { fly: false }); S.playing = true; S.loop = false; $('#tl-loop').checked = false; }
+  else S.playing = false;
+  refreshPlayBtn();
+});
 $('#tl-range').addEventListener('input', (e) => { S.t = (+e.target.value) / 1000; S.playing = false; refreshPlayBtn(); });
 $('#tl-loop').addEventListener('change', (e) => { S.loop = e.target.checked; });
 $('#tl-prev').addEventListener('click', () => stepShot(-1));
@@ -539,7 +546,14 @@ function tick(now) {
   vp.update(dt);
   const sh = currentShot();
   if (sh) {
-    if (S.playing) { S.t += dt / (sh.duration_s || 5); if (S.t >= 1) { if (S.loop) S.t -= 1; else { S.t = 1; S.playing = false; refreshPlayBtn(); } } }
+    if (S.playing) {
+      S.t += dt / (sh.duration_s || 5);
+      if (S.t >= 1) {
+        if (S.seqPlay) { const list = shots(); const i = list.findIndex((s) => s.id === sh.id); if (i < list.length - 1) { selectShot(list[i + 1].id, { fly: false }); S.playing = true; } else { S.seqPlay = false; S.playing = false; S.t = 1; } refreshPlayBtn(); }
+        else if (S.loop) S.t -= 1;
+        else { S.t = 1; S.playing = false; refreshPlayBtn(); }
+      }
+    }
     try {
       const solved = solvedFor(sh);
       if (!(S.lookThrough && (vp.driving || vp.look))) vp.setShotCamera(solved.pose(S.t), sh.camera);
@@ -552,6 +566,34 @@ function tick(now) {
   requestAnimationFrame(tick);
 }
 requestAnimationFrame(tick);
+
+// ------------------------------------------------------------------ offline render API (used by tools/render_mp4.mjs) ----
+function sequenceInfo() {
+  let t0 = 0;
+  return shots().map((sh) => { const o = { id: sh.id, name: sh.name, duration_s: sh.duration_s || 0, start_s: t0, size: sh.size, rig: (sh.rig && sh.rig.type) || 'static', focal_mm: sh.camera.focal_mm, aspect: sh.camera.aspect || 2.39 }; t0 += sh.duration_s || 0; return o; });
+}
+function burnIn(canvas, sh, t, fps = 24) {
+  const ctx = canvas.getContext('2d'); const W = canvas.width, H = canvas.height; const fs = Math.max(12, Math.round(H / 40));
+  const info = sequenceInfo().find((x) => x.id === sh.id); const tt = (info ? info.start_s : 0) + t * (sh.duration_s || 0);
+  const ff = Math.floor((tt % 1) * fps + 1e-6);
+  const tc = `${String(Math.floor(tt / 60)).padStart(2, '0')}:${String(Math.floor(tt % 60)).padStart(2, '0')}:${String(ff).padStart(2, '0')}`;
+  const pad = Math.round(fs * 0.6);
+  ctx.textBaseline = 'top';
+  const box = (text, x, y, align = 'left', size = fs) => { ctx.font = `500 ${size}px "DM Mono", Menlo, monospace`; const wdt = ctx.measureText(text).width; const bx = align === 'right' ? x - wdt - pad * 2 : x; ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.fillRect(bx, y, wdt + pad * 2, size + pad); ctx.fillStyle = '#fff'; ctx.fillText(text, bx + pad, y + pad / 2); };
+  box(`${S.scene.project || ''} · Sc.${S.scene.scene.number ?? ''} · ${sh.name} · ${sh.size || ''} · ${sh.camera.focal_mm}mm · ${(sh.rig && sh.rig.type) || 'static'} · ${sh.duration_s}s`, pad, pad);
+  box(tc, W - pad, pad, 'right');
+  if (sh.intent) { const txt = sh.intent.length > 120 ? sh.intent.slice(0, 117) + '…' : sh.intent; box(txt, pad, H - fs - pad * 2, 'left', Math.round(fs * 0.85)); }
+}
+/** Render one frame of a shot at time t (0..1) at an exact size; returns a data URL. */
+function renderFrame(shotId, t, w = 1920, h = 804, opts = {}) {
+  const sh = shots().find((s) => s.id === shotId); if (!sh) throw new Error('unknown shot ' + shotId);
+  const solved = solvedFor(sh); const pose = solved.pose(t);
+  vp.applyBlocking(objects(), blockingAt(sh, t));
+  const canvas = vp.renderStill(pose, sh.camera, w, h);
+  if (opts.burnIn !== false) burnIn(canvas, sh, t, opts.fps || 24);
+  return canvas.toDataURL(opts.format || 'image/jpeg', opts.quality ?? 0.92);
+}
+window.LS.api = { sequence: sequenceInfo, renderFrame };
 
 // ------------------------------------------------------------------ boot ------------------------------------------------
 const params = new URLSearchParams(location.search);
