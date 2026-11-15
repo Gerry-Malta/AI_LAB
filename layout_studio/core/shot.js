@@ -13,7 +13,18 @@ export function shotTrack(scene, shot) {
 }
 
 /** solveRig with the scene context (subject position and tracking). Use this everywhere a shot is played or exported. */
+/**
+ * Effective timing curve of the camera move. shot.move = [start_s, end_s] keeps the camera still until the move is
+ * motivated (an actor gets up, a line lands) and lets it settle before the cut; the shot's curve eases inside the window.
+ */
+export function moveCurve(shot) {
+  const D = shot.duration_s || 0, m = shot.move;
+  if (!Array.isArray(m) || !(D > 0)) return shot.curve || 'easeInOut';
+  const a = Math.max(0, Math.min(D, +m[0] || 0)), b = Math.max(a + 0.04, Math.min(D, m[1] == null ? D : +m[1]));
+  return { type: 'window', start: a / D, end: b / D, inner: shot.curve || 'easeInOut' };
+}
 export function solveShot(scene, shot) {
   const subj = resolveSubject(scene, shot, blockingAt(scene, shot, 0));
-  return solveRig(shot, { subject: subj && subj.position, track: shotTrack(scene, shot) });
+  const timed = Array.isArray(shot.move) ? Object.assign({}, shot, { curve: moveCurve(shot) }) : shot;
+  return solveRig(timed, { subject: subj && subj.position, track: shotTrack(scene, shot) });
 }

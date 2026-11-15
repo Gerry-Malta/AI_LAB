@@ -1,0 +1,78 @@
+{
+ "about": "Ambience and spot effects for the previs, generated with Higgsfield (Mirelo text-to-audio). Effects are peak-normalised to -3 dBFS; hit_s is the loudest moment, so a cue placed at an action lines its hit up with it.",
+ "engine": "higgsfield mirelo_text_to_audio",
+ "ambience": {
+  "clearing": {
+   "file": "amb_clearing.mp3",
+   "dur_s": 30.0,
+   "hit_s": 23.94,
+   "rms_db": -19.9,
+   "prompt": "Peaceful pine forest clearing in summer at midday, gentle wind through pine needles, distant songbirds, soft insects"
+  },
+  "high": {
+   "file": "amb_high.mp3",
+   "dur_s": 15.0,
+   "hit_s": 0.45,
+   "rms_db": -22.6,
+   "prompt": "High altitude wind over a vast pine forest valley, airy and open, faint distant birds"
+  }
+ },
+ "sfx": {
+  "crayon": {
+   "file": "sfx_crayon.mp3",
+   "dur_s": 3.019,
+   "hit_s": 0.0,
+   "rms_db": -25.9,
+   "prompt": "A child drawing with a wax crayon on paper lying on grass"
+  },
+  "paper": {
+   "file": "sfx_paper.mp3",
+   "dur_s": 2.02,
+   "hit_s": 1.6,
+   "rms_db": -28.5,
+   "prompt": "Picking up loose sheets of drawing paper from the grass"
+  },
+  "chips_bag": {
+   "file": "sfx_chips_bag.mp3",
+   "dur_s": 2.02,
+   "hit_s": 1.9,
+   "rms_db": -33.6,
+   "prompt": "Crinkling a bag of potato chips while offering it"
+  },
+  "chip_crunch": {
+   "file": "sfx_chip_crunch.mp3",
+   "dur_s": 1.509,
+   "hit_s": 0.4,
+   "rms_db": -23.9,
+   "prompt": "A man eating a single potato chip"
+  },
+  "phone_down": {
+   "file": "sfx_phone_down.mp3",
+   "dur_s": 1.509,
+   "hit_s": 0.92,
+   "rms_db": -21.6,
+   "prompt": "Smartphone placed face down on a cloth picnic blanket"
+  },
+  "phone_buzz": {
+   "file": "sfx_phone_buzz.mp3",
+   "dur_s": 3.019,
+   "hit_s": 2.87,
+   "rms_db": -29.3,
+   "prompt": "Smartphone vibrating face down on a cloth picnic blanket, two buzzes"
+  },
+  "grass": {
+   "file": "sfx_grass.mp3",
+   "dur_s": 2.02,
+   "hit_s": 1.0,
+   "rms_db": -37.8,
+   "prompt": "Tearing a single blade of grass, then rolling it between fingers"
+  },
+  "footsteps": {
+   "file": "sfx_footsteps.mp3",
+   "dur_s": 4.776,
+   "hit_s": 0.65,
+   "rms_db": -28.9,
+   "prompt": "Slow footsteps on short grass, a man"
+  }
+ }
+}

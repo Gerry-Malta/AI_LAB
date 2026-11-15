@@ -43,6 +43,8 @@ export const FIELD_TIPS = {
   'rig.aimSubject': 'Aim follows subject|The lens keeps pointing at the subject during the move.',
   'rig.follow': 'Camera follows subject|The rig travels with the subject, like a Steadicam walking with an actor.',
   duration_s: 'Duration|Shot length in seconds: the timing of the move and of the edit.',
+  move: 'Camera move window|When the camera moves inside the shot, in seconds: still before, settled after. Start the move when something motivates it (an actor gets up, a line lands). Empty: the whole shot.',
+  action: 'Action window|When the actors go from the first beat to the second inside the shot, in seconds: they hold their marks before and after. Empty: the whole shot.',
   curve: 'Timing curve|How the move speeds up and slows down: ease-in-out like a dolly grip, linear, hold-move-hold, or your own bezier.',
   curvep: 'Bezier|The curve\'s two control points, x1 y1 x2 y2 (like CSS cubic-bezier). The graph shows the result.',
   'keys.K.position': 'Key position|Lens position for this key: A is the first frame, B the last. Press L to look through and fly to set it by eye.',

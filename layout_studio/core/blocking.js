@@ -7,19 +7,41 @@ import { poseBlend } from './standin.js';
 
 export const beatBlocking = (scene, id) => (((scene.beats || []).find((b) => b.id === id) || {}).blocking) || {};
 
+/**
+ * How far the beat-to-beat action has gone at shot time t (0..1). shot.action = [start_s, end_s] times the action for
+ * everyone, or { default: [s, e], CHAR_id: [s, e] } per character, so an actor can hold, then get up on a line;
+ * without it the action spans the whole shot.
+ */
+export function actionT(shot, t, id) {
+  const D = shot.duration_s || 0, a = shot.action;
+  const w = !a ? null : Array.isArray(a) ? a : (a[id] || a.default || null);
+  t = clamp(t, 0, 1);
+  if (!w || !(D > 0)) return t;
+  const s = clamp(w[0] / D, 0, 1), e = clamp((w[1] ?? D) / D, s + 1e-3, 1);
+  return t <= s ? 0 : t >= e ? 1 : (t - s) / (e - s);
+}
+
 /** Blocking of a shot at time t in [0, 1]: the shot's beat, or the transition from beatA to beatB. */
 export function blockingAt(scene, shot, t = 0) {
   const idA = shot.beatA || shot.beat, idB = shot.beatB || shot.beat;
   const bA = beatBlocking(scene, idA);
   if (!shot.beatB || idA === idB) return bA;
-  return interpolateBlocking(scene, bA, beatBlocking(scene, idB), t);
+  return interpolateBlocking(scene, bA, beatBlocking(scene, idB), (id) => actionT(shot, t, id));
 }
 
+/** t: a number in [0, 1] for everyone, or a function (objectId) → t. */
 export function interpolateBlocking(scene, bA, bB, t, opts = {}) {
-  const s = ease('smooth', clamp(t, 0, 1));
+  const tOf = typeof t === 'function' ? t : () => t;
   const getUp = opts.getUp ?? 0.2, settle = opts.settle ?? 0.8;
   const out = {};
+  // props a beat moves or hides (the phone in her hand, then face down on the blanket) switch halfway through the action
+  for (const o of (scene.objects || [])) {
+    if (o.kind === 'standin' || (!bA[o.id] && !bB[o.id])) continue;
+    const rest = { position: o.position, facing: (o.rotation || [0, 0, 0])[1], visible: o.visible };
+    out[o.id] = Object.assign({}, rest, (tOf(o.id) < 0.5 ? bA[o.id] : bB[o.id]) || {});
+  }
   for (const o of (scene.objects || []).filter((x) => x.kind === 'standin')) {
+    const s = ease('smooth', clamp(tOf(o.id), 0, 1));
     const rest = { position: o.position, facing: (o.rotation || [0, 0, 0])[1], pose: o.pose || 'stand', visible: o.visible };
     const a = Object.assign({}, rest, bA[o.id] || {});
     const b = Object.assign({}, a, bB[o.id] || {});

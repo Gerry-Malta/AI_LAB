@@ -59,6 +59,12 @@ export function ease(curve, t) {
     case 'smoothstep': return smoothstep(t);
     case 'smootherstep': return smootherstep(t);
     case 'bezier': { const [a, b, d, e] = c.p; return cubicBezier(a, b, d, e, t); }
+    case 'window': { // hold, move inside [start, end] (fractions of the shot) with the inner curve, hold: a motivated move
+      const a = c.start ?? 0, b = c.end ?? 1;
+      if (t <= a) return 0;
+      if (t >= b) return 1;
+      return ease(c.inner || 'easeInOut', (t - a) / Math.max(1e-6, b - a));
+    }
     case 'hmh': {
       const [h0, h1] = c.hold || [0.15, 0.15];
       if (t <= h0) return 0;

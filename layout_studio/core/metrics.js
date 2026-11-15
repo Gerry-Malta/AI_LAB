@@ -127,14 +127,16 @@ export function resolveSubject(scene, shot, blocking) {
     const b = (blocking && blocking[id]) || {};
     return { id, kind: 'standin', name: obj.name || id, position: b.position || obj.position, facing: b.facing ?? (obj.rotation || [0, 0, 0])[1], pose: b.pose || obj.pose || 'stand', height: obj.height || 1.75, age: obj.age };
   }
-  return { id, kind: obj.kind, name: obj.name || id, position: obj.position, size: obj.size || [1, 1, 1], facing: (obj.rotation || [0, 0, 0])[1] };
+  const b = (blocking && blocking[id]) || {}; // a prop the beat moves
+  return { id, kind: obj.kind, name: obj.name || id, position: b.position || obj.position, size: obj.size || [1, 1, 1], facing: b.facing ?? (obj.rotation || [0, 0, 0])[1] };
 }
 
 /** Objects with the beat blocking applied (positions/facing/pose of stand-ins). */
 export function applyBlocking(scene, blocking) {
   return (scene.objects || []).map((o) => {
-    if (o.kind !== 'standin' || !blocking || !blocking[o.id]) return o;
+    if (!blocking || !blocking[o.id]) return o;
     const b = blocking[o.id];
+    if (o.kind !== 'standin') { const r = o.rotation || [0, 0, 0]; return Object.assign({}, o, { position: b.position || o.position, rotation: b.facing != null ? [r[0], b.facing, r[2]] : r, visible: b.visible ?? o.visible }); }
     return Object.assign({}, o, { position: b.position || o.position, rotation: [0, b.facing ?? (o.rotation || [0, 0, 0])[1], 0], pose: b.pose || o.pose, visible: b.visible ?? o.visible });
   });
 }
@@ -294,7 +296,7 @@ export function evaluateFrame(scene, shot, pose, blocking, opts = {}) {
         }
       }
       res.occlusion = { occluded: blocked > 0, by: [...by], tested, blocked };
-      if (tested && blocked === tested) flag('bad', `Subject hidden behind ${[...by].slice(0, 3).join(', ')}.`);
+      if (tested && blocked === tested) flag(shot.allowOcclusion ? 'info' : 'bad', `Subject hidden behind ${[...by].slice(0, 3).join(', ')}.`);
       else if (blocked) flag(shot.allowOcclusion ? 'info' : 'warn', `Subject partly hidden by ${[...by].slice(0, 3).join(', ')}.`);
     }
   }

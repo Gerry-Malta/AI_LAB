@@ -275,3 +275,54 @@ test('dialogue: timing inside the shot, subtitles, past-the-cut flag and the fra
   assert.ok(Math.abs(seq[2].start - (96 / 24 + 0.2 * (47 / 2) / 24)) < 1e-9, `frame plan: ${seq[2].start}`);
   assert.equal(core.sequenceDialogue(scene, ['1B'], 24)[0].start, 0.2 * (47 / 2) / 24, 'a subset starts at its own zero');
 });
+
+test('editorial timing: the camera holds outside its move window, each actor acts in their own window', () => {
+  const scene = { objects: [
+    { id: 'A', kind: 'standin', name: 'A', position: [0, 0, 0], rotation: [0, 0, 0], pose: 'stand', height: 1.8 },
+    { id: 'B', kind: 'standin', name: 'B', position: [3, 0, 0], rotation: [0, 0, 0], pose: 'stand', height: 1.7 },
+  ], beats: [
+    { id: 'b1', blocking: { A: { position: [0, 0, 0], facing: 0, pose: 'stand' }, B: { position: [3, 0, 0], facing: 0, pose: 'stand' } } },
+    { id: 'b2', blocking: { A: { position: [0, 0, 4], facing: 0, pose: 'stand' }, B: { position: [3, 0, 4], facing: 0, pose: 'stand' } } },
+  ], shots: [] };
+  const shot = { id: 's', size: 'WS', subject: 'A', duration_s: 4, curve: 'linear', move: [1, 3], rig: { type: 'slider' }, camera: { focal_mm: 35 },
+    keys: { A: { position: [0, 1.5, 6], target: [0, 1, 0] }, B: { position: [2, 1.5, 6], target: [0, 1, 0] } }, beatA: 'b1', beatB: 'b2', action: { A: [0.5, 1.5] } };
+  const solved = core.solveShot(scene, shot);
+  assert.deepEqual(solved.pose(0.2).position.map((v) => +v.toFixed(3)), [0, 1.5, 6], 'still before the move starts');
+  assert.ok(Math.abs(solved.pose(0.5).position[0] - 1) < 1e-6, 'halfway through the window at the middle');
+  assert.deepEqual(solved.pose(0.85).position.map((v) => +v.toFixed(3)), [2, 1.5, 6], 'settled after the window');
+  const early = core.blockingAt(scene, shot, 0.1), mid = core.blockingAt(scene, shot, 0.5);
+  assert.deepEqual(early.A.position, [0, 0, 0], 'A holds before its action');
+  assert.deepEqual(mid.A.position, [0, 0, 4], 'A is on the new mark after its window');
+  assert.ok(mid.B.position[2] > 0 && mid.B.position[2] < 4, 'B without a window of its own moves across the whole shot');
+});
+
+test('props in beats: a beat can hide or move a prop; key framing and the check follow it', () => {
+  const scene = { objects: [
+    { id: 'S', kind: 'standin', name: 'S', position: [0, 0, 0], rotation: [0, 0, 0], pose: 'stand', height: 1.7 },
+    { id: 'P', kind: 'box', name: 'Phone', position: [1, 0, 0], rotation: [0, 0, 0], size: [0.07, 0.01, 0.15] },
+  ], beats: [{ id: 'held', blocking: { P: { position: [0.3, 1.1, 0.3], facing: 90 } } }, { id: 'down', blocking: {} }], shots: [] };
+  const bl = core.interpolateBlocking(scene, { P: { visible: false } }, {}, 0.3);
+  assert.equal(bl.P.visible, false, 'hidden in the first half of the action');
+  assert.equal(core.interpolateBlocking(scene, { P: { visible: false } }, {}, 0.7).P.visible, undefined, 'back to its rest state after');
+  const moved = core.applyBlocking(scene, { P: { position: [0.3, 1.1, 0.3], facing: 90 } }).find((o) => o.id === 'P');
+  assert.deepEqual(moved.position, [0.3, 1.1, 0.3]); assert.equal(moved.rotation[1], 90);
+  const key = core.solveKeyDef(scene, { id: 'i', size: 'INSERT', subject: 'P', camera: { focal_mm: 75 } }, { type: 'object', object: 'P', elevation: 40, fill: 0.5 }, { focal_mm: 75, filmback: 'ALEXA35_OG', aspect: 2.39 }, 'held');
+  assert.ok(core.dist(key.target, [0.3, 1.1, 0.3]) < 0.1, `framed where the beat puts it: ${key.target}`);
+});
+
+test('edit sounds: J and L cuts, effects, ambience over a span, a selection gets its slice', () => {
+  const scene = { shots: [
+    { id: 'x', name: '1A', duration_s: 4, dialogue: [{ who: 'A', line: 'Uno.', dur_s: 1.5, at: 3.2, lap: true }], sfx: [{ name: 'buzz', file: 'b.mp3', at: 1, dur_s: 2 }] },
+    { id: 'y', name: '1B', duration_s: 3, dialogue: [{ who: 'B', line: 'Due.', dur_s: 1, at: -0.5 }] },
+  ], sound: { ambience: [{ name: 'room', file: 'r.mp3', gain: 0.2, from: '1B', dur_s: 10 }] } };
+  const e = core.editSounds(scene);
+  assert.equal(e.duration, 7);
+  assert.equal(e.dialogue[0].end, 4.7, 'L-cut: runs into the next shot');
+  assert.equal(e.dialogue[1].start, 3.5, 'J-cut: starts over the previous shot');
+  assert.equal(e.sfx[0].start, 1);
+  assert.deepEqual([e.ambience[0].start, e.ambience[0].end], [4, 7], 'bed from 1B to the end');
+  assert.equal(core.subtitleAt(e.dialogue, 3.6).line, 'Due.', 'the newer line takes the subtitle');
+  assert.ok(!core.dialogueNotes(scene.shots[0]).some((n) => /past the cut/.test(n.msg)), 'an intended L-cut is not flagged');
+  const one = core.editSounds(scene, { shotIds: ['1B'] });
+  assert.equal(one.duration, 3); assert.equal(one.dialogue[0].start, -0.5); assert.deepEqual([one.ambience[0].start, one.ambience[0].end, one.ambience[0].offset], [0, 3, 0]);
+});

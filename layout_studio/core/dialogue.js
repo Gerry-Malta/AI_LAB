@@ -1,6 +1,7 @@
 // Dialogue timing: where each line sits inside its shot and in the edit. Shared by subtitles, live playback and both exporters.
-// A line is { who, line, audio?, dur_s?, at? }: audio is a clip path relative to the scene file, dur_s its length,
-// at an explicit start inside the shot (seconds). Without audio the length is estimated from the text.
+// A line is { who, line, audio?, dur_s?, at?, lap?, gain? }: audio is a clip path relative to the scene file, dur_s its
+// length, at an explicit start inside the shot in seconds (negative: the line starts over the previous shot, a J-cut),
+// lap: the line is meant to run past the cut (an L-cut). Without audio the length is estimated from the text.
 
 const GAP = 0.35;      // breath between two lines in the same shot
 const LEAD_MAX = 0.8;  // a first line starts at most this long after the cut
@@ -21,7 +22,7 @@ export function dialogueTimeline(shot) {
     const start = d.at != null ? +d.at : t;
     const end = start + durs[i];
     t = end + GAP;
-    return { who: d.who || '', line: d.line || '', audio: d.audio || null, start, end, dur: durs[i], overrun: end > D + 1e-6, index: i };
+    return { who: d.who || '', line: d.line || '', audio: d.audio || null, start, end, dur: durs[i], gain: d.gain, lap: !!d.lap, overrun: end > D + 1e-6 && !d.lap, prelap: start < 0, index: i };
   });
 }
 

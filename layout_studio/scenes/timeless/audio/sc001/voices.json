@@ -1,6 +1,6 @@
 {
- "about": "Temp dialogue for the previs, voiced with Higgsfield text-to-speech (ElevenLabs engine). Regenerate a line by asking Claude; the builder attaches a clip only while its text matches the line.",
- "engine": "higgsfield text2speech_v2 / elevenlabs",
+ "about": "Temp dialogue for the previs, voiced with Higgsfield (ElevenLabs Eleven v4) as one continuous performance per exchange, then cut line by line. The builder attaches a take only while its text still matches the line. Ask Claude to re-voice.",
+ "engine": "higgsfield elevenlabs_v4 dialogue",
  "cast": {
   "ARTHUR": {
    "voice": "Julian",
@@ -15,109 +15,88 @@
  },
  "lines": [
   {
-   "shot": "1E",
    "who": "ARTHUR",
    "line": "Posso?",
-   "file": "sc001_00_1E_arthur.mp3",
-   "dur_s": 0.679
+   "file": "take2_00_arthur.mp3",
+   "dur_s": 0.705
   },
   {
-   "shot": "1H",
    "who": "ARTHUR",
    "line": "Ti voglio bene, scimmietta.",
-   "file": "sc001_01_1H_arthur.mp3",
-   "dur_s": 2.038
+   "file": "take2_01_arthur.mp3",
+   "dur_s": 2.116
   },
   {
-   "shot": "1L",
    "who": "ARTHUR",
    "line": "Ne vuoi?",
-   "file": "sc001_02_1L_arthur.mp3",
-   "dur_s": 0.914
+   "file": "take2_02_arthur.mp3",
+   "dur_s": 0.836
   },
   {
-   "shot": "1L",
    "who": "CLAIRE",
    "line": "No, grazie.",
-   "file": "sc001_03_1L_claire.mp3",
-   "dur_s": 1.411
+   "file": "take2_03_claire.mp3",
+   "dur_s": 1.62
   },
   {
-   "shot": "1M",
    "who": "ARTHUR",
    "line": "Che giorno è oggi?",
-   "file": "sc001_04_1M_arthur.mp3",
+   "file": "take2_04_arthur.mp3",
    "dur_s": 1.411
   },
   {
-   "shot": "1N",
    "who": "CLAIRE",
    "line": "Sabato. Perché?",
-   "file": "sc001_05_1N_claire.mp3",
-   "dur_s": 2.194
+   "file": "take2_05_claire.mp3",
+   "dur_s": 1.907
   },
   {
-   "shot": "1O",
    "who": "ARTHUR",
    "line": "Sabato. Avevamo detto niente lavoro.",
-   "file": "sc001_06_1O_arthur.mp3",
-   "dur_s": 3.082
+   "file": "take2_06_arthur.mp3",
+   "dur_s": 2.952
   },
   {
-   "shot": "1P",
    "who": "CLAIRE",
    "line": "È una cosa veloce.",
-   "file": "sc001_07_1P_claire.mp3",
-   "dur_s": 1.489
+   "file": "take2_07_claire.mp3",
+   "dur_s": 1.437
   },
   {
-   "shot": "1Q",
    "who": "ARTHUR",
    "line": "È sempre una cosa veloce.",
-   "file": "sc001_08_1Q_arthur.mp3",
-   "dur_s": 1.802
+   "file": "take2_08_arthur.mp3",
+   "dur_s": 1.881
   },
   {
-   "shot": "1S",
    "who": "CLAIRE",
    "line": "Vuoi farlo adesso? Qui?",
-   "file": "sc001_09_1S_claire.mp3",
-   "dur_s": 2.038
+   "file": "take2_09_claire.mp3",
+   "dur_s": 2.011
   },
   {
-   "shot": "1T",
    "who": "ARTHUR",
    "line": "Voglio solo una giornata. Una.",
-   "file": "sc001_10_1T_arthur.mp3",
-   "dur_s": 2.926
+   "file": "take2_10_arthur.mp3",
+   "dur_s": 2.377
   },
   {
-   "shot": "1U",
    "who": "CLAIRE",
-   "line": "Siamo qui per lei, Arthur.",
-   "file": "sc001_11_1U_claire.mp3",
-   "dur_s": 1.646
+   "line": "Siamo qui per lei, Arthur. Lo sappiamo tutti e due.",
+   "file": "take2_11_claire.mp3",
+   "dur_s": 3.344
   },
   {
-   "shot": "1U",
-   "who": "CLAIRE",
-   "line": "Lo sappiamo tutti e due.",
-   "file": "sc001_12_1U_claire.mp3",
-   "dur_s": 1.646
-  },
-  {
-   "shot": "1V",
    "who": "ARTHUR",
    "line": "Anch'io sono qui.",
-   "file": "sc001_13_1V_arthur.mp3",
-   "dur_s": 1.306
+   "file": "take2_12_arthur.mp3",
+   "dur_s": 1.202
   },
   {
-   "shot": "1W",
    "who": "CLAIRE",
    "line": "Sei seduto qui. È diverso.",
-   "file": "sc001_14_1W_claire.mp3",
-   "dur_s": 2.194
+   "file": "take2_13_claire.mp3",
+   "dur_s": 2.429
   }
  ]
 }

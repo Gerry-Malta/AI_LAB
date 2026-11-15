@@ -252,7 +252,15 @@ export class Viewport {
   /** Apply a blocking state to stand-ins (position / facing / pose, possibly a pose blend) without touching the JSON. */
   applyBlocking(objects, blocking) {
     for (const o of objects) {
-      if (o.kind !== 'standin') continue;
+      if (o.kind !== 'standin') {
+        // props a beat moves or hides (the phone in her hand, then on the blanket); back in place when no beat touches them
+        const b = blocking && blocking[o.id], n = this.nodes.get(o.id);
+        if (!n || (!b && !n.blocked)) continue;
+        n.blocked = !!b;
+        this.applyTransform(b ? Object.assign({}, o, { position: b.position || o.position, rotation: b.facing != null ? [(o.rotation || [0, 0, 0])[0], b.facing, (o.rotation || [0, 0, 0])[2]] : o.rotation }) : o, n.group);
+        n.group.visible = ((b && b.visible) ?? o.visible) !== false;
+        continue;
+      }
       const n = this.nodes.get(o.id); if (!n) continue;
       const b = (blocking && blocking[o.id]) || {};
       this.poseStandin(n, o, b.pose || o.pose || 'stand');

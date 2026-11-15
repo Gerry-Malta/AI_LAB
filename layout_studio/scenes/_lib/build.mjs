@@ -44,6 +44,11 @@ export function createBuilder(meta) {
     shot.camera = lens;
     shot.framing = { A: def.A, B: def.B || null };
     if (def.A && def.A.type === 'ots' && def.allowOcclusion == null) shot.allowOcclusion = true;
+    // editorial timing: when the camera moves and when the actors act inside the shot (seconds), and the shot's effects
+    if (def.allowBackOfHead) shot.allowBackOfHead = true; // the face is not the point of this close shot (or comes later)
+    if (def.move) shot.move = def.move;
+    if (def.action) shot.action = def.action;
+    if (def.sfx) shot.sfx = resolveSfx(def.sfx);
     scene.shots.push(shot);
     return shot;
   };
@@ -81,13 +86,39 @@ export function createBuilder(meta) {
    * Higgsfield): { cast: { WHO: { voice, voice_id } }, lines: [{ shot, who, line, file, dur_s }] }. A line gets its clip
    * only while its text still matches, so an edited line never plays a stale take. Clip paths stay relative to the scene file.
    */
+  /**
+   * Sound library of the scene (audio/<scene>/sounds.json, written when Claude generates ambience and effects with
+   * Higgsfield): { ambience: { name: { file, dur_s } }, sfx: { name: { file, dur_s, hit_s } } }. Call it before the shots
+   * so they can name their effects: sfx: [{ sound: 'phone_buzz', at: 1.2, gain: 0.6, align: 'start' }]. By default an
+   * effect's loudest moment (hit_s) lands on `at`; align: 'start' starts the file there instead.
+   */
+  let library = null;
+  const resolveSfx = (list) => (list || []).map((e) => {
+    const s = library && library.sfx[e.sound];
+    if (!s) return e;
+    const at = (e.at || 0) - (e.align === 'start' ? 0 : (s.hit_s || 0));
+    return { name: e.sound, file: `${library.rel}/${s.file}`, dur_s: s.dur_s, at: +at.toFixed(3), gain: e.gain ?? 1 };
+  });
+  B.sounds = (manifestFile) => {
+    const m = JSON.parse(fs.readFileSync(manifestFile, 'utf8'));
+    library = Object.assign({ rel: path.relative(B.sceneDir || path.dirname(path.dirname(path.dirname(manifestFile))), path.dirname(manifestFile)).split(path.sep).join('/') }, m);
+    return Object.keys(m.sfx || {}).length + Object.keys(m.ambience || {}).length;
+  };
+  /** Ambience beds under the edit: [{ sound, gain, from?, to?, fadeIn?, fadeOut? }] (from / to are shot names). */
+  B.ambience = (beds) => {
+    scene.sound = Object.assign(scene.sound || {}, { ambience: beds.map((a) => {
+      const s = library && library.ambience[a.sound]; if (!s) throw new Error(`unknown ambience ${a.sound}`);
+      return { name: a.sound, file: `${library.rel}/${s.file}`, dur_s: s.dur_s, gain: a.gain ?? 0.3, from: a.from || null, to: a.to || null, fadeIn: a.fadeIn ?? 1.5, fadeOut: a.fadeOut ?? 1.5, loop: true };
+    }) });
+  };
+
   B.voices = (manifestFile) => {
     if (!fs.existsSync(manifestFile)) return 0;
     const m = JSON.parse(fs.readFileSync(manifestFile, 'utf8'));
     const rel = path.relative(B.sceneDir || path.dirname(path.dirname(path.dirname(manifestFile))), path.dirname(manifestFile)).split(path.sep).join('/');
     let n = 0;
     for (const shot of scene.shots) for (const d of shot.dialogue || []) {
-      const take = (m.lines || []).find((l) => l.shot === shot.name && l.who === d.who && l.line === d.line);
+      const take = (m.lines || []).find((l) => (!l.shot || l.shot === shot.name) && l.who === d.who && l.line === d.line);
       if (take) { d.audio = `${rel}/${take.file}`; d.dur_s = take.dur_s; n++; } else { delete d.audio; delete d.dur_s; }
     }
     if (m.cast) scene.cast = Object.assign(scene.cast || {}, m.cast);

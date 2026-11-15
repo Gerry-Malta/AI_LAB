@@ -61,9 +61,9 @@
    "role": "PROP",
    "kind": "box",
    "position": [
-    0.15,
+    1.05,
     0.02,
-    0.5
+    0.45
    ],
    "rotation": [
     0,
@@ -119,9 +119,9 @@
    "role": "PROP",
    "kind": "cylinder",
    "position": [
-    -0.1,
+    0.88,
     0.02,
-    0.6
+    -0.25
    ],
    "rotation": [
     0,
@@ -148,9 +148,9 @@
    "role": "PROP",
    "kind": "cylinder",
    "position": [
-    0,
+    0.98,
     0.02,
-    0.62
+    -0.12
    ],
    "rotation": [
     0,
@@ -177,9 +177,9 @@
    "role": "PROP",
    "kind": "box",
    "position": [
-    0.3,
+    0.82,
     0.02,
-    0.15
+    0.18
    ],
    "rotation": [
     0,
@@ -322,9 +322,9 @@
    "role": "PROP",
    "kind": "box",
    "position": [
-    2.52,
+    2.98,
     0.006,
-    -3.3
+    -3.42
    ],
    "rotation": [
     0,
@@ -6182,6 +6182,36 @@
    "height": 1.15,
    "pose": "lie_prone",
    "age": 6
+  },
+  {
+   "id": "PROP_grass_blade",
+   "name": "Filo d'erba (nelle dita di Arthur)",
+   "role": "HERO",
+   "kind": "box",
+   "position": [
+    0.16,
+    0.58,
+    0.32
+   ],
+   "rotation": [
+    0,
+    0,
+    0
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ],
+   "size": [
+    0.012,
+    0.14,
+    0.004
+   ],
+   "color": "#7fae4a",
+   "source": "script",
+   "notes": "",
+   "visible": false
   }
  ],
  "beats": [
@@ -6255,6 +6285,14 @@
        "pitch": 30
       }
      }
+    },
+    "PROP_phone": {
+     "position": [
+      -0.48,
+      0.6,
+      0.37
+     ],
+     "facing": 15
     }
    }
   },
@@ -6323,14 +6361,22 @@
        "pitch": 30
       }
      }
+    },
+    "PROP_phone": {
+     "position": [
+      -0.48,
+      0.6,
+      0.37
+     ],
+     "facing": 15
     }
    }
   },
   {
    "id": "b2",
-   "label": "Arthur si avvicina, si accovaccia accanto a Rebecca, guarda i disegni, la bacia",
+   "label": "\"Posso?\" Arthur accovacciato accanto a Rebecca raccoglie i fogli",
    "t0": 14,
-   "t1": 44,
+   "t1": 34,
    "blocking": {
     "CHAR_arthur": {
      "position": [
@@ -6393,13 +6439,101 @@
        "pitch": 30
       }
      }
+    },
+    "PROP_phone": {
+     "position": [
+      -0.48,
+      0.6,
+      0.37
+     ],
+     "facing": 15
+    }
+   }
+  },
+  {
+   "id": "b2k",
+   "label": "Rimette i fogli in ordine e la bacia sulla testa: \"Ti voglio bene, scimmietta\"",
+   "t0": 34,
+   "t1": 40,
+   "blocking": {
+    "CHAR_arthur": {
+     "position": [
+      2.08,
+      0,
+      -2.78
+     ],
+     "facing": 132,
+     "pose": {
+      "base": "kneel",
+      "root": {
+       "pitch": 60
+      },
+      "spine": {
+       "pitch": 25
+      },
+      "neck": {
+       "pitch": 15
+      },
+      "head": {
+       "pitch": 10
+      }
+     }
+    },
+    "CHAR_claire": {
+     "position": [
+      -0.55,
+      0,
+      0.1
+     ],
+     "facing": 15,
+     "pose": {
+      "base": "sit_ground",
+      "neck": {
+       "pitch": 6
+      },
+      "head": {
+       "pitch": 18
+      },
+      "shoulder": {
+       "flex": 34,
+       "abd": 16
+      },
+      "elbow": {
+       "flex": 124
+      },
+      "wrist": {
+       "flex": 18
+      }
+     }
+    },
+    "CHAR_rebecca": {
+     "position": [
+      2.6,
+      0,
+      -2.8
+     ],
+     "facing": 180,
+     "pose": {
+      "base": "lie_prone",
+      "head": {
+       "pitch": 30
+      }
+     }
+    },
+    "PROP_phone": {
+     "position": [
+      -0.48,
+      0.6,
+      0.37
+     ],
+     "facing": 15
     }
    }
   },
   {
    "id": "b3",
-   "label": "Arthur torna al telo. Rebecca alza lo sguardo: la montagna oltre gli alberi. Foglio nuovo",
-   "t0": 44,
+   "label": "Arthur torna al telo. Rebecca alza lo sguardo: la montagna oltre gli alberi",
+   "t0": 40,
    "t1": 54,
    "blocking": {
     "CHAR_arthur": {
@@ -6454,14 +6588,88 @@
        "pitch": -6
       }
      }
+    },
+    "PROP_phone": {
+     "position": [
+      -0.48,
+      0.6,
+      0.37
+     ],
+     "facing": 15
+    }
+   }
+  },
+  {
+   "id": "b3d",
+   "label": "Rebecca prende un foglio nuovo e disegna la montagna",
+   "t0": 54,
+   "t1": 58,
+   "blocking": {
+    "CHAR_arthur": {
+     "position": [
+      0.55,
+      0,
+      0
+     ],
+     "facing": 340,
+     "pose": "sit_ground"
+    },
+    "CHAR_claire": {
+     "position": [
+      -0.55,
+      0,
+      0.1
+     ],
+     "facing": 15,
+     "pose": {
+      "base": "sit_ground",
+      "neck": {
+       "pitch": 6
+      },
+      "head": {
+       "pitch": 18
+      },
+      "shoulder": {
+       "flex": 34,
+       "abd": 16
+      },
+      "elbow": {
+       "flex": 124
+      },
+      "wrist": {
+       "flex": 18
+      }
+     }
+    },
+    "CHAR_rebecca": {
+     "position": [
+      2.6,
+      0,
+      -2.8
+     ],
+     "facing": 180,
+     "pose": {
+      "base": "lie_prone",
+      "head": {
+       "pitch": 30
+      }
+     }
+    },
+    "PROP_phone": {
+     "position": [
+      -0.48,
+      0.6,
+      0.37
+     ],
+     "facing": 15
     }
    }
   },
   {
    "id": "b4",
-   "label": "Sul telo: le patatine, \"che giorno è oggi\", Claire al telefono",
-   "t0": 54,
-   "t1": 80,
+   "label": "Sul telo: Arthur porge le patatine. \"Ne vuoi?\" \"No, grazie.\"",
+   "t0": 58,
+   "t1": 66,
    "blocking": {
     "CHAR_arthur": {
      "position": [
@@ -6472,12 +6680,15 @@
      "facing": 276,
      "pose": {
       "base": "sit_ground",
-      "shoulderR": {
-       "flex": 72,
-       "abd": 22
+      "spine": {
+       "pitch": 12
       },
-      "elbowR": {
-       "flex": 46
+      "shoulderL": {
+       "flex": 75,
+       "abd": 8
+      },
+      "elbowL": {
+       "flex": 12
       },
       "head": {
        "pitch": 4
@@ -6524,14 +6735,104 @@
        "pitch": 30
       }
      }
+    },
+    "PROP_phone": {
+     "position": [
+      -0.28,
+      0.6,
+      0.1
+     ],
+     "facing": 90
+    },
+    "PROP_chips": {
+     "position": [
+      -0.04,
+      0.36,
+      0.37
+     ],
+     "facing": 276
+    }
+   }
+  },
+  {
+   "id": "b4c",
+   "label": "Arthur mangia una patatina e guarda il telefono nelle mani di lei: \"Che giorno è oggi?\"",
+   "t0": 66,
+   "t1": 80,
+   "blocking": {
+    "CHAR_arthur": {
+     "position": [
+      0.55,
+      0,
+      0
+     ],
+     "facing": 276,
+     "pose": {
+      "base": "sit_ground",
+      "spine": {
+       "pitch": 18
+      },
+      "head": {
+       "pitch": 20
+      }
+     }
+    },
+    "CHAR_claire": {
+     "position": [
+      -0.55,
+      0,
+      0.1
+     ],
+     "facing": 90,
+     "pose": {
+      "base": "sit_ground",
+      "neck": {
+       "pitch": 6
+      },
+      "head": {
+       "pitch": 18
+      },
+      "shoulder": {
+       "flex": 34,
+       "abd": 16
+      },
+      "elbow": {
+       "flex": 124
+      },
+      "wrist": {
+       "flex": 18
+      }
+     }
+    },
+    "CHAR_rebecca": {
+     "position": [
+      2.6,
+      0,
+      -2.8
+     ],
+     "facing": 180,
+     "pose": {
+      "base": "lie_prone",
+      "head": {
+       "pitch": 30
+      }
+     }
+    },
+    "PROP_phone": {
+     "position": [
+      -0.28,
+      0.6,
+      0.1
+     ],
+     "facing": 90
     }
    }
   },
   {
    "id": "b5",
-   "label": "Claire posa il telefono a faccia in giù: il confronto",
+   "label": "Claire posa il telefono a faccia in giù e lo guarda: il confronto",
    "t0": 80,
-   "t1": 108,
+   "t1": 104,
    "blocking": {
     "CHAR_arthur": {
      "position": [
@@ -6585,8 +6886,77 @@
   },
   {
    "id": "b6",
-   "label": "Il telefono vibra: Claire lo guarda, poi lo prende. Arthur strappa un filo d'erba",
-   "t0": 108,
+   "label": "Il telefono vibra contro il telo. Lei lo guarda. Non lo prende",
+   "t0": 104,
+   "t1": 114,
+   "blocking": {
+    "CHAR_arthur": {
+     "position": [
+      0.55,
+      0,
+      0
+     ],
+     "facing": 290,
+     "pose": {
+      "base": "sit_ground",
+      "spine": {
+       "pitch": 26
+      },
+      "head": {
+       "pitch": 30
+      },
+      "shoulder": {
+       "flex": 50,
+       "abd": -10
+      },
+      "elbow": {
+       "flex": 100
+      }
+     }
+    },
+    "CHAR_claire": {
+     "position": [
+      -0.55,
+      0,
+      0.1
+     ],
+     "facing": 90,
+     "pose": {
+      "base": "sit_ground",
+      "spine": {
+       "pitch": 24
+      },
+      "neck": {
+       "pitch": 8
+      },
+      "head": {
+       "pitch": 26
+      }
+     }
+    },
+    "CHAR_rebecca": {
+     "position": [
+      2.6,
+      0,
+      -2.8
+     ],
+     "facing": 180,
+     "pose": {
+      "base": "lie_prone",
+      "head": {
+       "pitch": 30
+      }
+     }
+    },
+    "PROP_grass_blade": {
+     "visible": true
+    }
+   }
+  },
+  {
+   "id": "b6t",
+   "label": "Poi lo prende. Arthur arrotola il filo d'erba tra le dita",
+   "t0": 114,
    "t1": 125,
    "blocking": {
     "CHAR_arthur": {
@@ -6605,11 +6975,11 @@
        "pitch": 30
       },
       "shoulder": {
-       "flex": 46,
-       "abd": 8
+       "flex": 50,
+       "abd": -10
       },
       "elbow": {
-       "flex": 96
+       "flex": 100
       }
      }
     },
@@ -6653,6 +7023,17 @@
        "pitch": 30
       }
      }
+    },
+    "PROP_phone": {
+     "position": [
+      -0.28,
+      0.6,
+      0.1
+     ],
+     "facing": 90
+    },
+    "PROP_grass_blade": {
+     "visible": true
     }
    }
   }
@@ -6664,7 +7045,7 @@
    "beat": "b1",
    "size": "EWS",
    "subject": null,
-   "intent": "Apertura: il mare di pini, Rushmore lontano; scendendo la montagna dalla cima spezzata si alza più vicina, poi il telo nella radura.",
+   "intent": "Il mare di pini; in lontananza i quattro volti del Rushmore. Il drone gira e scende: più vicina, senza volti, la montagna dalla cima spezzata.",
    "camera": {
     "filmback": "ALEXA35_OG",
     "focal_mm": 18,
@@ -6675,43 +7056,38 @@
    "rig": {
     "type": "drone"
    },
-   "duration_s": 18,
-   "curve": [
-    0.55,
-    0,
-    0.45,
-    1
-   ],
+   "duration_s": 12,
+   "curve": "easeInOutCubic",
    "keys": {
     "A": {
      "position": [
-      12,
-      95,
-      60
+      70,
+      190,
+      620
      ],
      "target": [
-      -1200,
-      110,
-      -2600
+      -3600,
+      130,
+      -5080
      ],
      "roll": 0
     },
     "B": {
      "position": [
-      4.5,
-      10,
-      17
+      64,
+      172,
+      596
      ],
      "target": [
-      1,
-      0.5,
-      -1
+      290,
+      470,
+      -1070
      ],
      "roll": 0
     }
    },
    "dialogue": [],
-   "notes": "Drone. Da riprendere in location con il sole basso; qui serve solo per il timing della rivelazione.",
+   "notes": "Drone. Si apre sul Rushmore e lo lascia: la montagna senza volti prende il quadro.",
    "wantForeground": false,
    "allowOcclusion": false,
    "line": null,
@@ -6721,57 +7097,148 @@
     "A": {
      "type": "raw",
      "position": [
-      12,
-      95,
-      60
+      70,
+      190,
+      620
      ],
      "target": [
-      -1200,
-      110,
-      -2600
+      -3600,
+      130,
+      -5080
      ]
     },
     "B": {
      "type": "raw",
      "position": [
-      4.5,
-      10,
-      17
+      64,
+      172,
+      596
      ],
      "target": [
-      1,
-      0.5,
-      -1
+      290,
+      470,
+      -1070
      ]
     }
-   }
+   },
+   "move": [
+    1,
+    11.4
+   ]
   },
   {
    "id": "sh020",
    "name": "1B",
    "beat": "b1",
    "size": "WS",
+   "subject": "CHAR_claire",
+   "intent": "Dall'alto, scendendo sulla radura: il telo, i due ai lati, il mezzo metro vuoto tra loro. Rebecca da sola, a qualche passo.",
+   "camera": {
+    "filmback": "ALEXA35_OG",
+    "focal_mm": 24,
+    "aspect": 2.39,
+    "squeeze": 1,
+    "fstop": 2.8
+   },
+   "rig": {
+    "type": "drone"
+   },
+   "duration_s": 8,
+   "curve": "easeInOutCubic",
+   "keys": {
+    "A": {
+     "position": [
+      4,
+      34,
+      18
+     ],
+     "target": [
+      0.8,
+      0,
+      -1
+     ],
+     "roll": 0
+    },
+    "B": {
+     "position": [
+      1.2,
+      7.5,
+      4.2
+     ],
+     "target": [
+      0.6,
+      0,
+      -0.9
+     ],
+     "roll": 0
+    }
+   },
+   "dialogue": [],
+   "notes": "",
+   "wantForeground": false,
+   "allowOcclusion": false,
+   "line": null,
+   "beatA": null,
+   "beatB": null,
+   "framing": {
+    "A": {
+     "type": "raw",
+     "position": [
+      4,
+      34,
+      18
+     ],
+     "target": [
+      0.8,
+      0,
+      -1
+     ]
+    },
+    "B": {
+     "type": "raw",
+     "position": [
+      1.2,
+      7.5,
+      4.2
+     ],
+     "target": [
+      0.6,
+      0,
+      -0.9
+     ]
+    }
+   },
+   "move": [
+    0,
+    7.4
+   ]
+  },
+  {
+   "id": "sh030",
+   "name": "1C",
+   "beat": "b1",
+   "size": "WS",
    "subject": "CHAR_arthur",
-   "intent": "Campo del telo, lento push-in oltre l'erba in primo piano: Arthur e Claire ai due lati, il mezzo metro vuoto al centro; Rebecca piccola sul prato dietro di loro.",
+   "intent": "Ad altezza d'erba, simmetrico: Claire a sinistra scrive sul telefono, Arthur a destra sistema i panini, il telo vuoto al centro. Il carrello entra piano oltre l'erba alta.",
    "camera": {
     "filmback": "ALEXA35_OG",
     "focal_mm": 32,
     "aspect": 2.39,
     "squeeze": 1,
     "fstop": 2.8,
-    "focus_m": 4.85
+    "focus_m": 5.05
    },
    "rig": {
     "type": "dolly"
    },
-   "duration_s": 9,
+   "duration_s": 7,
    "curve": "easeInOutCubic",
    "keys": {
     "A": {
      "position": [
-      0.439,
-      0.85,
-      4.88
+      0.456,
+      0.5,
+      5.071
      ],
      "target": [
       0,
@@ -6782,9 +7249,9 @@
     },
     "B": {
      "position": [
-      0.237,
-      0.85,
-      2.655
+      0.239,
+      0.5,
+      2.684
      ],
      "target": [
       0,
@@ -6811,8 +7278,8 @@
      "b": "CHAR_arthur",
      "size": "WS",
      "side": 1,
-     "cameraHeight": 0.85,
-     "distance": 4.85
+     "cameraHeight": 0.5,
+     "distance": 5.05
     },
     "B": {
      "type": "two",
@@ -6820,18 +7287,31 @@
      "b": "CHAR_arthur",
      "size": "FS",
      "side": 1,
-     "cameraHeight": 0.85,
+     "cameraHeight": 0.5,
      "wantForeground": false
     }
-   }
+   },
+   "move": [
+    0.4,
+    7
+   ],
+   "sfx": [
+    {
+     "name": "paper",
+     "file": "audio/sc001/sfx_paper.mp3",
+     "dur_s": 2.02,
+     "at": 0.8,
+     "gain": 0.25
+    }
+   ]
   },
   {
-   "id": "sh030",
-   "name": "1C",
+   "id": "sh040",
+   "name": "1D",
    "beat": "b1",
    "size": "MS",
    "subject": "CHAR_rebecca",
-   "intent": "Rebecca a pancia in giù disegna, orsacchiotto in primo piano, i genitori sfocati sullo sfondo.",
+   "intent": "Il mondo di Rebecca, a filo d'erba: a pancia in giù disegna, l'orsacchiotto con l'orecchio scucito in primo piano, i genitori lontani e sfocati.",
    "camera": {
     "filmback": "ALEXA35_OG",
     "focal_mm": 35,
@@ -6848,9 +7328,9 @@
    "keys": {
     "A": {
      "position": [
-      4.454,
-      0.32,
-      -4.678
+      4.459,
+      0.28,
+      -4.682
      ],
      "target": [
       2.489,
@@ -6872,19 +7352,35 @@
     "A": {
      "type": "single",
      "azimuth": -55,
-     "cameraHeight": 0.32,
+     "cameraHeight": 0.28,
      "leadRoom": 0.1
     },
     "B": null
-   }
+   },
+   "sfx": [
+    {
+     "name": "crayon",
+     "file": "audio/sc001/sfx_crayon.mp3",
+     "dur_s": 3.019,
+     "at": 0.5,
+     "gain": 0.35
+    },
+    {
+     "name": "crayon",
+     "file": "audio/sc001/sfx_crayon.mp3",
+     "dur_s": 3.019,
+     "at": 3.3,
+     "gain": 0.3
+    }
+   ]
   },
   {
-   "id": "sh040",
-   "name": "1D",
+   "id": "sh050",
+   "name": "1E",
    "beat": "b2",
    "size": "FS",
    "subject": "CHAR_arthur",
-   "intent": "Arthur la guarda, si alza e la raggiunge: Steadicam lo segue dal telo fino a Rebecca e si posa sul due.",
+   "intent": "Arthur la guarda. Tiene lo sguardo, poi si alza e la raggiunge: la Steadicam parte con lui e si posa sul due, accanto a lei.",
    "camera": {
     "filmback": "ALEXA35_OG",
     "focal_mm": 40,
@@ -6898,7 +7394,7 @@
     "follow": true,
     "followVertical": 1
    },
-   "duration_s": 10,
+   "duration_s": 12,
    "curve": "easeInOut",
    "keys": {
     "A": {
@@ -6954,67 +7450,155 @@
      "cameraHeight": 0.8,
      "azimuthOffset": -20
     }
-   }
+   },
+   "move": [
+    1.6,
+    11.7
+   ],
+   "action": [
+    1.5,
+    10
+   ],
+   "sfx": [
+    {
+     "name": "footsteps",
+     "file": "audio/sc001/sfx_footsteps.mp3",
+     "dur_s": 4.776,
+     "at": 3.2,
+     "gain": 0.32
+    }
+   ]
   },
   {
-   "id": "sh050",
-   "name": "1E",
+   "id": "sh060",
+   "name": "1F",
    "beat": "b2",
    "size": "MCU",
    "subject": "CHAR_arthur",
-   "intent": "\"Posso?\" Arthur accovacciato raccoglie i fogli e li guarda. Macchina a mano appena viva.",
+   "intent": "\"Posso?\" Dal basso, da dove lo vede Rebecca: lei non alza gli occhi. Arthur raccoglie i fogli sparsi.",
    "camera": {
     "filmback": "ALEXA35_OG",
-    "focal_mm": 65,
+    "focal_mm": 50,
     "aspect": 2.39,
     "squeeze": 1,
     "fstop": 2,
-    "focus_m": 2.31
+    "focus_m": 1.75
    },
    "rig": {
-    "type": "handheld",
-    "seed": 3,
-    "shake": 0.8
+    "type": "static"
    },
-   "duration_s": 8,
+   "duration_s": 5.5,
    "curve": "easeInOut",
    "keys": {
     "A": {
      "position": [
-      4.463,
-      0.75,
-      -2.234
+      3.581,
+      0.485,
+      -4.013
      ],
      "target": [
-      2.243,
-      0.976,
-      -2.829
+      2.207,
+      0.978,
+      -2.866
      ],
      "roll": 0
     },
-    "B": {
-     "position": [
-      4.463,
-      0.75,
-      -2.234
-     ],
-     "target": [
-      2.243,
-      0.976,
-      -2.829
-     ],
-     "roll": 0
-    }
+    "B": null
    },
    "dialogue": [
     {
      "who": "ARTHUR",
      "line": "Posso?",
-     "at": 0.3,
-     "audio": "audio/sc001/sc001_00_1E_arthur.mp3",
-     "dur_s": 0.679
+     "at": 1,
+     "audio": "audio/sc001/take2_00_arthur.mp3",
+     "dur_s": 0.705
     }
    ],
+   "notes": "",
+   "wantForeground": false,
+   "allowOcclusion": true,
+   "line": null,
+   "beatA": null,
+   "beatB": null,
+   "framing": {
+    "A": {
+     "type": "ots",
+     "fg": "CHAR_rebecca",
+     "bg": "CHAR_arthur",
+     "side": 1,
+     "fitSize": "MCU",
+     "heightOffset": 0.3,
+     "lateral": 0.28,
+     "back": 1.3
+    },
+    "B": null
+   },
+   "sfx": [
+    {
+     "name": "crayon",
+     "file": "audio/sc001/sfx_crayon.mp3",
+     "dur_s": 3.019,
+     "at": 0.2,
+     "gain": 0.3
+    },
+    {
+     "name": "paper",
+     "file": "audio/sc001/sfx_paper.mp3",
+     "dur_s": 2.02,
+     "at": 2.3,
+     "gain": 0.55
+    }
+   ]
+  },
+  {
+   "id": "sh070",
+   "name": "1G",
+   "beat": "b2",
+   "size": "INSERT",
+   "subject": "PROP_drawing_1",
+   "intent": "Il primo disegno: tre figure. Una donna con un telefono, un uomo con una matita, in mezzo una bambina. Lentamente dentro.",
+   "camera": {
+    "filmback": "ALEXA35_OG",
+    "focal_mm": 50,
+    "aspect": 2.39,
+    "squeeze": 1,
+    "fstop": 2.8,
+    "focus_m": 1.04
+   },
+   "rig": {
+    "type": "gimbal"
+   },
+   "duration_s": 4,
+   "curve": "easeInOut",
+   "keys": {
+    "A": {
+     "position": [
+      2.483,
+      0.966,
+      -3.185
+     ],
+     "target": [
+      2.35,
+      0.004,
+      -3.55
+     ],
+     "roll": 0
+    },
+    "B": {
+     "position": [
+      2.429,
+      0.715,
+      -3.333
+     ],
+     "target": [
+      2.35,
+      0.004,
+      -3.55
+     ],
+     "roll": 0
+    }
+   },
+   "dialogue": [],
    "notes": "",
    "wantForeground": false,
    "allowOcclusion": false,
@@ -7023,48 +7607,65 @@
    "beatB": null,
    "framing": {
     "A": {
-     "type": "single",
-     "azimuth": -35,
-     "cameraHeight": 0.75
+     "type": "object",
+     "object": "PROP_drawing_1",
+     "elevation": 68,
+     "azimuth": 20,
+     "fill": 0.62
     },
     "B": {
-     "type": "single",
-     "azimuth": -35,
-     "cameraHeight": 0.75
+     "type": "object",
+     "object": "PROP_drawing_1",
+     "elevation": 72,
+     "azimuth": 20,
+     "fill": 0.86
     }
-   }
+   },
+   "move": [
+    0.2,
+    4
+   ],
+   "sfx": [
+    {
+     "name": "paper",
+     "file": "audio/sc001/sfx_paper.mp3",
+     "dur_s": 2.02,
+     "at": -1.45,
+     "gain": 0.35
+    }
+   ]
   },
   {
-   "id": "sh060",
-   "name": "1F",
+   "id": "sh080",
+   "name": "1H",
    "beat": "b2",
    "size": "INSERT",
-   "subject": "PROP_drawing_1",
-   "intent": "Inserto: il disegno. Tre figure. La mamma e il papà senza piedi, galleggiano sopra la linea del prato.",
+   "subject": "PROP_drawing_2",
+   "intent": "Il secondo: le stesse figure.",
    "camera": {
     "filmback": "ALEXA35_OG",
-    "focal_mm": 75,
+    "focal_mm": 50,
     "aspect": 2.39,
     "squeeze": 1,
     "fstop": 2.8,
-    "focus_m": 1.29
+    "focus_m": 0.82
    },
    "rig": {
     "type": "static"
    },
-   "duration_s": 4,
+   "duration_s": 1.5,
    "curve": "easeInOut",
    "keys": {
     "A": {
      "position": [
-      2.486,
-      1.227,
-      -3.177
+      2.671,
+      0.779,
+      -3.342
      ],
      "target": [
-      2.35,
+      2.72,
       0.004,
-      -3.55
+      -3.62
      ],
      "roll": 0
     },
@@ -7080,21 +7681,93 @@
    "framing": {
     "A": {
      "type": "object",
-     "object": "PROP_drawing_1",
-     "elevation": 72,
-     "azimuth": 20,
-     "fill": 0.75
+     "object": "PROP_drawing_2",
+     "elevation": 70,
+     "azimuth": -10,
+     "fill": 0.78
     },
     "B": null
-   }
+   },
+   "sfx": [
+    {
+     "name": "paper",
+     "file": "audio/sc001/sfx_paper.mp3",
+     "dur_s": 2.02,
+     "at": -1.5,
+     "gain": 0.4
+    }
+   ]
   },
   {
-   "id": "sh070",
-   "name": "1G",
+   "id": "sh090",
+   "name": "1I",
+   "beat": "b2",
+   "size": "INSERT",
+   "subject": "PROP_drawing_3",
+   "intent": "Il terzo: le stesse. Mamma e papà senza piedi, galleggiano sopra la linea del prato.",
+   "camera": {
+    "filmback": "ALEXA35_OG",
+    "focal_mm": 50,
+    "aspect": 2.39,
+    "squeeze": 1,
+    "fstop": 2.8,
+    "focus_m": 0.77
+   },
+   "rig": {
+    "type": "static"
+   },
+   "duration_s": 1.5,
+   "curve": "easeInOut",
+   "keys": {
+    "A": {
+     "position": [
+      3.111,
+      0.727,
+      -3.193
+     ],
+     "target": [
+      2.98,
+      0.008,
+      -3.42
+     ],
+     "roll": 0
+    },
+    "B": null
+   },
+   "dialogue": [],
+   "notes": "",
+   "wantForeground": false,
+   "allowOcclusion": false,
+   "line": null,
+   "beatA": null,
+   "beatB": null,
+   "framing": {
+    "A": {
+     "type": "object",
+     "object": "PROP_drawing_3",
+     "elevation": 70,
+     "azimuth": 30,
+     "fill": 0.84
+    },
+    "B": null
+   },
+   "sfx": [
+    {
+     "name": "paper",
+     "file": "audio/sc001/sfx_paper.mp3",
+     "dur_s": 2.02,
+     "at": -1.5,
+     "gain": 0.4
+    }
+   ]
+  },
+  {
+   "id": "sh100",
+   "name": "1J",
    "beat": "b2",
    "size": "BCU",
    "subject": "CHAR_arthur",
-   "intent": "Il sorriso di Arthur si spegne. Sfoglia ancora. Sempre senza piedi.",
+   "intent": "Il sorriso di Arthur si spegne. Sfoglia ancora. Sempre senza piedi. Teniamo il silenzio.",
    "camera": {
     "filmback": "ALEXA35_OG",
     "focal_mm": 75,
@@ -7106,7 +7779,7 @@
    "rig": {
     "type": "static"
    },
-   "duration_s": 5,
+   "duration_s": 4,
    "curve": "easeInOut",
    "keys": {
     "A": {
@@ -7142,119 +7815,115 @@
    }
   },
   {
-   "id": "sh080",
-   "name": "1H",
-   "beat": "b2",
+   "id": "sh110",
+   "name": "1K",
+   "beat": "b2k",
    "size": "FS",
    "subject": "CHAR_arthur",
-   "intent": "Profilo: Arthur bacia Rebecca sulla testa, \"Ti voglio bene, scimmietta\", si alza e torna al telo; la macchina panoramica con lui e ritrova Claire.",
+   "intent": "Profilo basso: rimette i fogli in ordine, con cura. Si china e la bacia sulla testa. \"Ti voglio bene, scimmietta.\" Lei continua a disegnare.",
    "camera": {
     "filmback": "ALEXA35_OG",
-    "focal_mm": 35,
+    "focal_mm": 50,
     "aspect": 2.39,
     "squeeze": 1,
-    "fstop": 2.8,
-    "focus_m": 8.82
+    "fstop": 2,
+    "focus_m": 5.17
    },
    "rig": {
-    "type": "static",
-    "aim": "subject"
+    "type": "static"
    },
-   "duration_s": 9,
-   "curve": "holdMoveHold",
+   "duration_s": 5.6,
+   "curve": "easeInOut",
    "keys": {
     "A": {
      "position": [
-      -0.156,
-      0.9,
-      -11.119
+      4.58,
+      0.5,
+      1.924
      ],
      "target": [
-      2.25,
-      -0.148,
-      -2.7
+      2.812,
+      0.618,
+      -2.932
      ],
      "roll": 0
     },
-    "B": {
-     "position": [
-      -0.156,
-      0.9,
-      -11.119
-     ],
-     "target": [
-      -0.505,
-      1.431,
-      0.041
-     ],
-     "roll": 0
-    }
+    "B": null
    },
    "dialogue": [
     {
      "who": "ARTHUR",
      "line": "Ti voglio bene, scimmietta.",
-     "audio": "audio/sc001/sc001_01_1H_arthur.mp3",
-     "dur_s": 2.038
+     "at": 2.9,
+     "audio": "audio/sc001/take2_01_arthur.mp3",
+     "dur_s": 2.116
     }
    ],
    "notes": "",
    "wantForeground": false,
-   "allowOcclusion": false,
+   "allowOcclusion": true,
    "line": null,
    "beatA": "b2",
-   "beatB": "b3",
+   "beatB": "b2k",
    "framing": {
     "A": {
-     "type": "two",
-     "beat": "b2",
-     "a": "CHAR_arthur",
-     "b": "CHAR_rebecca",
-     "size": "FS",
-     "side": -1,
-     "cameraHeight": 0.9,
-     "margin": 0.1
-    },
-    "B": {
      "type": "single",
-     "beat": "b3",
-     "azimuth": 40,
-     "cameraHeight": 0.9,
-     "size": "WS"
+     "beat": "b2",
+     "azimuth": -90,
+     "cameraHeight": 0.5,
+     "size": "FS",
+     "leadRoom": 0.22
+    },
+    "B": null
+   },
+   "action": [
+    1,
+    2.6
+   ],
+   "sfx": [
+    {
+     "name": "paper",
+     "file": "audio/sc001/sfx_paper.mp3",
+     "dur_s": 2.02,
+     "at": -1,
+     "gain": 0.3
     }
-   }
+   ]
   },
   {
-   "id": "sh090",
-   "name": "1I",
+   "id": "sh120",
+   "name": "1L",
    "beat": "b3",
-   "size": "CU",
+   "size": "MCU",
    "subject": "CHAR_rebecca",
-   "intent": "Rebecca alza lo sguardo oltre la macchina: la montagna. La fissa.",
+   "intent": "Restiamo con lei mentre Arthur si alza ed esce di quadro. Rebecca disegna, sola. Poi alza lo sguardo.",
    "camera": {
     "filmback": "ALEXA35_OG",
     "focal_mm": 65,
     "aspect": 2.39,
     "squeeze": 1,
     "fstop": 2,
-    "focus_m": 1.95
+    "focus_m": 2.93
    },
    "rig": {
-    "type": "static"
+    "type": "handheld",
+    "lowMode": true,
+    "shake": 0.25,
+    "seed": 9
    },
-   "duration_s": 5,
+   "duration_s": 6.5,
    "curve": "easeInOut",
    "keys": {
     "A": {
      "position": [
-      2.095,
-      0.3,
-      -5.093
+      1.992,
+      0.12,
+      -6.035
      ],
      "target": [
       2.6,
-      0.254,
-      -3.209
+      0.175,
+      -3.172
      ],
      "roll": 0
     },
@@ -7265,25 +7934,54 @@
    "wantForeground": false,
    "allowOcclusion": false,
    "line": null,
-   "beatA": null,
-   "beatB": null,
+   "beatA": "b2k",
+   "beatB": "b3",
    "framing": {
     "A": {
      "type": "single",
-     "azimuth": 15,
-     "cameraHeight": 0.3,
-     "leadRoom": 0.05
+     "beat": "b3",
+     "azimuth": 12,
+     "cameraHeight": 0.12,
+     "leadRoom": 0.08,
+     "headroom": 0.05
     },
     "B": null
-   }
+   },
+   "allowBackOfHead": true,
+   "action": {
+    "CHAR_arthur": [
+     0.1,
+     3.4
+    ],
+    "CHAR_rebecca": [
+     4.3,
+     5.4
+    ]
+   },
+   "sfx": [
+    {
+     "name": "footsteps",
+     "file": "audio/sc001/sfx_footsteps.mp3",
+     "dur_s": 4.776,
+     "at": 0.4,
+     "gain": 0.25
+    },
+    {
+     "name": "crayon",
+     "file": "audio/sc001/sfx_crayon.mp3",
+     "dur_s": 3.019,
+     "at": 1.6,
+     "gain": 0.35
+    }
+   ]
   },
   {
-   "id": "sh100",
-   "name": "1J",
+   "id": "sh130",
+   "name": "1M",
    "beat": "b3",
    "size": "WS",
    "subject": "ENV_mountain_main",
-   "intent": "Soggettiva di Rebecca: oltre gli alberi, la montagna dalla cima spezzata. Lento tilt verso la vetta.",
+   "intent": "Soggettiva di Rebecca, dal basso: oltre gli alberi la montagna dalla cima spezzata. Lento tilt sulle due punte.",
    "camera": {
     "filmback": "ALEXA35_OG",
     "focal_mm": 40,
@@ -7295,20 +7993,20 @@
     "type": "handheld",
     "seed": 5,
     "lowMode": true,
-    "shake": 0.7
+    "shake": 0.5
    },
-   "duration_s": 6,
+   "duration_s": 5.5,
    "curve": "easeInOutCubic",
    "keys": {
     "A": {
      "position": [
       2.6,
-      0.32,
-      -2.3
+      0.28,
+      -3.45
      ],
      "target": [
       250,
-      120,
+      110,
       -1100
      ],
      "roll": 0
@@ -7316,21 +8014,21 @@
     "B": {
      "position": [
       2.6,
-      0.32,
-      -2.3
+      0.28,
+      -3.45
      ],
      "target": [
-      250,
-      630,
-      -1100
+      285,
+      560,
+      -1070
      ],
      "roll": 0
     }
    },
    "dialogue": [],
-   "notes": "",
+   "notes": "Le due punte appartengono alla stessa montagna: la copertura reciproca è voluta.",
    "wantForeground": false,
-   "allowOcclusion": false,
+   "allowOcclusion": true,
    "line": null,
    "beatA": null,
    "beatB": null,
@@ -7339,12 +8037,12 @@
      "type": "raw",
      "position": [
       2.6,
-      0.32,
-      -2.3
+      0.28,
+      -3.45
      ],
      "target": [
       250,
-      120,
+      110,
       -1100
      ]
     },
@@ -7352,43 +8050,47 @@
      "type": "raw",
      "position": [
       2.6,
-      0.32,
-      -2.3
+      0.28,
+      -3.45
      ],
      "target": [
-      250,
-      630,
-      -1100
+      285,
+      560,
+      -1070
      ]
     }
-   }
+   },
+   "move": [
+    0.6,
+    4.6
+   ]
   },
   {
-   "id": "sh110",
-   "name": "1K",
-   "beat": "b3",
+   "id": "sh140",
+   "name": "1N",
+   "beat": "b3d",
    "size": "INSERT",
    "subject": "PROP_sheets",
-   "intent": "Inserto: prende un foglio nuovo e comincia a disegnare la montagna.",
+   "intent": "Prende un foglio nuovo e comincia a disegnarla.",
    "camera": {
     "filmback": "ALEXA35_OG",
-    "focal_mm": 75,
+    "focal_mm": 65,
     "aspect": 2.39,
     "squeeze": 1,
     "fstop": 2.8,
-    "focus_m": 1.38
+    "focus_m": 1.16
    },
    "rig": {
     "type": "static"
    },
-   "duration_s": 3,
+   "duration_s": 3.6,
    "curve": "easeInOut",
    "keys": {
     "A": {
      "position": [
-      1.755,
-      1.135,
-      -2.615
+      1.842,
+      0.991,
+      -2.767
      ],
      "target": [
       2.15,
@@ -7410,43 +8112,52 @@
     "A": {
      "type": "object",
      "object": "PROP_sheets",
-     "elevation": 55,
+     "elevation": 58,
      "azimuth": -30,
-     "fill": 0.7
+     "fill": 0.72
     },
     "B": null
-   }
+   },
+   "sfx": [
+    {
+     "name": "crayon",
+     "file": "audio/sc001/sfx_crayon.mp3",
+     "dur_s": 3.019,
+     "at": 0.4,
+     "gain": 0.45
+    }
+   ]
   },
   {
-   "id": "sh120",
-   "name": "1L",
+   "id": "sh150",
+   "name": "1O",
    "beat": "b4",
    "size": "FS",
    "subject": "CHAR_claire",
-   "intent": "Sul telo, due. Arthur porge a Claire un sacchetto di patatine. Il mezzo metro vuoto tra loro al centro del quadro.",
+   "intent": "Sul telo, due, il vuoto tra loro al centro. Arthur porge il sacchetto. Lei non alza gli occhi. Lui mangia una patatina.",
    "camera": {
     "filmback": "ALEXA35_OG",
     "focal_mm": 40,
     "aspect": 2.39,
     "squeeze": 1,
     "fstop": 2.8,
-    "focus_m": 3.73
+    "focus_m": 3.78
    },
    "rig": {
     "type": "static"
    },
-   "duration_s": 6,
+   "duration_s": 6.2,
    "curve": "easeInOut",
    "keys": {
     "A": {
      "position": [
-      0.334,
+      0.339,
       1,
-      3.725
+      3.777
      ],
      "target": [
       0,
-      0.479,
+      0.482,
       0.05
      ],
      "roll": 0
@@ -7457,14 +8168,16 @@
     {
      "who": "ARTHUR",
      "line": "Ne vuoi?",
-     "audio": "audio/sc001/sc001_02_1L_arthur.mp3",
-     "dur_s": 0.914
+     "at": -0.5,
+     "audio": "audio/sc001/take2_02_arthur.mp3",
+     "dur_s": 0.836
     },
     {
      "who": "CLAIRE",
      "line": "No, grazie.",
-     "audio": "audio/sc001/sc001_03_1L_claire.mp3",
-     "dur_s": 1.411
+     "at": 1.5,
+     "audio": "audio/sc001/take2_03_claire.mp3",
+     "dur_s": 1.62
     }
    ],
    "notes": "",
@@ -7474,8 +8187,8 @@
     "CHAR_claire",
     "CHAR_arthur"
    ],
-   "beatA": null,
-   "beatB": null,
+   "beatA": "b4",
+   "beatB": "b4c",
    "framing": {
     "A": {
      "type": "two",
@@ -7485,39 +8198,59 @@
      "cameraHeight": 1
     },
     "B": null
-   }
+   },
+   "action": [
+    4,
+    5.2
+   ],
+   "sfx": [
+    {
+     "name": "chips_bag",
+     "file": "audio/sc001/sfx_chips_bag.mp3",
+     "dur_s": 2.02,
+     "at": -0.2,
+     "gain": 0.35
+    },
+    {
+     "name": "chip_crunch",
+     "file": "audio/sc001/sfx_chip_crunch.mp3",
+     "dur_s": 1.509,
+     "at": 4.6,
+     "gain": 0.45
+    }
+   ]
   },
   {
-   "id": "sh130",
-   "name": "1M",
-   "beat": "b4",
-   "size": "MCU",
-   "subject": "CHAR_arthur",
-   "intent": "Arthur mangia una patatina. Guarda il telefono nelle mani di lei.",
+   "id": "sh160",
+   "name": "1P",
+   "beat": "b4c",
+   "size": "INSERT",
+   "subject": "PROP_phone",
+   "intent": "Lo sguardo di Arthur: il telefono nelle mani di lei.",
    "camera": {
     "filmback": "ALEXA35_OG",
-    "focal_mm": 50,
+    "focal_mm": 75,
     "aspect": 2.39,
     "squeeze": 1,
-    "fstop": 2.8,
-    "focus_m": 2.13
+    "fstop": 2,
+    "focus_m": 1.07
    },
    "rig": {
     "type": "static"
    },
-   "duration_s": 4,
+   "duration_s": 2.4,
    "curve": "easeInOut",
    "keys": {
     "A": {
      "position": [
-      -1.619,
-      0.721,
-      0.644
+      0.159,
+      1.22,
+      -0.66
      ],
      "target": [
-      0.397,
-      0.759,
-      -0.2
+      -0.28,
+      0.605,
+      0.1
      ],
      "roll": 0
     },
@@ -7527,37 +8260,36 @@
     {
      "who": "ARTHUR",
      "line": "Che giorno è oggi?",
-     "audio": "audio/sc001/sc001_04_1M_arthur.mp3",
+     "at": 1.4,
+     "lap": true,
+     "audio": "audio/sc001/take2_04_arthur.mp3",
      "dur_s": 1.411
     }
    ],
    "notes": "",
    "wantForeground": false,
-   "allowOcclusion": true,
-   "line": [
-    "CHAR_claire",
-    "CHAR_arthur"
-   ],
+   "allowOcclusion": false,
+   "line": null,
    "beatA": null,
    "beatB": null,
    "framing": {
     "A": {
-     "type": "ots",
-     "fg": "CHAR_claire",
-     "bg": "CHAR_arthur",
-     "side": -1,
-     "fitSize": "MCU"
+     "type": "object",
+     "object": "PROP_phone",
+     "elevation": 35,
+     "azimuth": 150,
+     "fill": 0.45
     },
     "B": null
    }
   },
   {
-   "id": "sh140",
-   "name": "1N",
-   "beat": "b4",
+   "id": "sh170",
+   "name": "1Q",
+   "beat": "b4c",
    "size": "MCU",
    "subject": "CHAR_claire",
-   "intent": "Claire risponde senza alzare gli occhi dal telefono.",
+   "intent": "Claire, senza alzare gli occhi. La domanda finisce su di lei; lei si prende il suo tempo.",
    "camera": {
     "filmback": "ALEXA35_OG",
     "focal_mm": 75,
@@ -7569,7 +8301,7 @@
    "rig": {
     "type": "static"
    },
-   "duration_s": 3.5,
+   "duration_s": 4.6,
    "curve": "easeInOut",
    "keys": {
     "A": {
@@ -7591,8 +8323,9 @@
     {
      "who": "CLAIRE",
      "line": "Sabato. Perché?",
-     "audio": "audio/sc001/sc001_05_1N_claire.mp3",
-     "dur_s": 2.194
+     "at": 1.3,
+     "audio": "audio/sc001/take2_05_claire.mp3",
+     "dur_s": 1.907
     }
    ],
    "notes": "",
@@ -7619,12 +8352,12 @@
    }
   },
   {
-   "id": "sh150",
-   "name": "1O",
-   "beat": "b4",
+   "id": "sh180",
+   "name": "1R",
+   "beat": "b4c",
    "size": "MCU",
    "subject": "CHAR_arthur",
-   "intent": "Arthur insiste, a voce bassa.",
+   "intent": "Arthur. La sua battuta parte su di lei e arriva su di lui; poi ascolta la scusa.",
    "camera": {
     "filmback": "ALEXA35_OG",
     "focal_mm": 50,
@@ -7636,7 +8369,7 @@
    "rig": {
     "type": "static"
    },
-   "duration_s": 4,
+   "duration_s": 4.6,
    "curve": "easeInOut",
    "keys": {
     "A": {
@@ -7646,9 +8379,9 @@
       0.644
      ],
      "target": [
-      0.397,
-      0.759,
-      -0.2
+      0.392,
+      0.73,
+      -0.199
      ],
      "roll": 0
     },
@@ -7658,8 +8391,16 @@
     {
      "who": "ARTHUR",
      "line": "Sabato. Avevamo detto niente lavoro.",
-     "audio": "audio/sc001/sc001_06_1O_arthur.mp3",
-     "dur_s": 3.082
+     "at": -0.6,
+     "audio": "audio/sc001/take2_06_arthur.mp3",
+     "dur_s": 2.952
+    },
+    {
+     "who": "CLAIRE",
+     "line": "È una cosa veloce.",
+     "at": 2.9,
+     "audio": "audio/sc001/take2_07_claire.mp3",
+     "dur_s": 1.437
     }
    ],
    "notes": "",
@@ -7683,12 +8424,12 @@
    }
   },
   {
-   "id": "sh160",
-   "name": "1P",
-   "beat": "b4",
+   "id": "sh190",
+   "name": "1S",
+   "beat": "b5",
    "size": "MCU",
    "subject": "CHAR_claire",
-   "intent": "Claire, gli occhi sempre sullo schermo.",
+   "intent": "\"È sempre una cosa veloce\" la colpisce. Smette di scrivere. Posa il telefono sul telo, a faccia in giù.",
    "camera": {
     "filmback": "ALEXA35_OG",
     "focal_mm": 75,
@@ -7700,7 +8441,7 @@
    "rig": {
     "type": "static"
    },
-   "duration_s": 3,
+   "duration_s": 4.4,
    "curve": "easeInOut",
    "keys": {
     "A": {
@@ -7720,10 +8461,11 @@
    },
    "dialogue": [
     {
-     "who": "CLAIRE",
-     "line": "È una cosa veloce.",
-     "audio": "audio/sc001/sc001_07_1P_claire.mp3",
-     "dur_s": 1.489
+     "who": "ARTHUR",
+     "line": "È sempre una cosa veloce.",
+     "at": -0.2,
+     "audio": "audio/sc001/take2_08_arthur.mp3",
+     "dur_s": 1.881
     }
    ],
    "notes": "",
@@ -7733,8 +8475,8 @@
     "CHAR_claire",
     "CHAR_arthur"
    ],
-   "beatA": null,
-   "beatB": null,
+   "beatA": "b4c",
+   "beatB": "b5",
    "framing": {
     "A": {
      "type": "ots",
@@ -7747,79 +8489,34 @@
      "back": 1.5
     },
     "B": null
-   }
-  },
-  {
-   "id": "sh170",
-   "name": "1Q",
-   "beat": "b4",
-   "size": "CU",
-   "subject": "CHAR_arthur",
-   "intent": "Più stretti su Arthur.",
-   "camera": {
-    "filmback": "ALEXA35_OG",
-    "focal_mm": 75,
-    "aspect": 2.39,
-    "squeeze": 1,
-    "fstop": 2.8,
-    "focus_m": 2.13
    },
-   "rig": {
-    "type": "static"
+   "action": {
+    "CHAR_claire": [
+     2,
+     3.4
+    ],
+    "CHAR_arthur": [
+     0.2,
+     1.4
+    ]
    },
-   "duration_s": 3.5,
-   "curve": "easeInOut",
-   "keys": {
-    "A": {
-     "position": [
-      -1.619,
-      0.721,
-      0.644
-     ],
-     "target": [
-      0.403,
-      0.809,
-      -0.128
-     ],
-     "roll": 0
-    },
-    "B": null
-   },
-   "dialogue": [
+   "sfx": [
     {
-     "who": "ARTHUR",
-     "line": "È sempre una cosa veloce.",
-     "audio": "audio/sc001/sc001_08_1Q_arthur.mp3",
-     "dur_s": 1.802
+     "name": "phone_down",
+     "file": "audio/sc001/sfx_phone_down.mp3",
+     "dur_s": 1.509,
+     "at": 1.83,
+     "gain": 0.55
     }
-   ],
-   "notes": "",
-   "wantForeground": false,
-   "allowOcclusion": true,
-   "line": [
-    "CHAR_claire",
-    "CHAR_arthur"
-   ],
-   "beatA": null,
-   "beatB": null,
-   "framing": {
-    "A": {
-     "type": "ots",
-     "fg": "CHAR_claire",
-     "bg": "CHAR_arthur",
-     "side": -1,
-     "fitSize": "CU"
-    },
-    "B": null
-   }
+   ]
   },
   {
-   "id": "sh180",
-   "name": "1R",
+   "id": "sh200",
+   "name": "1T",
    "beat": "b5",
    "size": "INSERT",
    "subject": "PROP_phone",
-   "intent": "Claire posa il telefono sul telo, a faccia in giù.",
+   "intent": "Il telefono a faccia in giù. Silenzio.",
    "camera": {
     "filmback": "ALEXA35_OG",
     "focal_mm": 75,
@@ -7831,7 +8528,7 @@
    "rig": {
     "type": "static"
    },
-   "duration_s": 3,
+   "duration_s": 2,
    "curve": "easeInOut",
    "keys": {
     "A": {
@@ -7868,36 +8565,36 @@
    }
   },
   {
-   "id": "sh190",
-   "name": "1S",
+   "id": "sh210",
+   "name": "1U",
    "beat": "b5",
    "size": "CU",
    "subject": "CHAR_claire",
-   "intent": "Claire lo guarda, finalmente.",
+   "intent": "Claire lo guarda, finalmente. Primo piano pulito: lo sguardo è l'evento, la battuta viene dopo.",
    "camera": {
     "filmback": "ALEXA35_OG",
-    "focal_mm": 100,
+    "focal_mm": 75,
     "aspect": 2.39,
     "squeeze": 1,
-    "fstop": 2.8,
-    "focus_m": 2.73
+    "fstop": 2,
+    "focus_m": 1.92
    },
    "rig": {
     "type": "static"
    },
-   "duration_s": 3.5,
+   "duration_s": 3.6,
    "curve": "easeInOut",
    "keys": {
     "A": {
      "position": [
-      2.149,
-      0.578,
-      1.087
+      1.266,
+      0.9,
+      0.861
      ],
      "target": [
-      -0.407,
-      0.748,
-      -0.037
+      -0.453,
+      0.757,
+      0.023
      ],
      "roll": 0
     },
@@ -7907,13 +8604,14 @@
     {
      "who": "CLAIRE",
      "line": "Vuoi farlo adesso? Qui?",
-     "audio": "audio/sc001/sc001_09_1S_claire.mp3",
-     "dur_s": 2.038
+     "at": 0.9,
+     "audio": "audio/sc001/take2_09_claire.mp3",
+     "dur_s": 2.011
     }
    ],
    "notes": "",
    "wantForeground": false,
-   "allowOcclusion": true,
+   "allowOcclusion": false,
    "line": [
     "CHAR_claire",
     "CHAR_arthur"
@@ -7922,49 +8620,45 @@
    "beatB": null,
    "framing": {
     "A": {
-     "type": "ots",
-     "fg": "CHAR_arthur",
-     "bg": "CHAR_claire",
-     "side": 1,
-     "fitSize": "CU",
-     "heightOffset": -0.06,
-     "lateral": 1.25,
-     "back": 1.5
+     "type": "single",
+     "azimuth": -26,
+     "cameraHeight": 0.9,
+     "size": "CU"
     },
     "B": null
    }
   },
   {
-   "id": "sh200",
-   "name": "1T",
+   "id": "sh220",
+   "name": "1V",
    "beat": "b5",
    "size": "CU",
    "subject": "CHAR_arthur",
-   "intent": "Arthur.",
+   "intent": "Arthur, primo piano pulito.",
    "camera": {
     "filmback": "ALEXA35_OG",
     "focal_mm": 75,
     "aspect": 2.39,
     "squeeze": 1,
-    "fstop": 2.8,
-    "focus_m": 2.06
+    "fstop": 2,
+    "focus_m": 2.04
    },
    "rig": {
     "type": "static"
    },
-   "duration_s": 4,
+   "duration_s": 3.3,
    "curve": "easeInOut",
    "keys": {
     "A": {
      "position": [
-      -1.595,
-      0.718,
-      0.646
+      -1.302,
+      0.95,
+      1.009
      ],
      "target": [
-      0.352,
-      0.806,
-      -0.118
+      0.424,
+      0.807,
+      -0.069
      ],
      "roll": 0
     },
@@ -7974,13 +8668,14 @@
     {
      "who": "ARTHUR",
      "line": "Voglio solo una giornata. Una.",
-     "audio": "audio/sc001/sc001_10_1T_arthur.mp3",
-     "dur_s": 2.926
+     "at": 0.3,
+     "audio": "audio/sc001/take2_10_arthur.mp3",
+     "dur_s": 2.377
     }
    ],
    "notes": "",
    "wantForeground": false,
-   "allowOcclusion": true,
+   "allowOcclusion": false,
    "line": [
     "CHAR_claire",
     "CHAR_arthur"
@@ -7989,22 +8684,20 @@
    "beatB": null,
    "framing": {
     "A": {
-     "type": "ots",
-     "fg": "CHAR_claire",
-     "bg": "CHAR_arthur",
-     "side": -1,
-     "fitSize": "CU"
+     "type": "single",
+     "azimuth": 26,
+     "cameraHeight": 0.95
     },
     "B": null
    }
   },
   {
-   "id": "sh210",
-   "name": "1U",
+   "id": "sh230",
+   "name": "1W",
    "beat": "b5",
    "size": "CU",
    "subject": "CHAR_claire",
-   "intent": "Claire abbassa la voce. Il carrello entra lentissimo sul suo viso, primo piano pulito.",
+   "intent": "Claire abbassa la voce. Il carrello entra lentissimo sul suo viso.",
    "camera": {
     "filmback": "ALEXA35_OG",
     "focal_mm": 75,
@@ -8016,7 +8709,7 @@
    "rig": {
     "type": "slider"
    },
-   "duration_s": 6,
+   "duration_s": 5,
    "curve": "easeInOutCubic",
    "keys": {
     "A": {
@@ -8049,15 +8742,11 @@
    "dialogue": [
     {
      "who": "CLAIRE",
-     "line": "Siamo qui per lei, Arthur.",
-     "audio": "audio/sc001/sc001_11_1U_claire.mp3",
-     "dur_s": 1.646
-    },
-    {
-     "who": "CLAIRE",
-     "line": "Lo sappiamo tutti e due.",
-     "audio": "audio/sc001/sc001_12_1U_claire.mp3",
-     "dur_s": 1.646
+     "line": "Siamo qui per lei, Arthur. Lo sappiamo tutti e due.",
+     "at": 0.7,
+     "lap": true,
+     "audio": "audio/sc001/take2_11_claire.mp3",
+     "dur_s": 3.344
     }
    ],
    "notes": "",
@@ -8082,15 +8771,78 @@
      "cameraHeight": 0.9,
      "size": "BCU"
     }
+   },
+   "move": [
+    0.3,
+    5
+   ]
+  },
+  {
+   "id": "sh240",
+   "name": "1X",
+   "beat": "b5",
+   "size": "MLS",
+   "subject": "CHAR_rebecca",
+   "intent": "\"Lei.\" Dal telo, oltre l'erba: Rebecca piccola e sola, disegna la montagna. Non sa niente.",
+   "camera": {
+    "filmback": "ALEXA35_OG",
+    "focal_mm": 65,
+    "aspect": 2.39,
+    "squeeze": 1,
+    "fstop": 2.8
+   },
+   "rig": {
+    "type": "static"
+   },
+   "duration_s": 2.8,
+   "curve": "easeInOut",
+   "keys": {
+    "A": {
+     "position": [
+      -0.3,
+      0.82,
+      -0.35
+     ],
+     "target": [
+      2.55,
+      0.03,
+      -3
+     ],
+     "roll": 0
+    },
+    "B": null
+   },
+   "dialogue": [],
+   "notes": "",
+   "wantForeground": false,
+   "allowOcclusion": false,
+   "line": null,
+   "beatA": null,
+   "beatB": null,
+   "framing": {
+    "A": {
+     "type": "raw",
+     "position": [
+      -0.3,
+      0.82,
+      -0.35
+     ],
+     "target": [
+      2.55,
+      0.03,
+      -3
+     ]
+    },
+    "B": null
    }
   },
   {
-   "id": "sh220",
-   "name": "1V",
+   "id": "sh250",
+   "name": "1Y",
    "beat": "b5",
    "size": "CU",
    "subject": "CHAR_arthur",
-   "intent": "Arthur, primo piano pulito.",
+   "intent": "Arthur. Poi riceve la risposta, e la prima metà gli arriva in faccia.",
    "camera": {
     "filmback": "ALEXA35_OG",
     "focal_mm": 75,
@@ -8102,19 +8854,19 @@
    "rig": {
     "type": "static"
    },
-   "duration_s": 3,
+   "duration_s": 2.9,
    "curve": "easeInOut",
    "keys": {
     "A": {
      "position": [
-      -1.302,
+      -1.336,
       0.95,
-      1.009
+      0.947
      ],
      "target": [
-      0.424,
+      0.427,
       0.807,
-      -0.069
+      -0.071
      ],
      "roll": 0
     },
@@ -8124,8 +8876,17 @@
     {
      "who": "ARTHUR",
      "line": "Anch'io sono qui.",
-     "audio": "audio/sc001/sc001_13_1V_arthur.mp3",
-     "dur_s": 1.306
+     "at": -0.5,
+     "audio": "audio/sc001/take2_12_arthur.mp3",
+     "dur_s": 1.202
+    },
+    {
+     "who": "CLAIRE",
+     "line": "Sei seduto qui. È diverso.",
+     "at": 1.6,
+     "lap": true,
+     "audio": "audio/sc001/take2_13_claire.mp3",
+     "dur_s": 2.429
     }
    ],
    "notes": "",
@@ -8140,38 +8901,38 @@
    "framing": {
     "A": {
      "type": "single",
-     "azimuth": 26,
+     "azimuth": 24,
      "cameraHeight": 0.95
     },
     "B": null
    }
   },
   {
-   "id": "sh230",
-   "name": "1W",
+   "id": "sh260",
+   "name": "1Z",
    "beat": "b5",
-   "size": "CU",
+   "size": "BCU",
    "subject": "CHAR_claire",
-   "intent": "Claire.",
+   "intent": "Claire: \"È diverso.\" Lo tiene.",
    "camera": {
     "filmback": "ALEXA35_OG",
-    "focal_mm": 75,
+    "focal_mm": 85,
     "aspect": 2.39,
     "squeeze": 1,
     "fstop": 2,
-    "focus_m": 1.47
+    "focus_m": 1.67
    },
    "rig": {
     "type": "static"
    },
-   "duration_s": 4,
+   "duration_s": 2.6,
    "curve": "easeInOut",
    "keys": {
     "A": {
      "position": [
-      0.926,
+      1.106,
       0.9,
-      0.637
+      0.717
      ],
      "target": [
       -0.415,
@@ -8182,14 +8943,7 @@
     },
     "B": null
    },
-   "dialogue": [
-    {
-     "who": "CLAIRE",
-     "line": "Sei seduto qui. È diverso.",
-     "audio": "audio/sc001/sc001_14_1W_claire.mp3",
-     "dur_s": 2.194
-    }
-   ],
+   "dialogue": [],
    "notes": "",
    "wantForeground": false,
    "allowOcclusion": false,
@@ -8210,12 +8964,12 @@
    }
   },
   {
-   "id": "sh240",
-   "name": "1X",
+   "id": "sh270",
+   "name": "1AA",
    "beat": "b5",
    "size": "BCU",
    "subject": "CHAR_arthur",
-   "intent": "Arthur apre la bocca. La richiude.",
+   "intent": "Arthur apre la bocca. La richiude. Il silenzio dura. Poi, sotto, il telefono vibra contro il telo.",
    "camera": {
     "filmback": "ALEXA35_OG",
     "focal_mm": 85,
@@ -8227,7 +8981,7 @@
    "rig": {
     "type": "static"
    },
-   "duration_s": 4,
+   "duration_s": 4.6,
    "curve": "easeInOut",
    "keys": {
     "A": {
@@ -8262,15 +9016,24 @@
      "cameraHeight": 0.95
     },
     "B": null
-   }
+   },
+   "sfx": [
+    {
+     "name": "phone_buzz",
+     "file": "audio/sc001/sfx_phone_buzz.mp3",
+     "dur_s": 3.019,
+     "at": 3.7,
+     "gain": 0.6
+    }
+   ]
   },
   {
-   "id": "sh250",
-   "name": "1Y",
+   "id": "sh280",
+   "name": "1AB",
    "beat": "b6",
    "size": "INSERT",
    "subject": "PROP_phone",
-   "intent": "Il telefono di Claire vibra contro il telo.",
+   "intent": "Il telefono vibra, a faccia in giù.",
    "camera": {
     "filmback": "ALEXA35_OG",
     "focal_mm": 100,
@@ -8282,7 +9045,7 @@
    "rig": {
     "type": "static"
    },
-   "duration_s": 3,
+   "duration_s": 2.5,
    "curve": "easeInOut",
    "keys": {
     "A": {
@@ -8316,34 +9079,170 @@
      "fill": 0.6
     },
     "B": null
+   },
+   "sfx": [
+    {
+     "name": "phone_buzz",
+     "file": "audio/sc001/sfx_phone_buzz.mp3",
+     "dur_s": 3.019,
+     "at": 1,
+     "gain": 0.55
+    }
+   ]
+  },
+  {
+   "id": "sh290",
+   "name": "1AC",
+   "beat": "b6t",
+   "size": "MCU",
+   "subject": "CHAR_claire",
+   "intent": "Lei lo guarda. Non lo prende. Teniamo. Poi lo prende.",
+   "camera": {
+    "filmback": "ALEXA35_OG",
+    "focal_mm": 65,
+    "aspect": 2.39,
+    "squeeze": 1,
+    "fstop": 2,
+    "focus_m": 2.58
+   },
+   "rig": {
+    "type": "static"
+   },
+   "duration_s": 6.4,
+   "curve": "easeInOut",
+   "keys": {
+    "A": {
+     "position": [
+      0.899,
+      0.5,
+      2.259
+     ],
+     "target": [
+      -0.386,
+      0.68,
+      0.033
+     ],
+     "roll": 0
+    },
+    "B": null
+   },
+   "dialogue": [],
+   "notes": "",
+   "wantForeground": false,
+   "allowOcclusion": false,
+   "line": [
+    "CHAR_claire",
+    "CHAR_arthur"
+   ],
+   "beatA": "b6",
+   "beatB": "b6t",
+   "framing": {
+    "A": {
+     "type": "single",
+     "beat": "b6t",
+     "azimuth": -60,
+     "cameraHeight": 0.5,
+     "size": "MCU"
+    },
+    "B": null
+   },
+   "action": {
+    "CHAR_claire": [
+     3.8,
+     5
+    ]
    }
   },
   {
-   "id": "sh260",
-   "name": "1Z",
-   "beat": "b6",
-   "size": "FS",
-   "subject": "CHAR_claire",
-   "intent": "Lei lo guarda. Non lo prende. Poi lo prende. Arthur strappa un filo d'erba e lo arrotola tra le dita. Il carrello si allontana piano.",
+   "id": "sh300",
+   "name": "1AD",
+   "beat": "b6t",
+   "size": "INSERT",
+   "subject": "PROP_grass_blade",
+   "intent": "Le dita di Arthur: strappa un filo d'erba e lo arrotola. L'unico gesto che lo tiene a terra.",
    "camera": {
     "filmback": "ALEXA35_OG",
-    "focal_mm": 40,
+    "focal_mm": 75,
+    "aspect": 2.39,
+    "squeeze": 1,
+    "fstop": 2,
+    "focus_m": 1.5
+   },
+   "rig": {
+    "type": "static"
+   },
+   "duration_s": 4.2,
+   "curve": "easeInOut",
+   "keys": {
+    "A": {
+     "position": [
+      0.59,
+      1.879,
+      -0.425
+     ],
+     "target": [
+      0.16,
+      0.65,
+      0.32
+     ],
+     "roll": 0
+    },
+    "B": null
+   },
+   "dialogue": [],
+   "notes": "",
+   "wantForeground": false,
+   "allowOcclusion": true,
+   "line": null,
+   "beatA": null,
+   "beatB": null,
+   "framing": {
+    "A": {
+     "type": "object",
+     "object": "PROP_grass_blade",
+     "elevation": 55,
+     "azimuth": 150,
+     "fill": 0.3
+    },
+    "B": null
+   },
+   "sfx": [
+    {
+     "name": "grass",
+     "file": "audio/sc001/sfx_grass.mp3",
+     "dur_s": 2.02,
+     "at": -0.1,
+     "gain": 0.5
+    }
+   ]
+  },
+  {
+   "id": "sh310",
+   "name": "1AE",
+   "beat": "b6t",
+   "size": "WS",
+   "subject": "CHAR_claire",
+   "intent": "Il braccio si alza piano: i due sul telo, il vuoto tra loro; oltre, Rebecca piccola sul prato con la sua montagna.",
+   "camera": {
+    "filmback": "ALEXA35_OG",
+    "focal_mm": 32,
     "aspect": 2.39,
     "squeeze": 1,
     "fstop": 2.8,
-    "focus_m": 3.32
+    "focus_m": 2.65
    },
    "rig": {
-    "type": "dolly"
+    "type": "crane",
+    "arm": 9
    },
-   "duration_s": 10,
+   "duration_s": 11,
    "curve": "easeInOutCubic",
    "keys": {
     "A": {
      "position": [
-      0.297,
-      0.95,
-      3.315
+      0.235,
+      1,
+      2.636
      ],
      "target": [
       0,
@@ -8354,14 +9253,14 @@
     },
     "B": {
      "position": [
-      0.642,
-      0.95,
-      7.113
+      0.9,
+      5.2,
+      6.2
      ],
      "target": [
-      0,
-      0.798,
-      0.05
+      1.1,
+      0.2,
+      -1.2
      ],
      "roll": 0
     }
@@ -8383,20 +9282,55 @@
      "b": "CHAR_arthur",
      "size": "FS",
      "side": 1,
-     "cameraHeight": 0.95
+     "cameraHeight": 1
     },
     "B": {
-     "type": "two",
-     "a": "CHAR_claire",
-     "b": "CHAR_arthur",
-     "size": "WS",
-     "side": 1,
-     "cameraHeight": 0.95
+     "type": "raw",
+     "position": [
+      0.9,
+      5.2,
+      6.2
+     ],
+     "target": [
+      1.1,
+      0.2,
+      -1.2
+     ]
     }
-   }
+   },
+   "move": [
+    1.4,
+    10.4
+   ]
   }
  ],
  "notes": "Nord = -Z (montagna dalla cima spezzata). Est = +X. Origine = centro del telo. Rushmore a NO, lontano. Geometrie da sostituire con il blockout da reference quando arriva l'immagine della location.",
+ "sound": {
+  "ambience": [
+   {
+    "name": "high",
+    "file": "audio/sc001/amb_high.mp3",
+    "dur_s": 15,
+    "gain": 0.32,
+    "from": "1A",
+    "to": "1B",
+    "fadeIn": 1.5,
+    "fadeOut": 2.5,
+    "loop": true
+   },
+   {
+    "name": "clearing",
+    "file": "audio/sc001/amb_clearing.mp3",
+    "dur_s": 30,
+    "gain": 0.2,
+    "from": "1B",
+    "to": null,
+    "fadeIn": 3,
+    "fadeOut": 3,
+    "loop": true
+   }
+  ]
+ },
  "cast": {
   "ARTHUR": {
    "voice": "Julian",

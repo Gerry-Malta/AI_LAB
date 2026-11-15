@@ -32,7 +32,7 @@ python3 -m http.server 8000      # then http://localhost:8000/layout_studio/
 | `tests/core.test.mjs` | `node --test tests/core.test.mjs` |
 | `tests/smoke.mjs` | headless Playwright run: loads a scene, walks the shots, screenshots, fails on JS errors |
 | `tools/render_mp4.mjs` | offline sequence render to MP4, dialogue included (see below) |
-| `tools/mix_dialogue.mjs` | lays the recorded dialogue onto a rendered video, on the same frame plan |
+| `tools/mix_dialogue.mjs` | lays the scene's sound (dialogue, effects, ambience) onto a rendered video, on the same frame plan |
 
 ## Workflow: five steps
 
@@ -44,7 +44,8 @@ explains itself when the cursor rests on it for half a second.
    shows tape marks on the floor: a ring where the actor stands, an arrow for the facing, a dashed line for the move
    between beats, the selected beat in bold (**M** toggles them).
 3. **Camera**: shots, lens, rig, keys A and B (labelled in the viewport), timing curve; the shot check grades the frame.
-4. **Sound**: dialogue per shot, the voice cast, where each line sits in the shot, a play button per take.
+4. **Sound**: the voice cast, the ambience beds, and per shot the lines and effects on one timing bar (lines that start
+   before the cut or run past it are marked), with a play button on every take.
 5. **Review**: every shot with its score and voices, real-time screening of the edit, exports.
 
 ## Controls (Unreal style)
@@ -128,23 +129,43 @@ risk, rig limits (speed, track, boom range, crane reach, pan rate) and the 180°
 in the framing definition (a push-in that passes its foreground). Each shot gets a 0–100 score; the intent is "first pass that a human
 then nudges", not taste.
 
-## Dialogue voices (Higgsfield)
+## Editing: timing inside the shots
 
-Dialogue lines live in the shots (`{ who, line, at? }`). Claude voices them from the chat with Higgsfield text-to-speech
-(ElevenLabs engine), one voice per character, and saves the takes next to the scene:
-`scenes/<project>/audio/<scene>/*.mp3` plus `voices.json` (cast, and which take belongs to which line). The build script
-attaches them with `B.voices(...)`; a take is used only while its text still matches the line, so an edited line never
-plays a stale take. Each line gets a start and length inside its shot (from the take, or estimated from the text without
-one), and that one timeline drives the subtitles, the live playback, Export MP4 and the offline render. A line that runs
-past the cut is flagged. To change a voice or a delivery, ask Claude (for example "voice scene 1 again, Arthur deeper").
+A previs cut feels mechanical when every move starts on the first frame and every line half a second after the cut.
+Three controls give a shot its own rhythm:
+
+* `move: [start_s, end_s]`: the camera holds until something motivates the move (an actor gets up, a line lands) and
+  settles before the cut. The shot's curve eases inside the window.
+* `action: [start_s, end_s]`, or `{ CHAR_id: [s, e], default: [s, e] }`: when the actors go from the first beat to the
+  second. Each actor can have their own window, so one can leave while the other keeps drawing.
+* Dialogue `at` (seconds in the shot) may be negative: the line starts over the previous shot and the cut lands inside it
+  (a J-cut). `lap: true` lets a line run into the next shot, so we watch the listener (an L-cut).
+
+Beats can also move, turn or hide props (`PROP_id: { position, facing, visible }`): the phone in Claire's hands, then
+face down on the blanket. Insert framings and the shot check follow the prop to where the beat puts it.
+
+## Sound: voices, effects, ambience (Higgsfield)
+
+Claude makes the sound from the chat with Higgsfield and saves it next to the scene, in `scenes/<project>/audio/<scene>/`:
+
+* **Voices**: one voice per character. A whole exchange is voiced as one performance (ElevenLabs Eleven v4, with short
+  acting directions), then cut line by line, so the delivery and the pauses stay natural. `voices.json` maps takes to
+  lines; the build attaches a take only while its text still matches the line.
+* **Effects and ambience**: Mirelo text-to-audio. `sounds.json` lists them with their length and their loudest moment.
+  A shot names its effects (`sfx: [{ sound: 'phone_buzz', at: 1.2, gain: 0.6, align: 'start' }]`): by default the
+  loudest moment lands on `at`. `B.ambience([...])` lays looped beds under the edit, from one shot to another, with fades.
+
+Everything sits on one clock (`core/edit.js`, on the exporters' frame plan): subtitles, live playback, Export MP4 and the
+offline mix use the same times. To change a voice, a delivery or a sound, ask Claude (for example "Claire more tired",
+"a woodpecker far away in 1D").
 
 ## Previs of the edit (real-time playback and MP4)
 
 * **Real time, in the viewer.** **▶ all** in the timeline switches to the lens view and plays every shot back to back on your GPU,
-  letterboxed to the lens aspect, with the stand-ins moving between their beat marks and the dialogue as subtitles. **L** goes
-  back to the world view.
+  letterboxed to the lens aspect, with the stand-ins moving between their beat marks, subtitles, voices, effects and
+  ambience. **L** goes back to the world view; **♪ sound** mutes.
 * **Export MP4** (top bar, or step 5) renders the same sequence frame by frame on your GPU and encodes it in the browser with
-  WebCodecs (H.264 where the browser has it, else VP9 or AV1), with the dialogue track (AAC, else Opus), then downloads the file.
+  WebCodecs (H.264 where the browser has it, else VP9 or AV1), with the sound mixed through a limiter (AAC, else Opus), then downloads the file.
   Options: all shots or the current one, 1280 to 3840 wide, supersampling 1 to 2×, 24/25/30 fps, burn-in (shot, lens, rig,
   timecode, action text, subtitles), dialogue on or off. Nothing is uploaded. Recent Chrome, Edge, Safari or Firefox.
 * **Offline, headless:** `node tools/render_mp4.mjs scenes/<project>/<scene>.json out.mp4 [--fps 24] [--width 1920] [--height 804] [--ss 1.5] [--fast] [--shots 1A,1B]`
@@ -152,7 +173,7 @@ past the cut is flagged. To change a voice or a delivery, ask Claude (for exampl
   Use it on a machine with a GPU, or for automation.
   Without a GPU Chromium falls back to a CPU renderer (SwiftShader) at about 1 to 3 frames per second; `--fast` (Lambert shading,
   lighter shadows, no logarithmic depth) and `--width 1280 --height 536 --ss 1.5` keep previews quick. Split long scenes with
-  `--shots` across processes (with `--no-audio`), join the parts with `ffmpeg -f concat -c copy`, then add the voices with
+  `--shots` across processes (with `--no-audio`), join the parts with `ffmpeg -f concat -c copy`, then lay the sound on with
   `node tools/mix_dialogue.mjs <scene.json> joined.mp4 final.mp4`.
 * `--ss` / supersampling renders more pixels and filters them down, so thin edges do not crawl during moves.
 * Shadows are fitted to the area where the action is (4096 map, 2048 in fast mode), so they stay sharp and stable.
@@ -172,6 +193,7 @@ past the cut is flagged. To change a voice or a delivery, ask Claude (for exampl
 
 ## Status
 
-v0.2 — viewer + deterministic core, Unreal-style mannequins with acting, subject following, real-time screening of the edit,
-in-browser MP4 export, and TIMELESS Scene 1. Next: the agent loop that writes build scripts from the screenplay and iterates
-on the shot check, more TIMELESS scenes, USD/FBX camera export, Unreal bridge, stand-in animation clips.
+v0.3 — viewer + deterministic core, Unreal-style mannequins with acting, subject following, real-time screening, in-browser
+MP4 export, editorial timing (move and action windows, J/L cuts, props per beat), sound (voices as one performance,
+effects, ambience) and TIMELESS Scene 1 recut. Next: the agent loop that writes build scripts from the screenplay and
+iterates on the shot check, more TIMELESS scenes, USD/FBX camera export, Unreal bridge, stand-in animation clips.

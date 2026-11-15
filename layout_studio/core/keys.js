@@ -34,8 +34,10 @@ export function solveKeyDef(scene, shot, def, lens, beatId) {
       return { position: r.position, target: r.target, roll: def.roll || 0, meta: r };
     }
     case 'object': {
-      const o = (scene.objects || []).find((x) => x.id === def.object);
+      let o = (scene.objects || []).find((x) => x.id === def.object);
       if (!o) throw new Error(`unknown object ${def.object}`);
+      const moved = (((scene.beats || []).find((b) => b.id === beat) || {}).blocking || {})[o.id]; // a prop the beat moves: a phone in a hand
+      if (moved && moved.position) o = Object.assign({}, o, { position: moved.position });
       const size = o.size || [1, 1, 1];
       const center = [o.position[0], o.position[1] + size[1] / 2, o.position[2]];
       const r = frameObject(Object.assign({}, def, { center, size, lens }));
