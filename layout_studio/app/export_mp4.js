@@ -34,6 +34,16 @@ export async function pickCodec(width, height, fps, bitrate = defaultBitrate(wid
   return null;
 }
 
+/** First audio encoder the browser has: AAC (plays everywhere), else Opus. */
+export async function pickAudioCodec(sampleRate, numberOfChannels) {
+  if (typeof globalThis.AudioEncoder !== 'function' || typeof globalThis.AudioData !== 'function') return null;
+  for (const [mux, codec] of [['aac', 'mp4a.40.2'], ['opus', 'opus']]) {
+    const config = { codec, sampleRate, numberOfChannels, bitrate: 128000 };
+    try { const res = await AudioEncoder.isConfigSupported(config); if (res && res.supported) return { mux, config }; } catch (e) { /* next */ }
+  }
+  return null;
+}
+
 // Yield to the page without timers (timers are throttled in background tabs): progress bar and Cancel stay live.
 const yieldToPage = () => new Promise((resolve) => { const ch = new MessageChannel(); ch.port1.onmessage = () => resolve(); ch.port2.postMessage(0); });
 
@@ -49,8 +59,9 @@ async function drain(encoder, max, failed) {
 
 /**
  * Encode frames to an MP4 Blob.
- * opts: { width, height, fps, frames, renderFrame(i) -> canvas (or a promise of one), bitrate?, keyEvery?, signal?, onProgress? }
- * Returns { blob, codec, codecName, bitrate, frames, seconds }.
+ * opts: { width, height, fps, frames, renderFrame(i) -> canvas (or a promise of one), bitrate?, keyEvery?, signal?, onProgress?,
+ *         audio?: AudioBuffer (the mixed track, as long as the video) }
+ * Returns { blob, codec, codecName, bitrate, frames, seconds, audioCodec }.
  */
 export async function encodeMP4(opts) {
   const { width, height, fps, frames, renderFrame, signal, onProgress } = opts;
@@ -59,8 +70,14 @@ export async function encodeMP4(opts) {
   const bitrate = opts.bitrate || defaultBitrate(width, height, fps);
   const pick = await pickCodec(width, height, fps, bitrate);
   if (!pick) throw new Error(`This browser has no video encoder for ${width}×${height}. Try a smaller size.`);
+  const audio = opts.audio || null;
+  const apick = audio ? await pickAudioCodec(audio.sampleRate, audio.numberOfChannels) : null;
   const { Muxer, ArrayBufferTarget } = await loadMuxer();
-  const muxer = new Muxer({ target: new ArrayBufferTarget(), video: { codec: pick.mux, width, height, frameRate: fps }, fastStart: 'in-memory', firstTimestampBehavior: 'offset' });
+  const muxer = new Muxer({
+    target: new ArrayBufferTarget(), video: { codec: pick.mux, width, height, frameRate: fps },
+    audio: apick ? { codec: apick.mux, sampleRate: audio.sampleRate, numberOfChannels: audio.numberOfChannels } : undefined,
+    fastStart: 'in-memory', firstTimestampBehavior: 'offset',
+  });
   let failure = null;
   const encoder = new VideoEncoder({
     output: (chunk, meta) => { try { muxer.addVideoChunk(chunk, meta); } catch (e) { failure = failure || e; } },
@@ -82,10 +99,36 @@ export async function encodeMP4(opts) {
     }
     await encoder.flush();
     if (failure) throw failure;
+    if (apick) await encodeAudio(audio, apick, muxer, signal);
     muxer.finalize();
   } finally {
     if (encoder.state !== 'closed') encoder.close();
   }
   const blob = new Blob([muxer.target.buffer], { type: 'video/mp4' });
-  return { blob, codec: pick.config.codec, codecName: codecName(pick.config.codec), bitrate, frames, seconds: (performance.now() - t0) / 1000 };
+  return { blob, codec: pick.config.codec, codecName: codecName(pick.config.codec), bitrate, frames, seconds: (performance.now() - t0) / 1000, audioCodec: apick ? apick.mux : null };
+}
+
+/** Encode an AudioBuffer in blocks and hand the chunks to the muxer. */
+async function encodeAudio(buffer, pick, muxer, signal) {
+  let failure = null;
+  const enc = new AudioEncoder({
+    output: (chunk, meta) => { try { muxer.addAudioChunk(chunk, meta); } catch (e) { failure = failure || e; } },
+    error: (e) => { failure = failure || e; },
+  });
+  enc.configure(pick.config);
+  const ch = buffer.numberOfChannels, sr = buffer.sampleRate, N = buffer.length, block = 4800;
+  const planes = Array.from({ length: ch }, (_, c) => buffer.getChannelData(c));
+  try {
+    for (let off = 0; off < N; off += block) {
+      if (signal && signal.aborted) throw new DOMException('Export cancelled', 'AbortError');
+      if (failure) throw failure;
+      const n = Math.min(block, N - off), data = new Float32Array(n * ch);
+      for (let c = 0; c < ch; c++) data.set(planes[c].subarray(off, off + n), c * n);
+      const ad = new AudioData({ format: 'f32-planar', sampleRate: sr, numberOfFrames: n, numberOfChannels: ch, timestamp: Math.round((off / sr) * 1e6), data });
+      enc.encode(ad); ad.close();
+      if (enc.encodeQueueSize > 24) await yieldToPage();
+    }
+    await enc.flush();
+    if (failure) throw failure;
+  } finally { if (enc.state !== 'closed') enc.close(); }
 }

@@ -54,6 +54,20 @@ await page.keyboard.press('Control+KeyZ'); await page.waitForTimeout(200);
 const after = await page.evaluate(() => LS.S.scene.objects.length);
 console.log('objects after undo', after, 'expected', info.objects);
 
+// hover help: resting the cursor on a control shows its tooltip
+const eb = await (await page.$('#btn-export')).boundingBox();
+await page.mouse.move(eb.x + 8, eb.y + 8); await page.mouse.move(eb.x + 10, eb.y + 9);
+await page.waitForFunction(() => document.querySelector('#tip') && document.querySelector('#tip').classList.contains('show'), null, { timeout: 5000 }).catch(() => {});
+const tipText = await page.evaluate(() => { const t = document.querySelector('#tip'); return t && t.classList.contains('show') ? t.textContent : ''; });
+console.log('tooltip', JSON.stringify(tipText));
+if (!/graphics card/.test(tipText)) errors.push('pageerror: no tooltip on the Export MP4 button');
+await page.mouse.move(5, 300);
+// the five steps open and show their how-to line
+const steps = await page.evaluate(() => [...document.querySelectorAll('#steps button')].map((b) => { b.click(); return [b.dataset.tab, document.querySelector('#step-hint').textContent.length > 40, !document.querySelector(`#tab-${b.dataset.tab}`).classList.contains('hidden')]; }));
+console.log('steps', JSON.stringify(steps));
+if (steps.some((x) => !x[1] || !x[2])) errors.push('pageerror: a workflow step did not open');
+await page.evaluate(() => document.querySelector('#steps button[data-tab="outliner"]').click());
+
 // Export MP4 dialog + a short in-browser encode (WebCodecs + mp4-muxer), checked with ffprobe when it is installed
 await page.click('#btn-export'); await page.waitForTimeout(800);
 const dlg = await page.evaluate(() => ({ open: !document.querySelector('#export').classList.contains('hidden'), summary: document.querySelector('#ex-summary').textContent, codec: document.querySelector('#ex-codec').textContent }));

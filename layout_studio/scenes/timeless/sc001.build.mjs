@@ -138,7 +138,7 @@ B.shot({ id: 'sh030', name: '1C', beat: 'b1', size: 'MS', subject: 'CHAR_rebecca
   A: { type: 'single', azimuth: -55, cameraHeight: 0.32, leadRoom: 0.1 } });
 B.shot({ id: 'sh040', name: '1D', beat: 'b2', beatA: 'b1b', beatB: 'b2', size: 'FS', subject: 'CHAR_arthur', intent: 'Arthur la guarda, si alza e la raggiunge: Steadicam lo segue dal telo fino a Rebecca e si posa sul due.', lens: { focal_mm: 40 }, rig: { type: 'steadicam', follow: true, followVertical: 1 }, duration_s: 10, curve: 'easeInOut',
   A: { type: 'single', beat: 'b1b', azimuth: -80, cameraHeight: 0.85, leadRoom: 0.15, size: 'MCU' }, B: { type: 'two', beat: 'b2', a: 'CHAR_arthur', b: 'CHAR_rebecca', size: 'FS', side: 1, cameraHeight: 0.8, azimuthOffset: -20 } });
-B.shot({ id: 'sh050', name: '1E', beat: 'b2', size: 'MCU', subject: 'CHAR_arthur', intent: '"Posso?" Arthur accovacciato raccoglie i fogli e li guarda. Macchina a mano appena viva.', lens: { focal_mm: 65, fstop: 2 }, rig: { type: 'handheld', seed: 3, shake: 0.8 }, duration_s: 8, dialogue: [{ who: 'ARTHUR', line: 'Posso?' }],
+B.shot({ id: 'sh050', name: '1E', beat: 'b2', size: 'MCU', subject: 'CHAR_arthur', intent: '"Posso?" Arthur accovacciato raccoglie i fogli e li guarda. Macchina a mano appena viva.', lens: { focal_mm: 65, fstop: 2 }, rig: { type: 'handheld', seed: 3, shake: 0.8 }, duration_s: 8, dialogue: [{ who: 'ARTHUR', line: 'Posso?', at: 0.3 }],
   A: { type: 'single', azimuth: -35, cameraHeight: 0.75 }, B: { type: 'single', azimuth: -35, cameraHeight: 0.75 } }); // below his eyes: he looks down at the sheets
 B.shot({ id: 'sh060', name: '1F', beat: 'b2', size: 'INSERT', subject: 'PROP_drawing_1', intent: 'Inserto: il disegno. Tre figure. La mamma e il papà senza piedi, galleggiano sopra la linea del prato.', lens: { focal_mm: 75, fstop: 2.8 }, rig: { type: 'static' }, duration_s: 4,
   A: { type: 'object', object: 'PROP_drawing_1', elevation: 72, azimuth: 20, fill: 0.75 } });
@@ -155,7 +155,7 @@ B.shot({ id: 'sh110', name: '1K', beat: 'b3', size: 'INSERT', subject: 'PROP_she
 // ---- on the blanket: the confrontation, covered line by line (180° line Claire–Arthur, camera south) ----
 const A_ = 'CHAR_arthur', C_ = 'CHAR_claire';
 const otsOnArthur = (fit) => ({ type: 'ots', fg: C_, bg: A_, side: -1, fitSize: fit });
-const otsOnClaire = (fit) => ({ type: 'ots', fg: A_, bg: C_, side: 1, fitSize: fit, heightOffset: -0.06 }); // just under the shoulder line: her face, not her crown
+const otsOnClaire = (fit) => ({ type: 'ots', fg: A_, bg: C_, side: 1, fitSize: fit, heightOffset: -0.06, lateral: 1.25, back: 1.5 }); // low (she looks down at the phone) and wide of his raised arm: her face reads, his shoulder frames the edge
 B.shot({ id: 'sh120', name: '1L', beat: 'b4', size: 'FS', subject: C_, intent: 'Sul telo, due. Arthur porge a Claire un sacchetto di patatine. Il mezzo metro vuoto tra loro al centro del quadro.', lens: { focal_mm: 40 }, rig: { type: 'static' }, duration_s: 6, line: LINE,
   dialogue: [{ who: 'ARTHUR', line: 'Ne vuoi?' }, { who: 'CLAIRE', line: 'No, grazie.' }],
   A: { type: 'two', a: C_, b: A_, side: 1, cameraHeight: 1.0 } });
@@ -189,5 +189,6 @@ B.shot({ id: 'sh250', name: '1Y', beat: 'b6', size: 'INSERT', subject: 'PROP_pho
 B.shot({ id: 'sh260', name: '1Z', beat: 'b6', size: 'FS', subject: C_, intent: 'Lei lo guarda. Non lo prende. Poi lo prende. Arthur strappa un filo d\'erba e lo arrotola tra le dita. Il carrello si allontana piano.', lens: { focal_mm: 40 }, rig: { type: 'dolly' }, duration_s: 10, curve: 'easeInOutCubic', line: LINE,
   A: { type: 'two', a: C_, b: A_, size: 'FS', side: 1, cameraHeight: 0.95 }, B: { type: 'two', a: C_, b: A_, size: 'WS', side: 1, cameraHeight: 0.95 } });
 
+console.log('voiced lines:', B.voices(path.join(here, 'audio', 'sc001', 'voices.json')));
 console.log(B.report());
 console.log('saved', B.save(path.join(here, 'sc001.json')));

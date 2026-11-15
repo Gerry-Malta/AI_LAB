@@ -7009,7 +7009,10 @@
    "dialogue": [
     {
      "who": "ARTHUR",
-     "line": "Posso?"
+     "line": "Posso?",
+     "at": 0.3,
+     "audio": "audio/sc001/sc001_00_1E_arthur.mp3",
+     "dur_s": 0.679
     }
    ],
    "notes": "",
@@ -7190,7 +7193,9 @@
    "dialogue": [
     {
      "who": "ARTHUR",
-     "line": "Ti voglio bene, scimmietta."
+     "line": "Ti voglio bene, scimmietta.",
+     "audio": "audio/sc001/sc001_01_1H_arthur.mp3",
+     "dur_s": 2.038
     }
    ],
    "notes": "",
@@ -7451,11 +7456,15 @@
    "dialogue": [
     {
      "who": "ARTHUR",
-     "line": "Ne vuoi?"
+     "line": "Ne vuoi?",
+     "audio": "audio/sc001/sc001_02_1L_arthur.mp3",
+     "dur_s": 0.914
     },
     {
      "who": "CLAIRE",
-     "line": "No, grazie."
+     "line": "No, grazie.",
+     "audio": "audio/sc001/sc001_03_1L_claire.mp3",
+     "dur_s": 1.411
     }
    ],
    "notes": "",
@@ -7517,7 +7526,9 @@
    "dialogue": [
     {
      "who": "ARTHUR",
-     "line": "Che giorno è oggi?"
+     "line": "Che giorno è oggi?",
+     "audio": "audio/sc001/sc001_04_1M_arthur.mp3",
+     "dur_s": 1.411
     }
    ],
    "notes": "",
@@ -7549,11 +7560,11 @@
    "intent": "Claire risponde senza alzare gli occhi dal telefono.",
    "camera": {
     "filmback": "ALEXA35_OG",
-    "focal_mm": 50,
+    "focal_mm": 75,
     "aspect": 2.39,
     "squeeze": 1,
     "fstop": 2.8,
-    "focus_m": 2.13
+    "focus_m": 2.78
    },
    "rig": {
     "type": "static"
@@ -7563,14 +7574,14 @@
    "keys": {
     "A": {
      "position": [
-      1.704,
+      2.185,
       0.583,
-      0.333
+      1.087
      ],
      "target": [
-      -0.438,
-      0.676,
-      -0.114
+      -0.435,
+      0.692,
+      -0.086
      ],
      "roll": 0
     },
@@ -7579,7 +7590,9 @@
    "dialogue": [
     {
      "who": "CLAIRE",
-     "line": "Sabato. Perché?"
+     "line": "Sabato. Perché?",
+     "audio": "audio/sc001/sc001_05_1N_claire.mp3",
+     "dur_s": 2.194
     }
    ],
    "notes": "",
@@ -7598,7 +7611,9 @@
      "bg": "CHAR_claire",
      "side": 1,
      "fitSize": "MCU",
-     "heightOffset": -0.06
+     "heightOffset": -0.06,
+     "lateral": 1.25,
+     "back": 1.5
     },
     "B": null
    }
@@ -7642,7 +7657,9 @@
    "dialogue": [
     {
      "who": "ARTHUR",
-     "line": "Sabato. Avevamo detto niente lavoro."
+     "line": "Sabato. Avevamo detto niente lavoro.",
+     "audio": "audio/sc001/sc001_06_1O_arthur.mp3",
+     "dur_s": 3.082
     }
    ],
    "notes": "",
@@ -7674,11 +7691,11 @@
    "intent": "Claire, gli occhi sempre sullo schermo.",
    "camera": {
     "filmback": "ALEXA35_OG",
-    "focal_mm": 50,
+    "focal_mm": 75,
     "aspect": 2.39,
     "squeeze": 1,
     "fstop": 2.8,
-    "focus_m": 2.13
+    "focus_m": 2.78
    },
    "rig": {
     "type": "static"
@@ -7688,14 +7705,14 @@
    "keys": {
     "A": {
      "position": [
-      1.704,
+      2.185,
       0.583,
-      0.333
+      1.087
      ],
      "target": [
-      -0.438,
-      0.676,
-      -0.114
+      -0.435,
+      0.692,
+      -0.086
      ],
      "roll": 0
     },
@@ -7704,7 +7721,9 @@
    "dialogue": [
     {
      "who": "CLAIRE",
-     "line": "È una cosa veloce."
+     "line": "È una cosa veloce.",
+     "audio": "audio/sc001/sc001_07_1P_claire.mp3",
+     "dur_s": 1.489
     }
    ],
    "notes": "",
@@ -7723,7 +7742,9 @@
      "bg": "CHAR_claire",
      "side": 1,
      "fitSize": "MCU",
-     "heightOffset": -0.06
+     "heightOffset": -0.06,
+     "lateral": 1.25,
+     "back": 1.5
     },
     "B": null
    }
@@ -7767,7 +7788,9 @@
    "dialogue": [
     {
      "who": "ARTHUR",
-     "line": "È sempre una cosa veloce."
+     "line": "È sempre una cosa veloce.",
+     "audio": "audio/sc001/sc001_08_1Q_arthur.mp3",
+     "dur_s": 1.802
     }
    ],
    "notes": "",
@@ -7853,11 +7876,11 @@
    "intent": "Claire lo guarda, finalmente.",
    "camera": {
     "filmback": "ALEXA35_OG",
-    "focal_mm": 75,
+    "focal_mm": 100,
     "aspect": 2.39,
     "squeeze": 1,
     "fstop": 2.8,
-    "focus_m": 2.07
+    "focus_m": 2.73
    },
    "rig": {
     "type": "static"
@@ -7867,14 +7890,14 @@
    "keys": {
     "A": {
      "position": [
-      1.667,
+      2.149,
       0.578,
-      0.334
+      1.087
      ],
      "target": [
       -0.407,
-      0.746,
-      -0.038
+      0.748,
+      -0.037
      ],
      "roll": 0
     },
@@ -7883,7 +7906,9 @@
    "dialogue": [
     {
      "who": "CLAIRE",
-     "line": "Vuoi farlo adesso? Qui?"
+     "line": "Vuoi farlo adesso? Qui?",
+     "audio": "audio/sc001/sc001_09_1S_claire.mp3",
+     "dur_s": 2.038
     }
    ],
    "notes": "",
@@ -7902,7 +7927,9 @@
      "bg": "CHAR_claire",
      "side": 1,
      "fitSize": "CU",
-     "heightOffset": -0.06
+     "heightOffset": -0.06,
+     "lateral": 1.25,
+     "back": 1.5
     },
     "B": null
    }
@@ -7946,7 +7973,9 @@
    "dialogue": [
     {
      "who": "ARTHUR",
-     "line": "Voglio solo una giornata. Una."
+     "line": "Voglio solo una giornata. Una.",
+     "audio": "audio/sc001/sc001_10_1T_arthur.mp3",
+     "dur_s": 2.926
     }
    ],
    "notes": "",
@@ -8020,11 +8049,15 @@
    "dialogue": [
     {
      "who": "CLAIRE",
-     "line": "Siamo qui per lei, Arthur."
+     "line": "Siamo qui per lei, Arthur.",
+     "audio": "audio/sc001/sc001_11_1U_claire.mp3",
+     "dur_s": 1.646
     },
     {
      "who": "CLAIRE",
-     "line": "Lo sappiamo tutti e due."
+     "line": "Lo sappiamo tutti e due.",
+     "audio": "audio/sc001/sc001_12_1U_claire.mp3",
+     "dur_s": 1.646
     }
    ],
    "notes": "",
@@ -8090,7 +8123,9 @@
    "dialogue": [
     {
      "who": "ARTHUR",
-     "line": "Anch'io sono qui."
+     "line": "Anch'io sono qui.",
+     "audio": "audio/sc001/sc001_13_1V_arthur.mp3",
+     "dur_s": 1.306
     }
    ],
    "notes": "",
@@ -8150,7 +8185,9 @@
    "dialogue": [
     {
      "who": "CLAIRE",
-     "line": "Sei seduto qui. È diverso."
+     "line": "Sei seduto qui. È diverso.",
+     "audio": "audio/sc001/sc001_14_1W_claire.mp3",
+     "dur_s": 2.194
     }
    ],
    "notes": "",
@@ -8359,5 +8396,17 @@
    }
   }
  ],
- "notes": "Nord = -Z (montagna dalla cima spezzata). Est = +X. Origine = centro del telo. Rushmore a NO, lontano. Geometrie da sostituire con il blockout da reference quando arriva l'immagine della location."
+ "notes": "Nord = -Z (montagna dalla cima spezzata). Est = +X. Origine = centro del telo. Rushmore a NO, lontano. Geometrie da sostituire con il blockout da reference quando arriva l'immagine della location.",
+ "cast": {
+  "ARTHUR": {
+   "voice": "Julian",
+   "voice_type": "preset",
+   "voice_id": "95429266-c0ac-4137-a209-63b8812b0f23"
+  },
+  "CLAIRE": {
+   "voice": "Elena",
+   "voice_type": "preset",
+   "voice_id": "ca83ca7f-c186-493d-bd69-0d765fa861b2"
+  }
+ }
 }

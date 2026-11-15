@@ -248,16 +248,18 @@ export function evaluateFrame(scene, shot, pose, blocking, opts = {}) {
         }
       }
       // occlusion: rays to eyes and chest against every other object part
-      const occluders = new Set();
+      const occluders = new Set(), eyesBy = new Set();
       for (const kpName of ['eyes', 'chest']) {
         const dir = norm(sub(subjKP[kpName], eye)), maxT = dist(eye, subjKP[kpName]) - 0.05;
         for (const o of objects) {
           if (o.id === subject.id || o.kind === 'plane' || o.role === 'GROUND') continue;
-          for (const part of objectParts(o)) { const t = rayPart(eye, dir, part); if (t != null && t > 0.02 && t < maxT) { occluders.add(o.name || o.id); break; } }
+          for (const part of objectParts(o)) { const t = rayPart(eye, dir, part); if (t != null && t > 0.02 && t < maxT) { occluders.add(o.name || o.id); if (kpName === 'eyes') eyesBy.add(o.name || o.id); break; } }
         }
       }
-      res.occlusion = { occluded: occluders.size > 0, by: [...occluders] };
-      if (occluders.size) flag(shot.allowOcclusion ? 'info' : 'warn', `Subject partly hidden by ${[...occluders].join(', ')}.`);
+      res.occlusion = { occluded: occluders.size > 0, by: [...occluders], eyes: [...eyesBy] };
+      // a dirty frame may cover the body, never the eyes of the subject in a close or medium shot
+      if (eyesBy.size && shot.allowOcclusion && ['ECU', 'BCU', 'CU', 'MCU', 'MS'].includes(requested)) flag('warn', `The subject's eyes are hidden by ${[...eyesBy].join(', ')}: move the lens wider of the shoulder.`);
+      else if (occluders.size) flag(shot.allowOcclusion ? 'info' : 'warn', `Subject partly hidden by ${[...occluders].join(', ')}.`);
       // distortion
       if (subjectDist < 1.2 && res.lens.ffEquivalent < 35 && ['CU', 'BCU', 'ECU', 'MCU'].includes(requested)) flag('warn', 'Wide lens very close to a face: distortion.');
       res.subjectDistance = round(subjectDist, 2);

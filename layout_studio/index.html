@@ -92,6 +92,25 @@
   .modal kbd { background: #0c0e11; border: 1px solid var(--line); border-radius: 3px; padding: 0 5px; }
   .modal td { padding: 2px 10px 2px 0; vertical-align: top; }
   .mini { font-size: 10px; color: var(--faint); }
+  .steps button { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 0 5px; font-size: 11px; }
+  .steps button b { display: inline-flex; width: 17px; height: 17px; align-items: center; justify-content: center; border-radius: 50%; background: var(--panel-2); color: var(--dim); font-weight: 500; font-size: 10px; }
+  .steps button.active b { background: var(--accent); color: #111; }
+  .step-hint { padding: 7px 10px; color: var(--dim); font-size: 11px; line-height: 1.45; border-bottom: 1px solid var(--line); background: #13171c; }
+  .step-hint b { color: var(--text); font-weight: 500; }
+  .list.short { flex: 0 1 auto; max-height: 26%; min-height: 60px; }
+  #blocking-props-host #props { overflow: visible; padding: 0; }
+  #tip { position: fixed; z-index: 50; max-width: 300px; padding: 7px 10px; background: #0b0d10; border: 1px solid #3a424d; border-radius: 6px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); color: var(--text); font-size: 11px; line-height: 1.45; pointer-events: none; opacity: 0; transform: translateY(2px); transition: opacity .12s, transform .12s; }
+  #tip.show { opacity: 1; transform: none; }
+  #tip b { display: block; color: var(--accent); font-weight: 500; margin-bottom: 2px; }
+  .dl-shot { margin: 8px 0 4px; display: flex; gap: 8px; align-items: baseline; }
+  .dl-shot .name { color: var(--accent); cursor: pointer; }
+  .dl-bar { position: relative; height: 8px; background: #0c0e11; border: 1px solid var(--line); border-radius: 3px; margin: 2px 0 4px; }
+  .dl-bar i { position: absolute; top: 1px; bottom: 1px; border-radius: 2px; opacity: 0.85; }
+  .dl-line { display: grid; grid-template-columns: 22px 1fr auto; gap: 6px; align-items: center; padding: 2px 0; }
+  .dl-line .who { font-size: 10px; letter-spacing: 0.06em; }
+  .dl-line .t { color: var(--faint); font-size: 10px; }
+  .score { display: inline-block; min-width: 26px; text-align: center; border-radius: 9px; padding: 0 5px; font-size: 10px; color: #111; }
+  .score.ok { background: var(--ok); } .score.warn { background: var(--warn); } .score.bad { background: var(--bad); }
   #lt-overlay { position: absolute; pointer-events: none; overflow: hidden; }
   #lt-overlay.hidden { display: none; }
   #lt-label { position: absolute; right: 8px; top: 6px; font-size: clamp(11px, 0.62em, 15px); color: rgba(255,255,255,0.85); background: rgba(0,0,0,0.55); padding: 2px 8px; border-radius: 3px; }
@@ -142,31 +161,34 @@
   </header>
   <main>
     <aside id="left">
-      <nav class="tabs">
-        <button data-tab="outliner" class="active">Outliner</button>
-        <button data-tab="shots">Shots</button>
-        <button data-tab="beats">Beats</button>
+      <nav class="tabs steps" id="steps">
+        <button data-tab="outliner" class="active" data-tip="1 · Set|Build the location: ground, set pieces, props, trees and stand-ins. Select an object to edit it."><b>1</b>Set</button>
+        <button data-tab="beats" data-tip="2 · Blocking|The story beats and where the actors stand in each one: pick a beat, then put each actor on their mark."><b>2</b>Blocking</button>
+        <button data-tab="shots" data-tip="3 · Camera|The shots: lens, rig, first and last frame (keys A and B) and timing. The panel on the right grades each frame."><b>3</b>Camera</button>
+        <button data-tab="sound" data-tip="4 · Sound|Dialogue per shot: when each line plays and its recorded voice."><b>4</b>Sound</button>
+        <button data-tab="review" data-tip="5 · Review|The whole edit: scores, real-time screening and exports."><b>5</b>Review</button>
       </nav>
+      <div id="step-hint" class="step-hint"></div>
       <section id="tab-outliner" class="tab">
         <div class="toolbar" id="outliner-tools">
-          <button class="small" data-add="box">+ Box</button>
-          <button class="small" data-add="cylinder">+ Cyl</button>
-          <button class="small" data-add="cone">+ Cone</button>
-          <button class="small" data-add="sphere">+ Sphere</button>
-          <button class="small" data-add="tree">+ Tree</button>
-          <button class="small" data-add="standin">+ Stand-in</button>
-          <button class="small" data-add="gltf">+ GLB…</button>
+          <button class="small" data-add="box" data-tip="Add · Box|A box proxy: walls, tables, crates, cars.">+ Box</button>
+          <button class="small" data-add="cylinder" data-tip="Add · Cylinder|Trunks, poles, bottles, columns.">+ Cyl</button>
+          <button class="small" data-add="cone" data-tip="Add · Cone|Bushes, tents, piles.">+ Cone</button>
+          <button class="small" data-add="sphere" data-tip="Add · Sphere|Rocks, shrubs, round props.">+ Sphere</button>
+          <button class="small" data-add="tree" data-tip="Add · Tree|A conifer: trunk plus canopy.">+ Tree</button>
+          <button class="small" data-add="standin" data-tip="Add · Stand-in|An Unreal-style mannequin for an actor: height, age, pose and acting per beat.">+ Stand-in</button>
+          <button class="small" data-add="gltf" data-tip="Add · Model|Load a GLB / GLTF: a reconstructed location or a detailed prop.">+ GLB…</button>
           <input type="file" id="file-gltf" accept=".glb,.gltf" hidden>
-          <input id="outliner-filter" placeholder="filter…" style="width:90px;margin-left:auto">
+          <input id="outliner-filter" placeholder="filter…" style="width:90px;margin-left:auto" data-tip="Filter|Show only objects whose name, id or kind contains this text.">
         </div>
         <div id="outliner" class="list"></div>
         <div id="props" class="props"><div class="empty">Click an object in the viewport or in the list.</div></div>
       </section>
       <section id="tab-shots" class="tab hidden">
         <div class="toolbar">
-          <button class="small" id="btn-add-shot">+ Shot</button>
-          <button class="small" id="btn-dup-shot">Duplicate</button>
-          <button class="small" id="btn-del-shot">Delete</button>
+          <button class="small" id="btn-add-shot" data-tip="New shot|A new camera framed from the current view.">+ Shot</button>
+          <button class="small" id="btn-dup-shot" data-tip="Duplicate|Copy the selected shot to try a variation.">Duplicate</button>
+          <button class="small" id="btn-del-shot" data-tip="Delete|Remove the selected shot (Ctrl+Z brings it back).">Delete</button>
           <button class="small" id="btn-check-all" title="Re-evaluate every shot">Check all</button>
         </div>
         <div id="line-issues"></div>
@@ -174,9 +196,24 @@
         <div id="shot-editor" class="props"><div class="empty">Select a shot.</div></div>
       </section>
       <section id="tab-beats" class="tab hidden">
-        <div class="toolbar"><button class="small" id="btn-add-beat">+ Beat</button><span class="note" style="margin:0 0 0 6px">Select a beat to pose stand-ins for it.</span></div>
-        <div id="beatlist" class="list"></div>
-        <div id="beat-editor" class="props"></div>
+        <div class="toolbar"><button class="small" id="btn-add-beat" data-tip="New beat|Starts from the blocking of the selected beat, so you only move what changes.">+ Beat</button></div>
+        <div id="beatlist" class="list short"></div>
+        <div class="group">Actors · their mark in this beat</div>
+        <div id="castlist" class="list short"></div>
+        <div id="blocking-detail" class="props"><div id="beat-editor"></div><div id="blocking-props-host"></div></div>
+      </section>
+      <section id="tab-sound" class="tab hidden">
+        <div id="sound-panel" class="props"></div>
+      </section>
+      <section id="tab-review" class="tab hidden">
+        <div class="toolbar">
+          <button class="small primary" id="btn-screen" data-tip="Screen the edit|Every shot back to back through the lens, in real time on your GPU, with voices and subtitles.">▶ Play the edit</button>
+          <button class="small" id="btn-review-export" data-tip="Export MP4|Render the edit to a video file on this computer's GPU.">Export MP4…</button>
+          <button class="small" id="btn-review-sheet" data-tip="Camera sheet|Per shot: lens, rig, move, positions, distances. For the DP and the grips.">Sheet</button>
+          <button class="small" id="btn-review-blender" data-tip="Blender script|Rebuilds the set, the stand-ins and every animated camera in Blender (then USD / FBX to Unreal).">Blender</button>
+        </div>
+        <div id="review-summary" class="step-hint"></div>
+        <div id="review-list" class="list"></div>
       </section>
     </aside>
     <section id="viewport-wrap">
@@ -187,6 +224,7 @@
         <button class="small" id="vt-labels" title="Toggle labels (H)">labels</button>
         <button class="small" id="vt-snap" title="Toggle snapping (0.1 m / 5°)">snap</button>
         <button class="small" id="vt-look" title="Look through the shot camera (L)">look through</button>
+        <button class="small" id="vt-marks" title="Actor marks|Floor marks for every beat: ring = where the actor stands, arrow = facing, dashed line = the move between beats (M)">marks</button>
       </div>
       <div id="lt-overlay" class="hidden"><div id="lt-label"></div><div id="lt-sub" class="hidden"></div></div>
       <div id="pip" class="hidden">
@@ -199,20 +237,21 @@
         <button id="tl-play" class="small" title="Play / pause (Space)">▶</button>
         <button id="tl-next" class="small" title="Next shot (])">▶▶</button>
         <button id="tl-playall" class="small" title="Play every shot in sequence through the lens, in real time (previs of the edit)">▶ all</button>
-        <input type="range" id="tl-range" min="0" max="1000" value="0">
+        <input type="range" id="tl-range" min="0" max="1000" value="0" data-tip="Scrub|Drag through the shot: the camera move and the actors follow.">
         <span class="time" id="tl-time">0.0 / 0.0 s</span>
         <label class="mini"><input type="checkbox" id="tl-loop" checked> loop</label>
+        <button id="tl-sound" class="small active" title="Dialogue voices on / off during playback">♪ voices</button>
         <span class="mini">key</span>
         <button id="tl-keyA" class="small active" title="Edit key A when driving the camera in look-through">A</button>
         <button id="tl-keyB" class="small" title="Edit key B">B</button>
       </div>
     </section>
     <aside id="right">
-      <h4 style="margin:0 0 6px;color:var(--dim);font-weight:400;letter-spacing:.08em">SHOT CHECK</h4>
+      <h4 style="margin:0 0 6px;color:var(--dim);font-weight:400;letter-spacing:.08em" data-tip="Shot check|A deterministic read of the frame: size from the body, headroom, lead room, thirds, horizon, depth layers, occlusion, face, eyeline, rig limits and the 180° line. 0 to 100.">SHOT CHECK</h4>
       <div id="metrics"><div class="empty">Select a shot to evaluate the frame.</div></div>
-      <h4 style="margin:14px 0 6px;color:var(--dim);font-weight:400;letter-spacing:.08em">RIG · MOVE</h4>
+      <h4 style="margin:14px 0 6px;color:var(--dim);font-weight:400;letter-spacing:.08em" data-tip="Rig and move|Length, speed and pan of the move, checked against what the rig can do on a real set.">RIG · MOVE</h4>
       <div id="riginfo"></div>
-      <h4 style="margin:14px 0 6px;color:var(--dim);font-weight:400;letter-spacing:.08em">LENS</h4>
+      <h4 style="margin:14px 0 6px;color:var(--dim);font-weight:400;letter-spacing:.08em" data-tip="Lens|Field of view, gate, full-frame equivalent and depth of field for the chosen camera and lens.">LENS</h4>
       <div id="lensinfo"></div>
     </aside>
   </main>
@@ -230,7 +269,8 @@
       <tr><td><kbd>F</kbd></td><td>frame the selection.</td></tr>
       <tr><td><kbd>Space</kbd></td><td>play / pause the current shot. <kbd>[</kbd> <kbd>]</kbd> previous / next shot.</td></tr>
       <tr><td><kbd>L</kbd></td><td>look through the shot camera, letterboxed to the lens aspect, with live subtitles. With <b>▶ all</b> this is a real-time screening of the edit. While looking through, RMB + WASD drive the shot camera itself and write the active key (A/B) when you release.</td></tr>
-      <tr><td><kbd>G</kbd> <kbd>H</kbd></td><td>toggle grid / labels.</td></tr>
+      <tr><td><kbd>G</kbd> <kbd>H</kbd> <kbd>M</kbd></td><td>toggle grid / labels / actor marks (floor rings for every beat).</td></tr>
+      <tr><td>Steps</td><td>the left panel follows the work: 1 Set, 2 Blocking, 3 Camera, 4 Sound, 5 Review. Rest the cursor on any control for a short explanation.</td></tr>
       <tr><td><kbd>Ctrl</kbd>+<kbd>Z</kbd></td><td>undo. <kbd>Ctrl</kbd>+<kbd>S</kbd> download the JSON.</td></tr>
       <tr><td>Export MP4</td><td>renders the edit on this computer's GPU and encodes it in the browser (H.264 where available), with burn-in and subtitles.</td></tr>
     </table>
@@ -249,6 +289,7 @@
       <tr><td>Anti-aliasing</td><td><select id="ex-ss"><option value="1">off · fastest</option><option value="1.5">1.5× supersampling</option><option value="2" selected>2× supersampling · cleanest edges</option></select></td></tr>
       <tr><td>Frame rate</td><td><select id="ex-fps"><option value="24" selected>24 fps</option><option value="25">25 fps</option><option value="30">30 fps</option></select></td></tr>
       <tr><td>Burn-in</td><td><label><input type="checkbox" id="ex-burn" checked> shot info, timecode, action text, subtitles</label></td></tr>
+      <tr><td>Sound</td><td><label><input type="checkbox" id="ex-audio" checked> dialogue voices (the recorded lines, in sync)</label></td></tr>
     </table>
     <div id="ex-summary" class="note"></div>
     <div id="ex-codec" class="note" style="color:var(--faint)"></div>

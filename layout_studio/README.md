@@ -23,7 +23,7 @@ python3 -m http.server 8000      # then http://localhost:8000/layout_studio/
 
 | Path | What |
 |---|---|
-| `index.html`, `app/` | the viewer (three.js): viewport, outliner, shots, beats, PiP camera view, shot check, exports, `export_mp4.js` (in-browser MP4 export) |
+| `index.html`, `app/` | the viewer (three.js): five workflow steps, viewport, PiP camera view, shot check, exports. `export_mp4.js` in-browser MP4 export, `audio.js` dialogue playback and mix, `tooltip.js` + `tips.js` hover help |
 | `core/` | dependency-free ES modules shared by browser and Node: `lens.js` (filmbacks, FOV, DOF), `rigs.js` (rig constraints → `pose(t)`), `motion.js` (easing), `standin.js` (mannequin skeleton, poses, keypoints, body parts), `blocking.js` (blocking over time), `shot.js` (shot solving with subject tracking), `framing.js` (single / two-shot / OTS / insert solvers), `metrics.js` (shot check), `keys.js` (framing definitions → keys), `exporters.js` (camera sheet, Blender script), `schema.js` |
 | `scenes/_lib/build.mjs` | scene builder used by generation scripts: `node scenes/demo/build.mjs` |
 | `scenes/demo/` | public demo scenes: a fictional café terrace and the mannequin pose library |
@@ -31,14 +31,28 @@ python3 -m http.server 8000      # then http://localhost:8000/layout_studio/
 | `vendor/` | three.js 0.170 and mp4-muxer 5.2 (MIT), copied unmodified so the viewer works offline |
 | `tests/core.test.mjs` | `node --test tests/core.test.mjs` |
 | `tests/smoke.mjs` | headless Playwright run: loads a scene, walks the shots, screenshots, fails on JS errors |
-| `tools/render_mp4.mjs` | offline sequence render to MP4 (see below) |
+| `tools/render_mp4.mjs` | offline sequence render to MP4, dialogue included (see below) |
+| `tools/mix_dialogue.mjs` | lays the recorded dialogue onto a rendered video, on the same frame plan |
+
+## Workflow: five steps
+
+The left panel follows the order of the work. Each step has a one-line how-to under the step bar, and every control
+explains itself when the cursor rests on it for half a second.
+
+1. **Set**: the location. Proxies at real size, props, trees, stand-ins, GLB models.
+2. **Blocking**: the story beats and each actor's mark in every beat (position, facing, pose, acting). The viewport
+   shows tape marks on the floor: a ring where the actor stands, an arrow for the facing, a dashed line for the move
+   between beats, the selected beat in bold (**M** toggles them).
+3. **Camera**: shots, lens, rig, keys A and B (labelled in the viewport), timing curve; the shot check grades the frame.
+4. **Sound**: dialogue per shot, the voice cast, where each line sits in the shot, a play button per take.
+5. **Review**: every shot with its score and voices, real-time screening of the edit, exports.
 
 ## Controls (Unreal style)
 
 * **RMB** drag: look. With RMB held: **W A S D** fly, **Q / E** down / up, **Shift** faster, **wheel** changes fly speed.
 * **wheel** (RMB not held): dolly forward / back. **MMB** drag: pan. **Alt + LMB**: orbit the focus point.
 * **LMB**: select object or shot camera. **W / E / R**: move / rotate / scale gizmo. **F**: frame. **Del**: delete.
-* **Space** play, **[ ]** previous / next shot, **L** look through the shot camera (letterboxed to the lens aspect, with live subtitles), **G** grid, **H** labels, **Ctrl+Z** undo, **Ctrl+S** download JSON.
+* **Space** play, **[ ]** previous / next shot, **L** look through the shot camera (letterboxed to the lens aspect, with live subtitles), **G** grid, **H** labels, **M** actor marks, **Ctrl+Z** undo, **Ctrl+S** download JSON.
 * While looking through the camera, RMB + WASD drive the **shot camera**; releasing writes the active key (A or B).
 * Shot panel: lens, rig, follow, shake intensity, duration, timing curve with a bezier editor, keys A and B (set from the view, aim at the subject, re-solve from the framing definition).
 * Stand-in panel: blocking per beat (position, facing, pose) and **acting**: head, neck, spine, arms and legs joint angles on top of the pose, with a reset to the library pose.
@@ -98,7 +112,9 @@ Metres, Y up, X east, Z south (three.js convention; the Blender export converts 
 * Shot `size`: `EWS WS FS MLS MS MCU CU BCU ECU INSERT`. Rigs: `static slider dolly crane steadicam handheld gimbal drone vehicle` (each with speed / height / reach limits that produce warnings). Curves: `linear easeIn easeOut easeInOut smooth smoother cinematic quickStart holdMoveHold`.
 * Keys hold position + look-at target (+ roll). `framing` keeps the *description* that produced them, so **Re-solve** can recompute the keys after you change the lens, the size or the blocking. Framing types: `single` (subject, azimuth, elevation | cameraHeight, leadRoom, headroom, distance), `two` (a, b, side ±1, margin), `ots` (fg, bg, side, fitSize picks the focal from the kit), `object` (object, fill, azimuth, elevation), `raw`.
 * `line`: the two characters that define the 180° axis for this shot; consecutive shots of the same beat that declare the same axis are checked for crossings.
-* `dialogue`: `[{ "who": "CLAIRE", "line": "Sabato. Perché?" }]` — burnt in as subtitles in the previs, timed across the shot.
+* `dialogue`: `[{ "who": "CLAIRE", "line": "Sabato. Perché?", "audio": "audio/sc001/….mp3", "dur_s": 2.19, "at": 0.4 }]`. `audio` and
+  `dur_s` come from the recorded take (see Dialogue voices), `at` optionally fixes the start inside the shot. Subtitles,
+  playback and exports all use the same timing. The scene's `cast` maps each character to its voice.
 * `curve`: a preset name or a cubic bezier `[x1, y1, x2, y2]` (CSS convention: time on x, progress on y). `easeInOutCubic` is a slow start and a slow landing; heavy S-curves raise the peak speed, which the rig check reports.
 * `rig.shake`: operator shake intensity for handheld / Steadicam / gimbal / drone (1 = default, 0 = locked); longer lenses are operated steadier automatically. `rig.follow`, `rig.followVertical`, `rig.aim`: see "Following a moving subject".
 
@@ -112,20 +128,32 @@ risk, rig limits (speed, track, boom range, crane reach, pan rate) and the 180°
 in the framing definition (a push-in that passes its foreground). Each shot gets a 0–100 score; the intent is "first pass that a human
 then nudges", not taste.
 
+## Dialogue voices (Higgsfield)
+
+Dialogue lines live in the shots (`{ who, line, at? }`). Claude voices them from the chat with Higgsfield text-to-speech
+(ElevenLabs engine), one voice per character, and saves the takes next to the scene:
+`scenes/<project>/audio/<scene>/*.mp3` plus `voices.json` (cast, and which take belongs to which line). The build script
+attaches them with `B.voices(...)`; a take is used only while its text still matches the line, so an edited line never
+plays a stale take. Each line gets a start and length inside its shot (from the take, or estimated from the text without
+one), and that one timeline drives the subtitles, the live playback, Export MP4 and the offline render. A line that runs
+past the cut is flagged. To change a voice or a delivery, ask Claude (for example "voice scene 1 again, Arthur deeper").
+
 ## Previs of the edit (real-time playback and MP4)
 
 * **Real time, in the viewer.** **▶ all** in the timeline switches to the lens view and plays every shot back to back on your GPU,
   letterboxed to the lens aspect, with the stand-ins moving between their beat marks and the dialogue as subtitles. **L** goes
   back to the world view.
-* **Export MP4** (top bar) renders the same sequence frame by frame on your GPU and encodes it in the browser with WebCodecs
-  (H.264 where the browser has it, else VP9 or AV1), then downloads the file. Options: all shots or the current one, 1280 to 3840
-  wide, supersampling 1 to 2×, 24/25/30 fps, burn-in on or off (shot, lens, rig, timecode, action text, subtitles). Nothing is
-  uploaded. Recent Chrome, Edge, Safari or Firefox. A scene of a few minutes takes minutes, not hours.
+* **Export MP4** (top bar, or step 5) renders the same sequence frame by frame on your GPU and encodes it in the browser with
+  WebCodecs (H.264 where the browser has it, else VP9 or AV1), with the dialogue track (AAC, else Opus), then downloads the file.
+  Options: all shots or the current one, 1280 to 3840 wide, supersampling 1 to 2×, 24/25/30 fps, burn-in (shot, lens, rig,
+  timecode, action text, subtitles), dialogue on or off. Nothing is uploaded. Recent Chrome, Edge, Safari or Firefox.
 * **Offline, headless:** `node tools/render_mp4.mjs scenes/<project>/<scene>.json out.mp4 [--fps 24] [--width 1920] [--height 804] [--ss 1.5] [--fast] [--shots 1A,1B]`
-  renders the same frames in headless Chromium and encodes H.264 with `ffmpeg`. Use it on a machine with a GPU, or for automation.
+  renders the same frames in headless Chromium, encodes H.264 with `ffmpeg` and lays the dialogue on (AAC; `--no-audio` to skip).
+  Use it on a machine with a GPU, or for automation.
   Without a GPU Chromium falls back to a CPU renderer (SwiftShader) at about 1 to 3 frames per second; `--fast` (Lambert shading,
   lighter shadows, no logarithmic depth) and `--width 1280 --height 536 --ss 1.5` keep previews quick. Split long scenes with
-  `--shots` across processes and join the parts with `ffmpeg -f concat -c copy`.
+  `--shots` across processes (with `--no-audio`), join the parts with `ffmpeg -f concat -c copy`, then add the voices with
+  `node tools/mix_dialogue.mjs <scene.json> joined.mp4 final.mp4`.
 * `--ss` / supersampling renders more pixels and filters them down, so thin edges do not crawl during moves.
 * Shadows are fitted to the area where the action is (4096 map, 2048 in fast mode), so they stay sharp and stable.
 

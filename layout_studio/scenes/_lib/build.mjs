@@ -71,8 +71,27 @@ export function createBuilder(meta) {
       lines.push(`     A: score ${evA.score} size ${evA.size ? evA.size.measured : '-'} ${evA.flags.filter((f) => f.level !== 'info').map((f) => `[${f.level}] ${f.msg}`).join(' ')}`);
       if (evB) lines.push(`     B: score ${evB.score} size ${evB.size ? evB.size.measured : '-'} ${evB.flags.filter((f) => f.level !== 'info').map((f) => `[${f.level}] ${f.msg}`).join(' ')}`);
       for (const w of solved.warnings) lines.push(`     ⚠ ${w}`);
+      for (const n of core.dialogueNotes(shot)) if (n.level !== 'info') lines.push(`     ♪ ${n.msg}`);
     }
     return lines.join('\n');
+  };
+
+  /**
+   * Attach recorded voices from a manifest (audio/<scene>/voices.json, written when Claude voices the lines with
+   * Higgsfield): { cast: { WHO: { voice, voice_id } }, lines: [{ shot, who, line, file, dur_s }] }. A line gets its clip
+   * only while its text still matches, so an edited line never plays a stale take. Clip paths stay relative to the scene file.
+   */
+  B.voices = (manifestFile) => {
+    if (!fs.existsSync(manifestFile)) return 0;
+    const m = JSON.parse(fs.readFileSync(manifestFile, 'utf8'));
+    const rel = path.relative(B.sceneDir || path.dirname(path.dirname(path.dirname(manifestFile))), path.dirname(manifestFile)).split(path.sep).join('/');
+    let n = 0;
+    for (const shot of scene.shots) for (const d of shot.dialogue || []) {
+      const take = (m.lines || []).find((l) => l.shot === shot.name && l.who === d.who && l.line === d.line);
+      if (take) { d.audio = `${rel}/${take.file}`; d.dur_s = take.dur_s; n++; } else { delete d.audio; delete d.dur_s; }
+    }
+    if (m.cast) scene.cast = Object.assign(scene.cast || {}, m.cast);
+    return n;
   };
 
   B.save = (file) => {

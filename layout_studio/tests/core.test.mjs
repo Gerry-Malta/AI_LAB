@@ -254,3 +254,24 @@ test('metrics: close shots must see the face, not the back of the head or the cr
   const parts = core.standinParts('stand', 1.8, 38).map((p) => p.tag);
   assert.ok(parts.includes('eyeL') && parts.includes('eyeR'), 'mannequin has eyes');
 });
+
+test('dialogue: timing inside the shot, subtitles, past-the-cut flag and the frame plan of the edit', () => {
+  const a = { id: 'a', name: '1A', duration_s: 4, dialogue: [{ who: 'X', line: 'Uno.', dur_s: 1.0 }, { who: 'Y', line: 'Due.', dur_s: 1.2 }] };
+  const tl = core.dialogueTimeline(a);
+  assert.equal(tl.length, 2);
+  assert.ok(tl[0].start > 0 && tl[0].start <= 0.8, `first line starts soon after the cut: ${tl[0].start}`);
+  assert.ok(Math.abs(tl[1].start - (tl[0].end + 0.35)) < 1e-9, 'a breath between lines');
+  assert.equal(core.dialogueAt(a, tl[0].start + 0.1).line, 'Uno.');
+  assert.equal(core.dialogueAt(a, tl[1].start + 0.1).line, 'Due.');
+  assert.equal(core.dialogueAt(a, 3.95), null, 'subtitle gone once the line and its hold are over');
+  const b = { id: 'b', name: '1B', duration_s: 2, dialogue: [{ who: 'X', line: 'Una battuta lunga.', dur_s: 2.5, at: 0.2 }] };
+  assert.equal(core.dialogueTimeline(b)[0].start, 0.2, 'explicit start');
+  assert.ok(core.dialogueNotes(b).some((n) => /past the cut/.test(n.msg)));
+  const est = core.dialogueTimeline({ duration_s: 5, dialogue: [{ who: 'X', line: 'Senza voce registrata.' }] })[0];
+  assert.ok(est.dur > 1 && est.dur < 3 && !est.audio, `estimated from the text: ${est.dur}`);
+  const scene = { shots: [a, b] };
+  const seq = core.sequenceDialogue(scene, null, 24);
+  assert.equal(seq.length, 3);
+  assert.ok(Math.abs(seq[2].start - (96 / 24 + 0.2 * (47 / 2) / 24)) < 1e-9, `frame plan: ${seq[2].start}`);
+  assert.equal(core.sequenceDialogue(scene, ['1B'], 24)[0].start, 0.2 * (47 / 2) / 24, 'a subset starts at its own zero');
+});
