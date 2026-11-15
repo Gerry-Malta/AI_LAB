@@ -30,6 +30,7 @@ python3 -m http.server 8000      # then http://localhost:8000/layout_studio/
 | `scenes/<project>/` | your productions. `scenes/timeless/` is git-ignored on purpose (story material stays private) |
 | `tests/core.test.mjs` | `node --test tests/core.test.mjs` |
 | `tests/smoke.mjs` | headless Playwright run: loads a scene, walks the shots, screenshots, fails on JS errors |
+| `tools/render_mp4.mjs` | offline sequence render to MP4 (see below) |
 
 ## Controls (Unreal style)
 
@@ -81,6 +82,13 @@ the thirds, horizon height, dutch angle, depth layers (objects in FG / MG / BG r
 of the subject (ray tests against every other object), eyeline height, wide-lens distortion risk, rig limits (speed, track,
 boom range, crane reach, pan rate) and the 180° line. Each shot gets a 0–100 score; the intent is "first pass that a human
 then nudges", not taste.
+
+## Previs of the edit (sequence playback and MP4)
+
+* In the viewer, **▶ all** in the timeline plays every shot back to back with the stand-ins moving between their beat marks.
+* `node tools/render_mp4.mjs scenes/<project>/<scene>.json out.mp4 [--fps 24] [--width 1920] [--height 804] [--shots 1A,1B]` renders the whole
+  scene offline, frame by frame from each shot camera (rig moves, handheld texture and blocking interpolation included), burns in shot,
+  lens, rig, timecode and intent, and encodes H.264 with `ffmpeg`. Headless Chromium via Playwright; about 2–3 frames/s on a CPU renderer.
 
 ## Exports
 

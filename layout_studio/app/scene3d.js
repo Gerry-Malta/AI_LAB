@@ -408,6 +408,23 @@ export class Viewport {
     return null;
   }
 
+  /** Offline still from the shot camera at an exact pixel size, helpers hidden. Returns a 2D canvas with the pixels. */
+  renderStill(pose, cam, w, h) {
+    const r = this.renderer;
+    const prevW = this.w, prevH = this.h, prevRatio = r.getPixelRatio();
+    this.setShotCamera(pose, cam);
+    r.setPixelRatio(1); r.setSize(w, h, false);
+    this.shotCam.aspect = w / h; this.shotCam.updateProjectionMatrix();
+    const vis = this.camerasRoot.visible; this.camerasRoot.visible = false;
+    const selVis = this.selBox.visible; this.selBox.visible = false;
+    r.setScissorTest(false); r.setViewport(0, 0, w, h); r.clear(); r.render(this.scene, this.shotCam);
+    const out = document.createElement('canvas'); out.width = w; out.height = h;
+    out.getContext('2d').drawImage(this.canvas, 0, 0, w, h);
+    this.camerasRoot.visible = vis; this.selBox.visible = selVis;
+    r.setPixelRatio(prevRatio); if (prevW && prevH) r.setSize(prevW, prevH, false);
+    return out;
+  }
+
   // ------------------------------------------------------------------ render --------------------------------------------
   resize() {
     const w = this.canvas.clientWidth | 0, h = this.canvas.clientHeight | 0;
