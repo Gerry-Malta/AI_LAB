@@ -35,7 +35,11 @@ tissue that can move fast.
 ```bash
 cd layout_studio
 node tools/edit_report.mjs scenes/<scene>.json --tempo drama [--md /tmp/edit.md]
+node tools/dp_report.mjs scenes/<scene>.json            # coverage that will not cut: unmatched reverses, lenses, distortion
+node tools/contact_sheet.mjs scenes/<scene>.json /tmp/sheet.png --t 0,0.5,1   # then Read the PNG: entrances, exits, eyelines
 ```
+If these tools are not in the checkout (an older version of the repository), work by hand with the method in
+"Without Layout Studio" below — do not guess the numbers.
 It reports, per cut: eye-trace (how far the eye must jump), size step and camera angle change (30° rule, axial
 cuts), the 180° line, whether eyelines meet in shot/reverse, screen direction of movement, cutting in movement,
 camera still travelling into a static shot, sound bridging the cut (J/L), reaction cuts; per shot: how long it needs
@@ -54,7 +58,11 @@ begin and end shots on continuing action; substance first, then form; "fresh" be
   and enough time to be read. The report computes it; a shot shorter than its need is a mistake unless a J/L cut
   carries the line over the cut.
 - **Hold the emotion:** after the key line, hold the listener (an L-cut onto the reaction is often stronger than the
-  speaker). A long hold with nothing happening must be a decision, not an accident.
+  speaker). A long hold with nothing happening must be a decision, not an accident. The report's "longest silence"
+  counts the sound lapped in from the shot before and pre-lapped from the shot after.
+- **Coverage that will not cut** (a reverse from across the line, unmatched lenses, a distorted close-up, an exit
+  that is never completed) is not fixed with timing: name it as a coverage note for the DP, with the DP report's
+  evidence.
 - **Vary the rhythm:** durations should follow content, not a grid. CV below ~0.35 reads mechanical; four shots of
   the same length in a row read as a metronome. Accelerate toward the peak (shorter shots), release after.
 - **Dialogue:** pre-lap the next line under the end of the current shot (J-cut, `at: -0.4`) to pull the cut
@@ -66,7 +74,10 @@ begin and end shots on continuing action; substance first, then form; "fresh" be
 
 ### 5. Apply, rebuild, screen
 In a scene with a build script, change `duration_s`, `move`/`action` windows, line `at`/`lap`, and the order of
-shots there, then rebuild (`node scenes/<…>.build.mjs`). Re-run the edit report and screen the cut: in the viewer
+shots there, then rebuild (`node scenes/<…>.build.mjs`). A scene that is only a JSON file: edit the JSON. A review
+where you must not touch the scene: pass the tempo on the command line (`--tempo drama`) instead of writing
+`scene.edit`, test your proposal on a copy (`cp scene.json /tmp/trial.json`, change it, re-run the reports on the
+copy), and hand over notes with the before / after numbers. Re-run the edit report and screen the cut: in the viewer
 (▶ all, the edit plays with sound), or render a low-resolution check (`node tools/render_mp4.mjs … --fast --width
 640 --height 268`). Look and listen: does each cut fall where you feel it should?
 

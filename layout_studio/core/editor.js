@@ -178,9 +178,20 @@ export function editReview(scene, opts = {}) {
   });
   const notes = [];
   const note = (level, rule, shot, msg, fix = '') => notes.push({ level, rule, shot, msg, fix });
+  // the real silence inside each shot, on the edit clock: lines lapped in from the shot before and pre-lapped from the
+  // shot after count, and so do the effects
+  const sound = [...sounds.dialogue, ...sounds.sfx].map((e) => [e.start, e.end]);
+  for (const t of timing) {
+    const p = plan.shots.find((x) => x.shot.id === t.id); if (!p) continue;
+    const iv = sound.filter(([a, b]) => b > p.start && a < p.end).map(([a, b]) => [Math.max(a, p.start), Math.min(b, p.end)]).sort((x, y) => x[0] - y[0]);
+    let cur = p.start, longest = 0;
+    for (const [a, b] of iv) { longest = Math.max(longest, a - cur); cur = Math.max(cur, b); }
+    longest = Math.max(longest, p.end - cur);
+    t.silence = round(longest, 2);
+  }
   for (const t of timing) {
     if (t.duration + 1e-6 < t.need - 0.05) note(t.duration < t.need - 0.6 ? 'warn' : 'info', 'timing', t.name, `${t.duration}s is short for what it carries (needs about ${t.need}s: ${[t.lastLine ? `line to ${t.lastLine}s` : '', t.moveEnd ? `move to ${t.moveEnd}s` : '', t.actionEnd ? `action to ${t.actionEnd}s` : '', `reading ${t.read}s`].filter(Boolean).join(', ')}).`, `extend by ${round(t.need - t.duration, 1)}s, or pre-lap / overlap the line`);
-    if (t.hold > 3.5) note('info', 'timing', t.name, `${t.hold}s after the last event: a long hold.`, 'keep it if the moment is the emotion (a silence that lands); otherwise trim');
+    if (t.hold > 3.5 && (t.silence ?? t.hold) > 3.5 && !t.moveEnd && !t.actionEnd) note('info', 'timing', t.name, `${t.silence ?? t.hold}s of silence in this shot: a long hold.`, 'keep it if the moment is the emotion (a silence that lands); otherwise trim');
   }
   const cuts = [];
   for (let i = 0; i + 1 < shots.length; i++) cuts.push(cutReview(scene, shots[i], shots[i + 1], { plan, sounds }));
@@ -188,7 +199,8 @@ export function editReview(scene, opts = {}) {
   if (pace) {
     if (pace.cv < 0.35 && pace.shots >= 6) note('warn', 'rhythm', null, `Durations vary little (CV ${pace.cv}): the cutting reads as a metronome.`, 'let the story set lengths: hold the reactions that matter, quicken the connective shots');
     for (const [a, b] of pace.monotone) note('info', 'rhythm', `${shots[a].name}–${shots[b].name}`, `${b - a + 1} shots in a row of almost the same length (${shots.slice(a, b + 1).map((s) => s.duration_s).join(', ')} s).`, 'vary them with the content of each shot');
-    if (pace.tempo && !pace.tempo.ok) note('info', 'rhythm', null, `ASL ${pace.asl}s is outside the ${pace.tempo.id} range ${pace.tempo.range.join('–')}s.`, pace.asl > pace.tempo.range[1] ? 'tighten the connective shots' : 'let the key moments breathe');
+    // a short scene is not a sample of a tempo: judge its average only from eight shots up
+    if (pace.tempo && !pace.tempo.ok && pace.shots >= 8) note('info', 'rhythm', null, `ASL ${pace.asl}s is outside the ${pace.tempo.id} range ${pace.tempo.range.join('–')}s.`, pace.asl > pace.tempo.range[1] ? 'tighten the connective shots' : 'if the key moments are cut short, let them breathe (never pad the connective shots)');
   }
   const js = timing.reduce((a, t) => a + t.j, 0), ls = timing.reduce((a, t) => a + t.l, 0), lines = timing.reduce((a, t) => a + t.lines, 0);
   const bridged = cuts.filter((c) => c.soundBridge.length).length;
@@ -204,11 +216,11 @@ export function editReviewMarkdown(scene, rep) {
   const p = rep.pacing || {};
   const L = [`# Edit report · ${scene.project || ''} ${(scene.scene && scene.scene.name) || ''}`.trim(), '',
     `**${rep.score}/100** · craft of the cuts ${rep.craft}/100 (the measurable part of Murch's rule of six: rhythm, eye-trace, the 2D plane, 3D space — emotion and story are judged by the editor).`, '',
-    `${p.shots} shots · ${rep.duration}s · ASL ${p.asl}s (median ${p.median}s, CV ${p.cv}, ${p.min}–${p.max}s)${p.tempo ? ` · tempo ${p.tempo.id} ${p.tempo.ok ? '✓' : '✗'}` : ''} · first third vs last third ${p.accel}× · dialogue ${rep.dialogue.lines} lines, ${rep.dialogue.j} J-cuts, ${rep.dialogue.l} L-cuts, ${rep.dialogue.cutsBridged} cuts bridged by sound, ${rep.dialogue.reactions} reaction cuts.`, ''];
+    `${p.shots} shots · ${rep.duration}s · ASL ${p.asl}s (median ${p.median}s, CV ${p.cv}, ${p.min}–${p.max}s)${p.tempo ? ` · tempo ${p.tempo.id} ${p.tempo.ok ? '✓' : '✗'}` : ''} · first third vs last third ${p.accel}× · dialogue ${rep.dialogue.lines} lines, ${rep.dialogue.j} J-cuts, ${rep.dialogue.l} L-cuts, ${rep.dialogue.cutsBridged} cuts bridged by sound, ${rep.dialogue.reactions} cuts onto a listener while a line plays.`, ''];
   if (rep.notes.length) { L.push('## Timing and rhythm', ''); for (const n of rep.notes) L.push(`- ${n.level === 'warn' ? '⚠' : '·'} ${n.shot ? `**${n.shot}** ` : ''}${n.msg}${n.fix ? ` → ${n.fix}` : ''}`); L.push(''); }
   L.push('## Cuts', '', '| cut | craft | eye-trace | size | angle | sound | notes |', '|---|---|---|---|---|---|---|');
   for (const c of rep.cuts) L.push(`| ${c.from} → ${c.to} | ${c.craft} | ${Math.round(c.eyeTrace * 100)}% | ${c.sizeStep == null ? '—' : (c.sizeStep > 0 ? '+' : '') + c.sizeStep} | ${c.angleChange != null ? c.angleChange + '°' : '—'}${c.axial ? ' axial' : ''} | ${c.soundBridge.map((b) => `${b.kind} ${b.who}`).join(', ') || '—'} | ${c.notes.map((n) => n.msg + (n.fix ? ` → ${n.fix}` : '')).join('<br>') || (c.cutInMovement ? 'cut in movement ✓' : '✓')} |`);
-  L.push('', '## Shot timing', '', '| shot | size | dur | needs | reading | last line | move | action | hold |', '|---|---|---|---|---|---|---|---|---|');
-  for (const t of rep.timing) L.push(`| ${t.name} | ${t.size} | ${t.duration} | ${t.need} | ${t.read} | ${t.lastLine || '—'} | ${t.moveEnd || '—'} | ${t.actionEnd || '—'} | ${t.hold} |`);
+  L.push('', '## Shot timing', '', '| shot | size | dur | needs | reading | last line | move | action | longest silence |', '|---|---|---|---|---|---|---|---|---|');
+  for (const t of rep.timing) L.push(`| ${t.name} | ${t.size} | ${t.duration} | ${t.need} | ${t.read} | ${t.lastLine || '—'} | ${t.moveEnd || '—'} | ${t.actionEnd || '—'} | ${t.silence ?? t.hold} |`);
   return L.join('\n') + '\n';
 }

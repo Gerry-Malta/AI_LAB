@@ -64,6 +64,9 @@ the chosen grid point and keeps the candidate that scores best on the shot check
 - Moving shots: compose key A and key B separately (`A: {type:'compose',…}`, `B: {type:'compose',…}`), and give
   the move a motivation and a window (`move: [start_s, end_s]`) — see `references/movement.md`.
 
+If the engine or its tools are not in the checkout (an older version of the repository), follow "Without Layout
+Studio" below and say so — do not invent measurements.
+
 ### 5. Verify — numbers first, then your eyes
 ```bash
 cd layout_studio
