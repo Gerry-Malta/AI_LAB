@@ -33,7 +33,7 @@
 | 1W → 1X | 100 | 34% | -3 | — | — | ✓ |
 | 1X → 1Y | 100 | 13% | +3 | — | J ARTHUR | ✓ |
 | 1Y → 1Z | 100 | 13% | +1 | — | L CLAIRE | ✓ |
-| 1Z → 1AA | 92 | 47% | 0 | — | — | The eye has to jump 47% of the frame across the cut (75%,35% → 25%,39%). → reframe B so its point of interest lands nearer where A leaves the eye, or give B a beat longer |
+| 1Z → 1AA | 92 | 46% | 0 | — | — | The eye has to jump 46% of the frame across the cut (75%,35% → 25%,35%). → reframe B so its point of interest lands nearer where A leaves the eye, or give B a beat longer |
 | 1AA → 1AB | 100 | 23% | -1 | — | — | ✓ |
 | 1AB → 1AC | 100 | 13% | -1 | — | — | ✓ |
 | 1AC → 1AD | 100 | 16% | +1 | — | — | ✓ |

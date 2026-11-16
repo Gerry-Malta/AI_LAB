@@ -446,7 +446,9 @@ export function compose(scene, shot, opts = {}) {
         const cur = V0.uv(Pmid);
         target = aimAt(position, Pmid, u + (cur ? cur.u - cU : 0), cur ? cur.v : 0.5, lens);
       }
-      const pose = { position, target, roll: prof.roll[1] > 0 ? (prof.roll[0] + prof.roll[1]) / 2 * (sgn > 0 ? 1 : -1) : 0 };
+      // a roll range is what the intent allows; a dutch is applied only when asked for (a minimum above 0): a small,
+      // timid tilt reads as a mistake, not a choice
+      const pose = { position, target, roll: prof.roll[0] > 0 ? (prof.roll[0] + prof.roll[1]) / 2 * (sgn > 0 ? 1 : -1) : 0 };
       const ev = evaluateFrame(scene, Object.assign({}, evalShot, { camera: lens }), pose, blocking);
       const an = composition(scene, evalShot, pose, blocking, { lens, ev, intent: prof.id, size, overrides: pov ? { vAngle: [-89, 89] } : {} });
       // prefer the middle of the ranges a little (repeatable, not always the extreme)

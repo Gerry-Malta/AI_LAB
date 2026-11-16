@@ -34,7 +34,7 @@ room — the engine searches inside those ranges. Read `references/intents.md` f
 | `isolation` | alone, lost | small figure on the quarter line, big negative space, high |
 | `vulnerability` | weakened, judged | high angle, generous headroom |
 | `power` | dominance | low angle, tight headroom, centre |
-| `tension` | unease, trapped | short-sided, quarters, wider lens close, slight dutch |
+| `tension` | unease, trapped | short-sided, quarters, wider lens close; a dutch only when asked (`roll: [6, 10]`) |
 | `observation` | watching from outside | long lens from far, static |
 | `wonder` | scale, awe | low and wide, horizon low |
 | `detail` | the object the story needs now | insert, long lens, shallow focus |

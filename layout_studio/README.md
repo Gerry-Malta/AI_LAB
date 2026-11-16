@@ -23,7 +23,7 @@ python3 -m http.server 8000      # then http://localhost:8000/layout_studio/
 
 | Path | What |
 |---|---|
-| `index.html`, `app/` | the viewer (three.js): five workflow steps, viewport, PiP camera view, shot check, exports. `export_mp4.js` in-browser MP4 export, `audio.js` dialogue playback and mix, `tooltip.js` + `tips.js` hover help |
+| `index.html`, `app/` | the viewer (three.js): six workflow steps, viewport, PiP camera view, shot check, exports. `export_mp4.js` in-browser MP4 export, `audio.js` dialogue playback and mix, `review.js` review notes and frame markup (shared on claude.ai, local elsewhere), `tooltip.js` + `tips.js` hover help |
 | `core/` | dependency-free ES modules shared by browser and Node: `lens.js` (filmbacks, FOV, DOF), `rigs.js` (rig constraints → `pose(t)`), `motion.js` (easing), `standin.js` (mannequin skeleton, poses, hands, keypoints, body parts), `blocking.js` (blocking over time), `shot.js` (shot solving with subject tracking), `framing.js` (single / two-shot / OTS / insert solvers), `metrics.js` (shot check), `dp.js` (director of photography: composition analysis, intents, composer), `editor.js` (film editor: cut review, timing, pacing), `keys.js` (framing definitions → keys), `exporters.js` (camera sheet, Blender script), `schema.js` |
 | `scenes/_lib/build.mjs` | scene builder used by generation scripts: `node scenes/demo/build.mjs` |
 | `scenes/demo/` | public demo scenes: a fictional café terrace and the mannequin pose library |
@@ -39,7 +39,7 @@ python3 -m http.server 8000      # then http://localhost:8000/layout_studio/
 | `tools/export_sheets.mjs` | writes the camera sheet, the Blender script and both reports next to a scene file |
 | `../.claude/skills/` | the **director-of-photography** and **film-editor** skills: the method, research references and evals (see below) |
 
-## Workflow: five steps
+## Workflow: six steps
 
 The left panel follows the order of the work. Each step has a one-line how-to under the step bar, and every control
 explains itself when the cursor rests on it for half a second.
@@ -51,7 +51,9 @@ explains itself when the cursor rests on it for half a second.
 3. **Camera**: shots, lens, rig, keys A and B (labelled in the viewport), timing curve; the shot check grades the frame.
 4. **Sound**: the voice cast, the ambience beds, and per shot the lines and effects on one timing bar (lines that start
    before the cut or run past it are marked), with a play button on every take.
-5. **Review**: every shot with its score and voices, real-time screening of the edit, exports.
+5. **Screen**: every shot with its score and voices, real-time screening of the edit, DP and edit reports, exports.
+6. **Review**: notes from the director, the VFX supervisor and the artists — on the whole scene, on a shot, or drawn on
+   a frame — with replies and resolution (see below).
 
 ## Controls (Unreal style)
 
@@ -122,7 +124,9 @@ Metres, Y up, X east, Z south (three.js convention; the Blender export converts 
 * `source`: `script | observed | inferred | reference` — what the geometry is based on (a one-image reconstruction must mark what it invented).
 * `standin` poses: `stand walk sit_ground sit_chair crouch kneel lie_prone lie_supine`; keypoints and body parts come from `core/standin.js` and are shared by the viewer and the metrics.
 * Shot `size`: `EWS WS FS MLS MS MCU CU BCU ECU INSERT`. Rigs: `static slider dolly crane steadicam handheld gimbal drone vehicle` (each with speed / height / reach limits that produce warnings). Curves: `linear easeIn easeOut easeInOut smooth smoother cinematic quickStart holdMoveHold`.
-* Keys hold position + look-at target (+ roll). `framing` keeps the *description* that produced them, so **Re-solve** can recompute the keys after you change the lens, the size or the blocking. Framing types: `single` (subject, azimuth, elevation | cameraHeight, leadRoom, headroom, distance), `two` (a, b, side ±1, margin), `ots` (fg, bg, side, fitSize picks the focal from the kit), `object` (object, fill, azimuth, elevation), `raw`.
+* Keys hold position + look-at target (+ roll). `framing` keeps the *description* that produced them, so **Re-solve** can recompute the keys after you change the lens, the size or the blocking. Framing types: `single` (subject, azimuth, elevation | cameraHeight, leadRoom, headroom, distance), `two` (a, b, side ±1, margin), `ots` (fg, bg, side, fitSize picks the focal from the kit), `object` (object, fill, azimuth, elevation), `compose` (the DP composer: intent, size, side, focal, povOf, grid, look…), `raw` (position, target, or `frame: { subject, u, v }`).
+* `dp`: `{ "intent": "intimacy", "why": [...], "notes": "..." }` — the shot's narrative intent (the DP report judges it against it), the composer's reasoning, and overrides of the profile (`grid`, `look`, `vAngle`, `face`, `ffEq`, `roll`).
+* Scene `edit`: `{ "tempo": "drama" }` for the edit report; scene `review`: the review notes when the page runs without claude.ai (see Review).
 * `line`: the two characters that define the 180° axis for this shot; consecutive shots of the same beat that declare the same axis are checked for crossings.
 * `dialogue`: `[{ "who": "CLAIRE", "line": "Sabato. Perché?", "audio": "audio/sc001/….mp3", "dur_s": 2.19, "at": 0.4 }]`. `audio` and
   `dur_s` come from the recorded take (see Dialogue voices), `at` optionally fixes the start inside the shot. Subtitles,
@@ -237,6 +241,32 @@ with the editor (Murch's rule of six weighs them 51 % and 23 %):
   acceleration toward the end, against a tempo (`scene.edit.tempo`: contemplative, drama, dialogue, tension, action).
 * `node tools/edit_report.mjs scene.json --tempo drama`, or **Edit report** in step 5 · Review.
 
+## Review: notes from the director, the VFX supervisor and the artists
+
+Step 6 is the review table of the scene. Everyone writes as themselves, with a role — **Director**, **VFX
+supervisor** or **Artist** — and every note says who wrote it, when, and where:
+
+* **Scene notes** on the whole scene (tone, coverage, a VFX approach), and **shot notes** on the selected shot at the
+  current moment of its timeline.
+* **✎ Mark this frame** freezes the frame you are looking through and opens a drawing layer: pen, arrow, circle, text,
+  colour (your role's by default), undo. The marks are saved with the note as vectors (they redraw at any size) and as
+  a picture of the marked frame. **Go to frame** looks through that shot at that moment and draws the marks over the
+  live lens view.
+* Replies under each note; **resolve** (the note's author, a director or a VFX supervisor) and **reopen**; filters for
+  open / resolved notes and by role; a count of open notes on the step button; **Export** writes the notes as Markdown.
+
+Who is writing depends on where the page runs:
+
+* **As a claude.ai artifact (shared, signed in):** identity comes from each person's claude.ai account; notes are shared
+  live with everyone who opens the page. The owner (the director by default) assigns roles in **team · roles** —
+  search a colleague, pick a role; people without a role write as artists. Storage: `review/roles` (only the owner and
+  editors write it) and one document per person, `notes/<id>` (each person writes only their own: their notes and
+  their resolutions; a resolution counts when it comes from the note's author, a director or a VFX supervisor). Marked
+  frames are uploaded as the artifact's assets.
+* **Anywhere else (GitHub Pages, a local server):** a local profile — name and role — kept in this browser (not a
+  verified login), and the notes saved inside the scene file (`scene.review`), so **Save JSON** keeps them and they
+  travel with the scene.
+
 ## Skills: a DP and an editor for Claude
 
 `.claude/skills/director-of-photography` and `.claude/skills/film-editor` (at the repository root) turn the engines
@@ -261,8 +291,9 @@ perception studies on camera angle and face distance) and evals in the `claude p
 
 ## Status
 
-v0.4 — viewer + deterministic core, Unreal-style mannequins with acting and articulated hands, subject following,
+v0.5 — viewer + deterministic core, Unreal-style mannequins with acting and articulated hands, subject following,
 real-time screening, in-browser MP4 export, editorial timing, sound, a director of photography (composition analysis,
-intents, composer, DP report) and a film editor (cut review, timing, pacing) with their Claude skills, and TIMELESS
-Scene 1 recomposed by intent (DP 96/100, edit 100/100). Next: a review tab (notes and frame markup by director, VFX
-supervisor and artists), more TIMELESS scenes, USD/FBX camera export, Unreal bridge, stand-in animation clips.
+intents, composer, DP report) and a film editor (cut review, timing, pacing) with their Claude skills, a review step
+with notes and frame markup by role (shared and signed in on claude.ai, local elsewhere), and TIMELESS Scene 1
+recomposed by intent (DP 96/100, edit 100/100). Next: scoring wide frames and tangents beside a head in the DP, more
+TIMELESS scenes, USD/FBX camera export, Unreal bridge, stand-in animation clips.

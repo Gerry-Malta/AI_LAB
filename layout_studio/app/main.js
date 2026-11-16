@@ -6,6 +6,7 @@ import { canEncode, encodeMP4, pickCodec, codecName } from './export_mp4.js';
 import { SoundPlayer, mixEdit } from './audio.js';
 import { installTooltips } from './tooltip.js';
 import { FIELD_TIPS } from './tips.js';
+import * as review from './review.js';
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -91,6 +92,7 @@ function loadScene(json, name, base = '') {
   refreshAll();
   sound.setScene(S.scene, base); liveKey = -1;
   if (shots().length) selectShot(shots()[0].id, { fly: false });
+  openNotes();
 }
 function fitShadows() {
   const pts = objects().filter((o) => o.role !== 'ENV' && o.kind !== 'plane').map((o) => o.position);
@@ -121,6 +123,7 @@ function selectShot(id, opts = {}) {
   if (opts.fly && sh) vp.flyTo(sh.keys.A.position, sh.keys.A.target);
   if (sh) vp.focusDist = core.dist(sh.keys.A.position, sh.keys.A.target);
   refreshRight();
+  if (S.tab === 'notes') refreshNotes();
 }
 function updateHelpers() { vp.setShotHelpers(shots(), S.shotId, currentShot() ? solvedFor(currentShot()) : null); }
 
@@ -616,7 +619,8 @@ const STEP_HINTS = {
   beats: '<b>2 · Blocking.</b> Pick a beat, then an actor, and put them on their mark: drag in the viewport or type the position, then facing, pose and acting. The floor rings are the marks; a dashed line is the move between beats.',
   shots: '<b>3 · Camera.</b> Pick a shot. Choose lens and rig, then the first and last frame (keys <b>A</b> and <b>B</b>): press <b>L</b> to look through and fly the camera by eye. The score on the right grades the frame.',
   sound: '<b>4 · Sound.</b> Voices, effects and ambience, and where each one sits in its shot. They come from Higgsfield: ask Claude to voice a scene or add a sound. <b>▶</b> previews a take.',
-  review: '<b>5 · Review.</b> The whole edit at a glance. <b>Play the edit</b> screens it through the lens in real time with voices; <b>Export MP4</b> renders it on your GPU.',
+  review: '<b>5 · Screen.</b> The whole edit at a glance. <b>Play the edit</b> screens it through the lens in real time with voices; <b>Export MP4</b> renders it on your GPU; the DP and edit reports grade every frame and every cut.',
+  notes: '<b>6 · Review.</b> Notes from the director, the VFX supervisor and the artists. Write on the whole scene, on the selected shot, or <b>✎ mark the frame</b> you are looking at. Resolve a note when it is done.',
 };
 function switchTab(name) {
   S.tab = name;
@@ -630,6 +634,7 @@ function switchTab(name) {
   if (name === 'beats') refreshCast();
   if (name === 'sound') refreshSound();
   if (name === 'review') refreshReview();
+  if (name === 'notes') refreshNotes();
   updateMarks();
 }
 $$('.tabs button').forEach((b) => b.addEventListener('click', () => switchTab(b.dataset.tab)));
@@ -893,7 +898,7 @@ function updateOverlay(sh) {
   if (!S.lookThrough || !sh) { if (overlayKey) { ov.classList.add('hidden'); overlayKey = ''; } return; }
   const g = vp.gateRect(sh.camera.aspect || 2.39); if (!g) return;
   const d = core.subtitleAt(soundsLive().dialogue, liveTime(sh));
-  const key = `${g.left},${g.top},${g.width},${g.height}|${sh.id}|${S.compGrid}|${d ? `${d.who}|${d.line}|${d.index}` : ''}`;
+  const key = `${g.left},${g.top},${g.width},${g.height}|${sh.id}|${S.compGrid}|${REV.show || ''}|${d ? `${d.who}|${d.line}|${d.index}` : ''}`;
   if (key === overlayKey) return;
   overlayKey = key;
   ov.classList.remove('hidden');
@@ -903,6 +908,11 @@ function updateOverlay(sh) {
   const svg = $('#lt-grid'); const W = 1000, Hh = Math.round(1000 / (sh.camera.aspect || 2.39));
   svg.setAttribute('viewBox', `0 0 ${W} ${Hh}`); svg.setAttribute('preserveAspectRatio', 'none');
   svg.innerHTML = S.playing ? '' : `<g stroke="rgba(255,236,150,0.55)" stroke-width="1.6" fill="none">${gridLinesSVG(W, Hh)}</g>`;
+  // the marks of the review note being shown, drawn over the live lens view
+  const nc = $('#lt-notes'), dpr = devicePixelRatio || 1;
+  nc.width = Math.round(g.width * dpr); nc.height = Math.round(g.height * dpr);
+  const note = REV.show && REV.store ? REV.store.notes().find((n) => n.id === REV.show) : null;
+  if (note && note.shot === sh.id) review.drawMarkup(nc.getContext('2d'), note.markup, nc.width, nc.height);
 }
 /** Lines of the chosen composition grid (thirds, phi, quarters, centre) as SVG, in a W × H box. */
 function gridLinesSVG(W, Hh) {
@@ -1004,6 +1014,166 @@ $('#btn-review-sheet').addEventListener('click', () => $('#btn-sheet').click());
 $('#btn-review-blender').addEventListener('click', () => $('#btn-blender').click());
 $('#btn-review-dp').addEventListener('click', () => { if (!S.scene) return; const rep = core.dpReport(S.scene); download(`${baseName()}_dp_report.md`, core.dpReportMarkdown(S.scene, rep), 'text/markdown'); });
 $('#btn-review-edit').addEventListener('click', () => { if (!S.scene) return; const rep = core.editReview(S.scene); download(`${baseName()}_edit_report.md`, core.editReviewMarkdown(S.scene, rep), 'text/markdown'); });
+
+// ------------------------------------------------------------------ step 6: review notes --------------------------------
+// Who writes (director, VFX supervisor, artist), on the scene or a shot, marked frames, replies, resolved or open.
+// The store is shared and signed in through claude.ai when the page runs as an artifact, local otherwise (review.js).
+const REV = { store: null, filter: 'open', role: 'all', show: null, replyTo: null, drafts: {}, opening: null, pending: false };
+const sceneKey = () => (S.scene ? `${S.scene.project || 'scene'}/${(S.scene.scene && S.scene.scene.number) ?? ''}` : '');
+async function openNotes() {
+  if (REV.store) { try { REV.store.close(); } catch (e) { /* closed */ } }
+  REV.store = null; REV.show = null; REV.replyTo = null;
+  const token = (REV.opening = {});
+  if (S.tab === 'notes') refreshNotes();
+  const store = await review.openReviewStore({ sceneKey, getScene: () => S.scene, markDirty, onChange: () => { if (REV.store) { refreshNotes(); refreshNotesCount(); overlayKey = ''; } } });
+  if (token !== REV.opening) { store.close(); return; }
+  REV.store = store; refreshNotes(); refreshNotesCount();
+}
+function refreshNotesCount() {
+  const el = $('#notes-count'); if (!el) return;
+  const n = REV.store ? REV.store.notes().filter((x) => !x.parent && !x.resolved).length : 0;
+  el.textContent = n; el.classList.toggle('hidden', !n);
+}
+const roleChip = (role) => `<span class="role" style="background:${review.ROLE_COLORS[role] || '#999'}">${esc(review.ROLES[role] || role || '')}</span>`;
+const whenOf = (iso) => { const d = new Date(iso); return isNaN(d) ? '' : d.toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }); };
+const shotLabel = (id) => { const sh = shots().find((x) => x.id === id); return sh ? sh.name || sh.id : '?'; };
+async function refreshNotes() {
+  const box = $('#notes-panel'); if (!box || S.tab !== 'notes') return;
+  const st = REV.store;
+  if (!st) { box.innerHTML = '<div class="empty">Opening the notes…</div>'; return; }
+  // never rebuild under someone typing: finish when they leave the field
+  if (box.contains(document.activeElement) && /TEXTAREA|INPUT|SELECT/.test(document.activeElement.tagName)) { REV.pending = true; return; }
+  REV.pending = false;
+  const me = st.me(), all = st.notes();
+  const ids = [...new Set(all.map((n) => n.authorId).concat(me ? [me.id] : []).concat(st.team().map((t) => t.id)))];
+  const tok = (REV.rtok = {});
+  const people = await st.names(ids);
+  if (tok !== REV.rtok) return; // a newer render started while names resolved
+  const nameOf = (id) => (people[id] && people[id].name) || (me && me.id === id ? me.name : '') || 'Someone';
+  const avatar = (id, role) => (people[id] && people[id].avatarUrl ? `<img src="${esc(people[id].avatarUrl)}" alt="">` : `<span class="dot" style="background:${review.ROLE_COLORS[role] || '#999'}">${esc((nameOf(id)[0] || '?').toUpperCase())}</span>`);
+  const visible = (n) => (REV.filter === 'all' || (REV.filter === 'open' ? !n.resolved : !!n.resolved)) && (REV.role === 'all' || n.role === REV.role);
+  const canResolve = (n) => me && (n.authorId === me.id || ['director', 'vfx'].includes(me.role));
+  const replies = (id) => all.filter((r) => r.parent === id).sort((a, b) => String(a.created).localeCompare(String(b.created)));
+  const composer = (key, placeholder, buttons) => `<div class="ncomposer"><textarea data-draft="${key}" placeholder="${esc(placeholder)}">${esc(REV.drafts[key] || '')}</textarea><div class="btnrow">${buttons}</div></div>`;
+  const card = (n) => {
+    const sh = n.shot ? shots().find((x) => x.id === n.shot) : null;
+    const where = n.shot ? `<a href="#" data-act="go" data-id="${esc(n.id)}">${esc(shotLabel(n.shot))}${n.t != null && sh ? ` @ ${(n.t * (sh.duration_s || 0)).toFixed(1)} s` : ''}</a>` : 'scene';
+    let h = `<div class="ncard ${n.resolved ? 'resolved' : ''}" style="border-left-color:${review.ROLE_COLORS[n.role] || '#999'}"><div class="nhead">${avatar(n.authorId, n.role)}<b>${esc(nameOf(n.authorId))}</b>${roleChip(n.role)}<span>${where} · ${esc(whenOf(n.created))}${n.resolved ? ' · ✓ resolved' : ''}</span></div>`;
+    h += `<div class="ntext">${esc(n.text || '')}</div>`;
+    if (n.snapshot) h += `<img class="nthumb" data-act="go" data-id="${esc(n.id)}" src="${esc(n.snapshot)}" alt="marked frame" data-tip="Marked frame|Click to look through this shot at this moment, with the marks over the lens view.">`;
+    else if (n.markup && n.markup.length) h += `<button class="small" data-act="go" data-id="${esc(n.id)}">✎ show the marks on the frame</button>`;
+    const acts = [];
+    if (n.shot) acts.push(`<button data-act="go" data-id="${esc(n.id)}">go to frame</button>`);
+    if (st.canWrite) acts.push(`<button data-act="reply" data-id="${esc(n.id)}">reply</button>`);
+    if (canResolve(n)) acts.push(`<button data-act="${n.resolved ? 'reopen' : 'resolve'}" data-id="${esc(n.id)}">${n.resolved ? 'reopen' : '✓ resolve'}</button>`);
+    if (me && n.authorId === me.id) acts.push(`<button data-act="delete" data-id="${esc(n.id)}" style="color:var(--bad)">delete</button>`);
+    h += `<div class="nactions">${acts.join('')}</div>`;
+    const rs = replies(n.id);
+    if (rs.length || REV.replyTo === n.id) {
+      h += `<div class="replies">${rs.map((r) => `<div class="reply"><b>${esc(nameOf(r.authorId))}</b> ${roleChip(r.role)} <span class="mini">${esc(whenOf(r.created))}</span>${me && r.authorId === me.id ? ` <a href="#" data-act="delete" data-id="${esc(r.id)}" class="mini">delete</a>` : ''}<div class="ntext">${esc(r.text || '')}</div></div>`).join('')}`;
+      if (REV.replyTo === n.id) h += composer(`reply:${n.id}`, 'Reply…', `<button class="small primary" data-act="send-reply" data-id="${esc(n.id)}">Reply</button><button class="small" data-act="cancel-reply">Cancel</button>`);
+      h += `</div>`;
+    }
+    return h + `</div>`;
+  };
+  let h = '';
+  // who is writing
+  if (me) h += `<div class="rv-who">${avatar(me.id, me.role)}<div><b>${esc(me.name || 'You')}</b> ${roleChip(me.role)}<div class="mini">${me.verified ? 'signed in with claude.ai' : 'local profile · this browser'}${st.mode === 'local' ? ' · <a href="#" data-act="signout">switch</a>' : ''}</div></div></div>`;
+  else if (st.mode === 'local') h += `<div class="note">Sign in to write notes. ${esc(st.describe())}</div><div class="field"><label>name</label><input id="rv-name" placeholder="Your name"></div><div class="field"><label>role</label><select id="rv-role">${Object.entries(review.ROLES).map(([k, v]) => `<option value="${k}">${esc(v)}</option>`).join('')}</select></div><div class="btnrow"><button class="small primary" data-act="signin">Sign in</button></div>`;
+  else h += `<div class="note">Sign in to claude.ai to write notes; you can read them now.</div>`;
+  h += `<div class="note mini">${esc(st.describe())}</div>`;
+  if (st.canAssign) {
+    const team = st.team();
+    h += `<details class="acting" id="rv-team" ${REV.teamOpen ? 'open' : ''}><summary class="note" style="cursor:pointer">team · roles (${team.length})</summary>${team.map((t) => `<div class="field"><label>${esc(nameOf(t.id))}</label><select data-role-of="${esc(t.id)}">${Object.entries(review.ROLES).map(([k, v]) => `<option value="${k}" ${k === t.role ? 'selected' : ''}>${esc(v)}</option>`).join('')}</select></div>`).join('')}<div class="field"><label>add</label><input id="rv-search" placeholder="Search a colleague by name"></div><div id="rv-hits"></div><div class="note mini">Everyone who opens the page can read the notes; you decide who directs, who supervises the VFX, who is an artist. People without a role write as artists.</div></details>`;
+  }
+  // filters and export
+  h += `<div class="btnrow" style="align-items:center"><span class="seg">${['open', 'all', 'resolved'].map((f) => `<button class="${REV.filter === f ? 'active' : ''}" data-filter="${f}">${f}</button>`).join('')}</span><select id="rv-rolefilter" style="width:auto"><option value="all">all roles</option>${Object.entries(review.ROLES).map(([k, v]) => `<option value="${k}" ${REV.role === k ? 'selected' : ''}>${esc(v)}</option>`).join('')}</select><button class="small" data-act="export-notes" data-tip="Export notes|All the notes of this scene as Markdown, for the review session or the crew.">Export</button></div>`;
+  // the scene
+  const sceneNotes = all.filter((n) => !n.parent && !n.shot && visible(n));
+  h += `<h4>scene notes</h4>${sceneNotes.map(card).join('') || '<div class="empty">No notes on the whole scene.</div>'}`;
+  if (st.canWrite) h += composer('scene', 'A note on the whole scene (tone, coverage, continuity, a VFX approach)…', `<button class="small primary" data-act="add-scene">Add scene note</button>`);
+  // the selected shot
+  const sh = currentShot();
+  if (sh) {
+    const shotNotes = all.filter((n) => !n.parent && n.shot === sh.id && visible(n)).sort((a, b) => (a.t ?? 0) - (b.t ?? 0));
+    h += `<h4>shot ${esc(sh.name || sh.id)} · ${esc(sh.size || '')}</h4>${shotNotes.map(card).join('') || '<div class="empty">No notes on this shot yet.</div>'}`;
+    if (st.canWrite) h += composer('shot', `A note on ${sh.name || 'this shot'}…`, `<button class="small primary" data-act="add-shot">Add shot note</button><button class="small" data-act="mark" data-tip="Mark the frame|Freeze the frame you are looking at (the current time of this shot), draw on it — pen, arrow, circle, text — and save the marks with your note.">✎ Mark this frame</button>`);
+  } else h += `<div class="note">Select a shot (step 3 or the edit) to write on it.</div>`;
+  // the other shots with notes
+  const others = shots().filter((x) => x.id !== S.shotId).map((x) => ({ x, n: all.filter((n) => !n.parent && n.shot === x.id && !n.resolved).length })).filter((o) => o.n);
+  if (others.length) h += `<h4>open notes on other shots</h4><div class="list short">${others.map((o) => `<div class="row" data-shot-note="${esc(o.x.id)}"><span class="name"><b>${esc(o.x.name)}</b> <span class="tag">${esc(o.x.size || '')}</span></span><span class="badge warn">${o.n}</span></div>`).join('')}</div>`;
+  box.innerHTML = h;
+}
+$('#notes-panel').addEventListener('input', (e) => { const k = e.target.dataset && e.target.dataset.draft; if (k) REV.drafts[k] = e.target.value; });
+$('#notes-panel').addEventListener('toggle', (e) => { if (e.target.id === 'rv-team') REV.teamOpen = e.target.open; }, true);
+$('#notes-panel').addEventListener('focusout', () => setTimeout(() => { if (REV.pending && !$('#notes-panel').contains(document.activeElement)) refreshNotes(); }, 0));
+$('#notes-panel').addEventListener('change', async (e) => {
+  const st = REV.store; if (!st) return;
+  if (e.target.id === 'rv-rolefilter') { REV.role = e.target.value; refreshNotes(); }
+  if (e.target.dataset.roleOf) { try { await st.setRole(e.target.dataset.roleOf, e.target.value); toast('Role saved'); } catch (err) { toast('Could not save the role: ' + (err.message || err.code)); } }
+});
+$('#notes-panel').addEventListener('keyup', async (e) => {
+  if (e.target.id !== 'rv-search' || !REV.store || !REV.store.search) return;
+  const hits = await REV.store.search(e.target.value || '');
+  $('#rv-hits').innerHTML = hits.map((p) => `<div class="row" data-add-person="${esc(p.id)}"><span class="name">${esc(p.name)}</span><span class="tag">add as artist</span></div>`).join('');
+});
+$('#notes-panel').addEventListener('click', async (e) => {
+  const st = REV.store; if (!st) return;
+  const f = e.target.closest('[data-filter]'); if (f) { REV.filter = f.dataset.filter; refreshNotes(); return; }
+  const other = e.target.closest('[data-shot-note]'); if (other) { selectShot(other.dataset.shotNote, { fly: false }); refreshNotes(); return; }
+  const add = e.target.closest('[data-add-person]'); if (add) { await st.setRole(add.dataset.addPerson, 'artist'); toast('Added to the team'); return; }
+  const b = e.target.closest('[data-act]'); if (!b) return;
+  e.preventDefault();
+  const act = b.dataset.act, id = b.dataset.id, note = id ? st.notes().find((n) => n.id === id) : null;
+  const take = (k) => { const t = (REV.drafts[k] || '').trim(); return t; };
+  try {
+    if (act === 'signin') { st.signIn($('#rv-name').value, $('#rv-role').value); return; }
+    if (act === 'signout') { st.signOut(); return; }
+    if (act === 'add-scene') { const t = take('scene'); if (!t) return toast('Write the note first'); await st.add({ shot: null, t: null, text: t }); REV.drafts.scene = ''; }
+    if (act === 'add-shot') { const t = take('shot'); if (!t) return toast('Write the note first'); await st.add({ shot: S.shotId, t: S.t, text: t }); REV.drafts.shot = ''; }
+    if (act === 'mark') { await markFrame(); return; }
+    if (act === 'reply') { REV.replyTo = id; }
+    if (act === 'cancel-reply') { REV.replyTo = null; }
+    if (act === 'send-reply') { const t = take(`reply:${id}`); if (!t) return toast('Write the reply first'); await st.add({ parent: id, shot: note ? note.shot : null, t: null, text: t }); REV.drafts[`reply:${id}`] = ''; REV.replyTo = null; }
+    if (act === 'resolve' || act === 'reopen') await st.setResolved(id, act === 'resolve');
+    if (act === 'delete') { if (!confirm('Delete this note?')) return; await st.remove(id); if (REV.show === id) REV.show = null; }
+    if (act === 'go' && note) {
+      if (note.shot) { selectShot(note.shot, { fly: false, t: note.t ?? 0 }); if (!S.lookThrough) setLookThrough(true); }
+      REV.show = note.markup && note.markup.length ? note.id : null; overlayKey = '';
+    }
+    if (act === 'export-notes') {
+      const sc = S.scene.scene || {}, notes = st.notes();
+      const people = await st.names([...new Set(notes.map((n) => n.authorId))]);
+      const nameOf = (uid) => (people[uid] && people[uid].name) || (notes.find((x) => x.authorId === uid) || {}).authorName || '';
+      const secondsOf = (n) => { const sh = shots().find((x) => x.id === n.shot); return sh && n.t != null ? n.t * (sh.duration_s || 0) : null; };
+      download(`${baseName()}_review_notes.md`, review.notesMarkdown(`${S.scene.project || ''} · Sc. ${sc.number ?? ''} ${sc.heading || ''}`, notes, nameOf, shotLabel, secondsOf), 'text/markdown');
+      return;
+    }
+  } catch (err) { toast('Could not save: ' + (err.message || err.code || err)); }
+  refreshNotes(); refreshNotesCount();
+});
+/** Freeze the frame being looked at, draw on it, save the marks (and the marked frame) with a note on the shot. */
+async function markFrame() {
+  const st = REV.store, sh = currentShot();
+  if (!st || !st.canWrite) return toast('Sign in to write notes');
+  if (!sh) return toast('Select a shot first');
+  if (!S.lookThrough) setLookThrough(true);
+  S.playing = false; refreshPlayBtn();
+  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+  const g = vp.gateRect(sh.camera.aspect || 2.39); if (!g) return;
+  const dpr = Math.min(2, devicePixelRatio || 1), w = Math.min(1920, Math.round(g.width * dpr)), h = Math.round(w / (sh.camera.aspect || 2.39));
+  const frame = renderFrameCanvas(sh, S.t, w, h, { burnIn: false });
+  const copy = document.createElement('canvas'); copy.width = frame.width; copy.height = frame.height; copy.getContext('2d').drawImage(frame, 0, 0);
+  const me = st.me();
+  const res = await review.openMarkupEditor({ host: $('#viewport-wrap'), rect: { left: g.left, top: g.top, width: g.width, height: g.height }, frame: copy, color: review.ROLE_COLORS[me.role] || '#ff6b5e', title: `${sh.name} @ ${(S.t * (sh.duration_s || 0)).toFixed(1)} s` });
+  if (!res) return;
+  const text = (REV.drafts.shot || '').trim() || prompt('Your note on this frame') || '';
+  const snapshot = await st.uploadSnapshot(res.canvas);
+  const n = await st.add({ shot: sh.id, t: S.t, text, markup: res.markup, snapshot });
+  REV.drafts.shot = ''; REV.show = n.id; overlayKey = '';
+  if (S.tab !== 'notes') switchTab('notes'); else refreshNotes();
+  refreshNotesCount(); toast('Note saved with the marked frame');
+}
 
 // ------------------------------------------------------------------ boot ------------------------------------------------
 const initial = QUERY.get('scene') || 'scenes/demo/street_corner.json';

@@ -113,7 +113,32 @@
   .score.ok { background: var(--ok); } .score.warn { background: var(--warn); } .score.bad { background: var(--bad); }
   #lt-overlay { position: absolute; pointer-events: none; overflow: hidden; }
   #lt-overlay.hidden { display: none; }
-  #lt-grid { position: absolute; inset: 0; width: 100%; height: 100%; }
+  #lt-grid, #lt-notes { position: absolute; inset: 0; width: 100%; height: 100%; }
+  /* review notes */
+  .steps button .count { margin-left: 4px; background: var(--bad); color: #111; border-radius: 8px; padding: 0 5px; font-size: 10px; font-weight: 600; }
+  .steps button .count.hidden { display: none; }
+  .rv-who { display: flex; align-items: center; gap: 8px; margin: 2px 0 8px; }
+  .rv-who img, .rv-who .dot, .ncard .nhead img, .ncard .nhead .dot { width: 26px; height: 26px; border-radius: 50%; flex: none; }
+  .ncard .nhead img, .ncard .nhead .dot { width: 18px; height: 18px; font-size: 10px; }
+  .rv-who .dot, .ncard .nhead .dot { display: inline-flex; align-items: center; justify-content: center; font-weight: 600; color: #111; font-size: 12px; }
+  .role { font-size: 10px; border-radius: 3px; padding: 0 5px; color: #111; font-weight: 600; white-space: nowrap; }
+  .ncard { border: 1px solid var(--line); border-left: 3px solid var(--dim); border-radius: 4px; padding: 6px 8px; margin: 6px 0; background: var(--panel-2); }
+  .ncard.resolved { opacity: 0.6; }
+  .ncard .nhead { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--dim); flex-wrap: wrap; }
+  .ncard .nhead b { color: var(--text); font-weight: 500; }
+  .ncard .ntext { white-space: pre-wrap; margin: 5px 0; line-height: 1.35; overflow-wrap: anywhere; }
+  .ncard .nthumb { width: 100%; border-radius: 3px; cursor: pointer; display: block; margin: 4px 0; }
+  .ncard .nactions { display: flex; gap: 4px; flex-wrap: wrap; }
+  .ncard .nactions button { padding: 1px 6px; font-size: 11px; }
+  .ncard .replies { margin: 6px 0 0 10px; border-left: 1px solid var(--line); padding-left: 8px; }
+  .ncard .reply { font-size: 12px; margin: 4px 0; }
+  .ncomposer textarea { min-height: 52px; resize: vertical; }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; }
+  .seg button { border: 0; border-radius: 0; padding: 2px 8px; font-size: 11px; }
+  .markup-editor { box-shadow: 0 0 0 2px var(--accent), 0 8px 30px rgba(0,0,0,0.6); background: #000; }
+  .markup-bar { position: absolute; left: 0; right: 0; bottom: 100%; margin-bottom: 6px; display: flex; gap: 4px; align-items: center; flex-wrap: wrap; background: rgba(15,17,20,0.92); padding: 5px 6px; border-radius: 4px; }
+  .markup-bar .markup-title { color: var(--accent); font-weight: 500; margin-right: 6px; }
+  .markup-bar input[type=color] { width: 32px; height: 24px; padding: 0; border: 0; background: none; }
   #lt-label { position: absolute; right: 8px; top: 6px; font-size: clamp(11px, 0.62em, 15px); color: rgba(255,255,255,0.85); background: rgba(0,0,0,0.55); padding: 2px 8px; border-radius: 3px; }
   #lt-sub { position: absolute; left: 50%; bottom: 0.55em; transform: translateX(-50%); max-width: 78%; text-align: center; font: 600 1em/1.25 "Helvetica Neue", Arial, sans-serif; color: #fff; background: rgba(0,0,0,0.78); padding: 0.15em 0.55em 0.2em; border-radius: 3px; }
   #lt-sub.hidden { display: none; }
@@ -167,7 +192,8 @@
         <button data-tab="beats" data-tip="2 · Blocking|The story beats and where the actors stand in each one: pick a beat, then put each actor on their mark."><b>2</b>Blocking</button>
         <button data-tab="shots" data-tip="3 · Camera|The shots: lens, rig, first and last frame (keys A and B) and timing. The panel on the right grades each frame."><b>3</b>Camera</button>
         <button data-tab="sound" data-tip="4 · Sound|Dialogue per shot: when each line plays and its recorded voice."><b>4</b>Sound</button>
-        <button data-tab="review" data-tip="5 · Review|The whole edit: scores, real-time screening and exports."><b>5</b>Review</button>
+        <button data-tab="review" data-tip="5 · Screen|The whole edit: scores, real-time screening, DP and edit reports, exports."><b>5</b>Screen</button>
+        <button data-tab="notes" data-tip="6 · Review|Notes from the director, the VFX supervisor and the artists: on the whole scene, on a shot, and drawn on a frame."><b>6</b>Review<span id="notes-count" class="count hidden"></span></button>
       </nav>
       <div id="step-hint" class="step-hint"></div>
       <section id="tab-outliner" class="tab">
@@ -206,6 +232,9 @@
       <section id="tab-sound" class="tab hidden">
         <div id="sound-panel" class="props"></div>
       </section>
+      <section id="tab-notes" class="tab hidden">
+        <div id="notes-panel" class="props"></div>
+      </section>
       <section id="tab-review" class="tab hidden">
         <div class="toolbar">
           <button class="small primary" id="btn-screen" data-tip="Screen the edit|Every shot back to back through the lens, in real time on your GPU, with voices and subtitles.">▶ Play the edit</button>
@@ -230,7 +259,7 @@
         <button class="small" id="vt-marks" title="Actor marks|Floor marks for every beat: ring = where the actor stands, arrow = facing, dashed line = the move between beats (M)">marks</button>
         <button class="small" id="vt-comp" title="Composition grid|The grid drawn over the lens view: rule of thirds, phi grid (golden section), quarters, centre, or none. Click to switch.">thirds</button>
       </div>
-      <div id="lt-overlay" class="hidden"><svg id="lt-grid"></svg><div id="lt-label"></div><div id="lt-sub" class="hidden"></div></div>
+      <div id="lt-overlay" class="hidden"><svg id="lt-grid"></svg><canvas id="lt-notes"></canvas><div id="lt-label"></div><div id="lt-sub" class="hidden"></div></div>
       <div id="pip" class="hidden">
         <svg id="pip-guides"></svg>
         <div id="pip-label"></div>

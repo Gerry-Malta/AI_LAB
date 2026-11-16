@@ -62,7 +62,7 @@ const tipText = await page.evaluate(() => { const t = document.querySelector('#t
 console.log('tooltip', JSON.stringify(tipText));
 if (!/graphics card/.test(tipText)) errors.push('pageerror: no tooltip on the Export MP4 button');
 await page.mouse.move(5, 300);
-// the five steps open and show their how-to line
+// the six steps open and show their how-to line
 const steps = await page.evaluate(() => [...document.querySelectorAll('#steps button')].map((b) => { b.click(); return [b.dataset.tab, document.querySelector('#step-hint').textContent.length > 40, !document.querySelector(`#tab-${b.dataset.tab}`).classList.contains('hidden')]; }));
 console.log('steps', JSON.stringify(steps));
 if (steps.some((x) => !x[1] || !x[2])) errors.push('pageerror: a workflow step did not open');
