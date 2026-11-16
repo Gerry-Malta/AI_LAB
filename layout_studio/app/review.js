@@ -67,6 +67,7 @@ function localStore(ctx) {
 //   notes/<userId>      { items: { <noteId>: note }, resolutions: { <noteId>: { on, at } } } — each person writes only
 //                       their own document; everyone reads all of them. A note counts as resolved when its author or
 //                       a director / VFX supervisor last marked it so.
+const DOC_LIMIT = 250 * 1024;   // a db document holds at most 256 KiB serialized
 async function sharedStore(ctx, db, user) {
   const meV = await user.me();
   const assets = await capability('assets');
@@ -107,6 +108,8 @@ async function sharedStore(ctx, db, user) {
     const body = cur.exists ? JSON.parse(JSON.stringify(cur.data())) : { items: {}, resolutions: {} };
     body.items = body.items || {}; body.resolutions = body.resolutions || {};
     mutate(body);
+    const bytes = new TextEncoder().encode(JSON.stringify(body)).length;
+    if (bytes > DOC_LIMIT) throw new Error(`your notes are full (${Math.round(bytes / 1024)} of 256 KB). Delete notes or replies you no longer need, then try again.`);
     await myRef.set(body);
   });
   return {
@@ -136,9 +139,12 @@ async function sharedStore(ctx, db, user) {
     async remove(id) { await writeMine((d) => { delete d.items[id]; for (const [k, v] of Object.entries(d.items)) if (v.parent === id) delete d.items[k]; }); },
     async setResolved(id, on) { await ensureOwnerRole().catch(() => {}); await writeMine((d) => { d.resolutions[id] = { on: !!on, at: new Date().toISOString() }; }); },
     async uploadSnapshot(canvas) {
-      if (!assets) return canvas.toDataURL('image/jpeg', 0.6).length < 90000 ? canvas.toDataURL('image/jpeg', 0.6) : null;
+      // no upload right (a viewer below Contributor): keep the vector marks only — a picture inlined in the person's
+      // notes document would eat its 256 KiB in a few notes
+      if (!assets) return null;
       const blob = await new Promise((r) => canvas.toBlob(r, 'image/jpeg', 0.8));
-      try { const a = await assets.upload(blob); return a.url || `/_blob/${a.id}`; } catch (e) { return null; }
+      // keep the durable pointer (the id), never the view-specific url
+      try { const a = await assets.upload(blob); return `/_blob/${a.id}`; } catch (e) { return null; }
     },
     close() { for (const u of unsubs) try { u(); } catch (e) { /* closed */ } },
   };
@@ -168,6 +174,22 @@ export function drawMarkup(g, markup, w, h) {
     }
     g.restore();
   }
+}
+
+/** Ramer–Douglas–Peucker: drop the points of a freehand stroke that lie within eps of the line through their
+ *  neighbours (the stroke looks the same, the note stays small). */
+function simplify(pts, eps) {
+  if (pts.length < 3) return pts.slice();
+  const keep = new Uint8Array(pts.length); keep[0] = keep[pts.length - 1] = 1;
+  const stack = [[0, pts.length - 1]];
+  while (stack.length) {
+    const [a, b] = stack.pop(); const [ax, ay] = pts[a], [bx, by] = pts[b];
+    const dx = bx - ax, dy = by - ay, len = Math.hypot(dx, dy) || 1e-9;
+    let far = -1, dmax = eps;
+    for (let i = a + 1; i < b; i++) { const d = Math.abs(dy * (pts[i][0] - ax) - dx * (pts[i][1] - ay)) / len; if (d > dmax) { dmax = d; far = i; } }
+    if (far >= 0) { keep[far] = 1; stack.push([a, far], [far, b]); }
+  }
+  return pts.filter((_, i) => keep[i]);
 }
 
 /**
@@ -205,8 +227,18 @@ export function openMarkupEditor({ host, rect, frame, color = '#ff6b5e', title =
       if (tool === 'text') { const text = prompt('Text on the frame'); if (text) { strokes.push({ tool, color: colorIn.value, pts: [p], text: text.slice(0, 80) }); paint(); } return; }
       cur = { tool, color: colorIn.value, w: 0.004, pts: [p] };
     });
-    cv.addEventListener('pointermove', (e) => { if (!cur) return; const p = uvOf(e); if (cur.tool === 'pen') cur.pts.push(p); else cur.pts = [cur.pts[0], p]; paint(); });
-    const end = () => { if (cur && (cur.pts.length > 1 || cur.tool === 'pen')) strokes.push(Object.assign({}, cur, { pts: cur.pts.map(([u, v]) => [+u.toFixed(4), +v.toFixed(4)]) })); cur = null; paint(); };
+    cv.addEventListener('pointermove', (e) => {
+      if (!cur) return; const p = uvOf(e);
+      if (cur.tool === 'pen') { const q = cur.pts[cur.pts.length - 1]; if (Math.hypot(p[0] - q[0], p[1] - q[1]) > 0.002) cur.pts.push(p); } else cur.pts = [cur.pts[0], p];
+      paint();
+    });
+    const end = () => {
+      if (cur && (cur.pts.length > 1 || cur.tool === 'pen')) {
+        const pts = cur.tool === 'pen' ? simplify(cur.pts, 0.0012) : cur.pts;
+        strokes.push(Object.assign({}, cur, { pts: pts.map(([u, v]) => [+u.toFixed(4), +v.toFixed(4)]) }));
+      }
+      cur = null; paint();
+    };
     cv.addEventListener('pointerup', end); cv.addEventListener('pointercancel', end);
     const close = (result) => { window.removeEventListener('keydown', onKey, true); wrap.remove(); resolve(result); };
     const onKey = (e) => { if (e.key === 'Escape') { e.stopPropagation(); close(null); } if ((e.ctrlKey || e.metaKey) && e.key === 'z') { e.preventDefault(); e.stopPropagation(); strokes.pop(); paint(); } };
