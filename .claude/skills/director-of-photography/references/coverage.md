@@ -28,6 +28,12 @@ event; choose it per shot, deliberately.
   emotional beats. A common progression: master → OTS pair → clean MCUs → clean CUs at the peak.
 - Look into the lens zone: the closer the eyeline passes to the lens, the more intense the moment.
 
+## The same character twice in a row
+Two consecutive shots of the same person at the same size, both matched to the reverse, sit almost on the same set-up:
+the cut jumps. Choose: one set-up (a split take — the editor joins it as one shot), a two-step size change on the same
+axis (an axial cut, MCU → BCU), a 30°+ move that you then match on the other side too, or a reaction / insert between
+them.
+
 ## Establishing and re-establishing
 Establish geography before cutting into singles (the audience needs to know who is where to read eyelines). When
 someone moves, enters, or the scene turns, re-establish with a wider frame. Intensified continuity uses fewer

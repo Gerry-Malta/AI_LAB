@@ -57,10 +57,21 @@ the chosen grid point and keeps the candidate that scores best on the shot check
   ```js
   A: { type: 'compose', intent: 'intimacy', size: 'CU' /*, side: 1, grid: 'phi', look: 'long', focal: 75 */ }
   ```
-  with `line: ['CHAR_a', 'CHAR_b']` on the shot and `side: 1 | -1` to stay on one side of the axis. Set
+  with `line: ['CHAR_a', 'CHAR_b']` on the shot and `side: 1 | -1` to stay on one side of the axis (`+1` = the
+  left of the line from `line[0]` to `line[1]`, seen from above; read the side your master is on and keep it —
+  the composer prints the camera position, so check it). Set
   `dp: { intent: 'intimacy', notes: '…' }` on shots framed by hand so the report judges them by their intent.
   Then `node layout_studio/scenes/<…>.build.mjs`.
 - Without a build script: `node layout_studio/tools/compose.mjs <scene.json> <shot> --intent intimacy [--size CU] [--side 1] [--apply]`.
+- Masters and two-shots: the composer frames ONE subject. For a master use the two-shot solver,
+  `{ type: 'two', a: 'CHAR_a', b: 'CHAR_b', size: 'WS', side: 1, cameraHeight: 1.0 }` (put the character whose look
+  matters most in `shot.subject`), or an over-the-shoulder, `{ type: 'ots', fg, bg, side, lateral, back }`; a `raw`
+  key with `frame: { subject, u, v }` places a figure on the grid from a set-up you chose. Wide frames are judged
+  mostly by eye: the numbers score close shots far better than masters, so check every wide on a large contact
+  sheet (below).
+- Two consecutive shots of the same character at the same size cannot both keep the 30° rule and match their
+  reverse: make them one set-up (a split take — tell the editor), change the size two steps (an axial cut), or put a
+  reaction or an insert between them.
 - Moving shots: compose key A and key B separately (`A: {type:'compose',…}`, `B: {type:'compose',…}`), and give
   the move a motivation and a window (`move: [start_s, end_s]`) — see `references/movement.md`.
 
@@ -72,7 +83,11 @@ Studio" below and say so — do not invent measurements.
 cd layout_studio
 node tools/dp_report.mjs scenes/<scene>.json                 # every shot against its intent + reverse-pair matching
 node tools/contact_sheet.mjs scenes/<scene>.json /tmp/sheet.png --grid thirds   # then Read the PNG
+node tools/contact_sheet.mjs scenes/<scene>.json /tmp/wides.png --shots 1A,1C --width 960 --cols 2   # masters, up close
 ```
+Measure the "before" fairly: give the shots their intents first, then run the report — a shot without
+`dp.intent` is judged as classical coverage, a different yardstick from the one you will compose to. The scene file
+must be inside `layout_studio/` for the contact sheet (copy it under `scenes/` if needed).
 The report gives, per shot: eyes position on the frame, look room, headroom, the lens angle on the eyes, the face
 angle, lens and distance, mergers (a trunk growing out of a head), cuts at the joints, depth of field, and the
 hard checks (occlusion, face readable, size). Each note carries a concrete fix ("pan right 3°", "raise the camera
@@ -85,6 +100,9 @@ judge four things — you must:
 2. Is the background clean behind the face (no busy shapes, no line through the head)?
 3. Does the sequence of frames progress (wide → close as tension rises; affinity at the release)?
 4. Are the reverse pairs mirror images of each other?
+5. Does any frame look past the built set (bare stage beyond a wall, the edge of the ground)? Flag a set extension
+   rather than accepting it. Look for tangents too: a lamp or a door edge just beside a head reads as badly as one
+   behind it, and the engine checks mergers only behind the shot's subject.
 
 ### 6. Iterate to the bar, then write it down
 Quality bar: every shot ≥ 90 in the DP report or a written reason in `dp.notes`; every reverse pair matched; no
