@@ -24,7 +24,7 @@ python3 -m http.server 8000      # then http://localhost:8000/layout_studio/
 | Path | What |
 |---|---|
 | `index.html`, `app/` | the viewer (three.js): five workflow steps, viewport, PiP camera view, shot check, exports. `export_mp4.js` in-browser MP4 export, `audio.js` dialogue playback and mix, `tooltip.js` + `tips.js` hover help |
-| `core/` | dependency-free ES modules shared by browser and Node: `lens.js` (filmbacks, FOV, DOF), `rigs.js` (rig constraints → `pose(t)`), `motion.js` (easing), `standin.js` (mannequin skeleton, poses, keypoints, body parts), `blocking.js` (blocking over time), `shot.js` (shot solving with subject tracking), `framing.js` (single / two-shot / OTS / insert solvers), `metrics.js` (shot check), `keys.js` (framing definitions → keys), `exporters.js` (camera sheet, Blender script), `schema.js` |
+| `core/` | dependency-free ES modules shared by browser and Node: `lens.js` (filmbacks, FOV, DOF), `rigs.js` (rig constraints → `pose(t)`), `motion.js` (easing), `standin.js` (mannequin skeleton, poses, hands, keypoints, body parts), `blocking.js` (blocking over time), `shot.js` (shot solving with subject tracking), `framing.js` (single / two-shot / OTS / insert solvers), `metrics.js` (shot check), `dp.js` (director of photography: composition analysis, intents, composer), `editor.js` (film editor: cut review, timing, pacing), `keys.js` (framing definitions → keys), `exporters.js` (camera sheet, Blender script), `schema.js` |
 | `scenes/_lib/build.mjs` | scene builder used by generation scripts: `node scenes/demo/build.mjs` |
 | `scenes/demo/` | public demo scenes: a fictional café terrace and the mannequin pose library |
 | `scenes/timeless/` | TIMELESS, scene by scene: `sc001.build.mjs` (Scene 1 layout script), `sc001.json`, its camera sheet and Blender script. The whole-film breakdown (`index.json`) stays local |
@@ -33,6 +33,11 @@ python3 -m http.server 8000      # then http://localhost:8000/layout_studio/
 | `tests/smoke.mjs` | headless Playwright run: loads a scene, walks the shots, screenshots, fails on JS errors |
 | `tools/render_mp4.mjs` | offline sequence render to MP4, dialogue included (see below) |
 | `tools/mix_dialogue.mjs` | lays the scene's sound (dialogue, effects, ambience) onto a rendered video, on the same frame plan |
+| `tools/compose.mjs` | composes one shot from a narrative intent with the DP composer (`--apply` writes it into the scene) |
+| `tools/dp_report.mjs`, `tools/edit_report.mjs` | the DP report (every shot against its intent, reverse-pair matching) and the edit report (cuts, timing, rhythm) |
+| `tools/contact_sheet.mjs` | contact sheet of the scene: a frame per shot (both ends of moving shots) with the composition grid, the measured eyes and the scores |
+| `tools/export_sheets.mjs` | writes the camera sheet, the Blender script and both reports next to a scene file |
+| `../.claude/skills/` | the **director-of-photography** and **film-editor** skills: the method, research references and evals (see below) |
 
 ## Workflow: five steps
 
@@ -74,6 +79,12 @@ same body drives the viewer meshes, the shot-check keypoints, occlusion and the 
   Joints: `root spine chest neck head` (pitch, yaw, roll) and `shoulder elbow wrist hip knee ankle`, both sides or `L` / `R`
   (flex, abd, twist). Pitch positive bends forward, yaw positive turns to the character's left.
 * Blends `{ "a": "sit_ground", "b": "stand", "w": 0.4 }` are produced by the blocking transitions and can be used directly.
+* **Hands**: a palm with a knuckle ridge and a thumb pad, four fingers of three phalanges and a two-phalanx thumb.
+  `hand` (both) or `handL` / `handR` takes a preset — `relaxed open flat fist point grip pinch` — or
+  `{ "preset": "grip", "curl": 0.7, "index": 0.1, "spread": 0.2, "thumb": 0.5, "thumbOut": 0.3, "opp": 0.8 }`.
+  The wrist takes `flex` (back of the hand up), `dev` (toward the thumb) and `twist` (forearm turn: + shows the palm,
+  − palm down). `core.gripPoint(character, 'L' | 'R' | 'both')` returns where a held prop goes (the phone in Claire's
+  hands, the grass between Arthur's fingers). Finger phalanges are drawn instanced and skipped by occlusion.
 
 ## Following a moving subject
 
@@ -178,11 +189,68 @@ offline mix use the same times. To change a voice, a delivery or a sound, ask Cl
 * `--ss` / supersampling renders more pixels and filters them down, so thin edges do not crawl during moves.
 * Shadows are fitted to the area where the action is (4096 map, 2048 in fast mode), so they stay sharp and stable.
 
+## Director of photography (`core/dp.js`)
+
+The DP reads a frame like a cinematographer and composes cameras for a **narrative intent**. It is deterministic: the
+same scene gives the same frame, with the reasoning written next to it.
+
+* **Composition analysis** — `composition(scene, shot, pose, blocking)`: where the eyes sit on the grid (thirds, phi,
+  quarters, centre), look room and short-siding (from where the head actually points), headroom from the head's
+  silhouette, the lens angle on the eyes (high / low), the face angle (frontal, three-quarter, profile), lens and
+  distance on faces (perspective), trunks growing out of a head, the horizon through the neck, frame edges on joints,
+  balance and negative space, depth of field. Each note carries a fix ("pan right 3°", "raise the camera 0.3 m").
+* **Intents** — `establish neutral intimacy direct conflict isolation vulnerability power tension observation wonder
+  detail calm childhood`: each maps to ranges of size, lens, vertical angle, face angle, grid, look room, headroom,
+  dutch and depth of field (see the skill's `references/intents.md` for the rationale and the research).
+* **Composer** — framing definition `{ "type": "compose", "intent": "intimacy", "size": "CU", "side": 1 }`: searches the
+  lenses of the kit inside the intent, the face angles and heights it allows, solves the distance for the size, aims
+  the eyes onto the grid, and keeps the frame that scores best on the shot check plus the composition. Options:
+  `focal` (lock the lens), `side` with the shot's `line` (stay on one side of the 180° axis), `povOf` (the lens at a
+  character's eye height — a point of view), `grid`, `look`, `vAngle`, `face`, `ffEq`. A `raw` key can take
+  `frame: { subject, u, v }` to place a figure on the grid from a fixed set-up. The reasoning is stored in `shot.dp.why`.
+* **DP report** — `dpReport(scene)`: every shot against its `dp.intent`, plus the coverage rules across shots: reverse
+  singles must match lens, eye height, angle, face angle and look (`node tools/dp_report.mjs scene.json`).
+* In the viewer (step 3 · Camera): the **DP · composition** panel picks the intent, **Compose for this intent**
+  recomposes the shot, and the live read shows the score and the notes; the **grid** button over the viewport switches
+  the composition grid drawn over the lens view (thirds → phi → quarters → centre → none).
+
+![DP panel and phi grid over the lens view](docs/dp_panel.jpg)
+
+`tools/contact_sheet.mjs` on TIMELESS Scene 1 after the DP pass — the grid, the eyes as the DP measured them (red), the
+intent and the score of every frame:
+
+![contact sheet](docs/dp_contact_sheet.jpg)
+
+## Film editor (`core/editor.js`)
+
+`editReview(scene)` reads the cut the way an editor does — what can be measured is measured, emotion and story stay
+with the editor (Murch's rule of six weighs them 51 % and 23 %):
+
+* **Every cut**: eye-trace (how far the eye jumps between the last frame of A and the first of B), size step and camera
+  angle on the same subject (30° rule, axial cuts accepted), the 180° line, eyelines that meet in shot / reverse shot,
+  screen direction of a character moving across the cut, cutting in movement, a camera still travelling into a still
+  frame, sound bridging the cut (J / L), a line ending right on the cut, reaction cuts. A "craft" score weighs the four
+  measurable criteria with Murch's weights.
+* **Every shot**: what it carries (its lines plus a beat, its move, its action, the time to read a frame of its size the
+  first time) against its length. A line that runs past the cut on purpose (L-cut) only needs its first second.
+* **The rhythm**: ASL, median, variation (CV), monotone stretches (four shots of the same length read as a metronome),
+  acceleration toward the end, against a tempo (`scene.edit.tempo`: contemplative, drama, dialogue, tension, action).
+* `node tools/edit_report.mjs scene.json --tempo drama`, or **Edit report** in step 5 · Review.
+
+## Skills: a DP and an editor for Claude
+
+`.claude/skills/director-of-photography` and `.claude/skills/film-editor` (at the repository root) turn the engines
+into a repeatable method for Claude: read the scene for intent, plan coverage, compose with the engine, verify with the
+reports and with the contact sheet (looked at, not only measured), iterate to a quality bar, write the reasons down.
+Each has research references with sources (Mascelli, Arijon, Block, Murch, Dmytryk, Bordwell, Cutting, Smith, and
+perception studies on camera angle and face distance) and evals in the `claude plugin eval` format.
+
 ## Exports
 
 * **Camera sheet** (`.md`): per shot — lens, filmback, FOV, rig and move (length, speeds, pan/tilt, lens heights, crane pivot/arm), key positions, distances, warnings.
 * **Blender script** (`.py`): rebuilds proxies and stand-ins in collections, one camera per shot with the real gate and focal, animation baked at 24 fps from the rig solver (including handheld / Steadicam texture), timeline markers that switch cameras. Run it from Blender's Scripting tab; from Blender, export USD / FBX to Unreal.
 * **JSON**: the scene itself (also autosaved in the browser).
+* **DP report** and **Edit report** (`.md`) from step 5 · Review, or all four files at once with `node tools/export_sheets.mjs scene.json`.
 
 ## Workflow for a new scene
 
@@ -193,7 +261,8 @@ offline mix use the same times. To change a voice, a delivery or a sound, ask Cl
 
 ## Status
 
-v0.3 — viewer + deterministic core, Unreal-style mannequins with acting, subject following, real-time screening, in-browser
-MP4 export, editorial timing (move and action windows, J/L cuts, props per beat), sound (voices as one performance,
-effects, ambience) and TIMELESS Scene 1 recut. Next: the agent loop that writes build scripts from the screenplay and
-iterates on the shot check, more TIMELESS scenes, USD/FBX camera export, Unreal bridge, stand-in animation clips.
+v0.4 — viewer + deterministic core, Unreal-style mannequins with acting and articulated hands, subject following,
+real-time screening, in-browser MP4 export, editorial timing, sound, a director of photography (composition analysis,
+intents, composer, DP report) and a film editor (cut review, timing, pacing) with their Claude skills, and TIMELESS
+Scene 1 recomposed by intent (DP 96/100, edit 100/100). Next: a review tab (notes and frame markup by director, VFX
+supervisor and artists), more TIMELESS scenes, USD/FBX camera export, Unreal bridge, stand-in animation clips.

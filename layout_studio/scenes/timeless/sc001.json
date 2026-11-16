@@ -7182,7 +7182,10 @@
    "move": [
     1,
     11.4
-   ]
+   ],
+   "dp": {
+    "intent": "establish"
+   }
   },
   {
    "id": "sh020",
@@ -7269,7 +7272,15 @@
    "move": [
     0,
     7.4
-   ]
+   ],
+   "dp": {
+    "intent": "establish",
+    "vAngle": [
+     5,
+     70
+    ],
+    "notes": "From the map to the people: the drone starts overhead."
+   }
   },
   {
    "id": "sh030",
@@ -7283,7 +7294,7 @@
     "focal_mm": 32,
     "aspect": 2.39,
     "squeeze": 1,
-    "fstop": 2.8,
+    "fstop": 5.6,
     "focus_m": 5.05
    },
    "rig": {
@@ -7307,13 +7318,13 @@
     },
     "B": {
      "position": [
-      0.239,
+      0.257,
       0.5,
-      2.684
+      2.872
      ],
      "target": [
       0,
-      0.457,
+      0.489,
       0.05
      ],
      "roll": 0
@@ -7346,6 +7357,7 @@
      "size": "FS",
      "side": 1,
      "cameraHeight": 0.5,
+     "headroom": 0.12,
      "wantForeground": false
     }
    },
@@ -7361,7 +7373,11 @@
      "at": 0.8,
      "gain": 0.25
     }
-   ]
+   ],
+   "dp": {
+    "intent": "establish",
+    "grid": "center"
+   }
   },
   {
    "id": "sh040",
@@ -7386,14 +7402,14 @@
    "keys": {
     "A": {
      "position": [
-      4.46,
+      4.349,
       0.28,
-      -4.683
+      -4.842
      ],
      "target": [
-      2.489,
+      2.378,
       -0.014,
-      -3.302
+      -3.461
      ],
      "roll": 0
     },
@@ -7411,7 +7427,7 @@
      "type": "single",
      "azimuth": -55,
      "cameraHeight": 0.28,
-     "leadRoom": 0.1
+     "leadRoom": 0.2
     },
     "B": null
    },
@@ -7430,7 +7446,10 @@
      "at": 3.3,
      "gain": 0.3
     }
-   ]
+   ],
+   "dp": {
+    "intent": "childhood"
+   }
   },
   {
    "id": "sh050",
@@ -7525,7 +7544,15 @@
      "at": 3.2,
      "gain": 0.32
     }
-   ]
+   ],
+   "dp": {
+    "intent": "observation",
+    "ffEq": [
+     40,
+     120
+    ],
+    "notes": "He watches her, then walks to her: the Steadicam goes with him."
+   }
   },
   {
    "id": "sh060",
@@ -7536,11 +7563,11 @@
    "intent": "\"Posso?\" Dal basso, da dove lo vede Rebecca: lei non alza gli occhi. Arthur raccoglie i fogli sparsi.",
    "camera": {
     "filmback": "ALEXA35_OG",
-    "focal_mm": 50,
+    "focal_mm": 35,
     "aspect": 2.39,
     "squeeze": 1,
     "fstop": 2,
-    "focus_m": 1.75
+    "focus_m": 1.24
    },
    "rig": {
     "type": "static"
@@ -7550,14 +7577,14 @@
    "keys": {
     "A": {
      "position": [
-      3.581,
-      0.503,
-      -4.013
+      2.862,
+      0.215,
+      -3.453
      ],
      "target": [
-      2.207,
-      0.978,
-      -2.866
+      2.467,
+      0.96,
+      -2.651
      ],
      "roll": 0
     },
@@ -7574,20 +7601,25 @@
    ],
    "notes": "",
    "wantForeground": false,
-   "allowOcclusion": true,
+   "allowOcclusion": false,
    "line": null,
    "beatA": null,
    "beatB": null,
+   "dp": {
+    "intent": "childhood",
+    "why": [
+     "A child's world: The lens at the child's eye height: adults loom, the grass is a forest, the world is seen from inside it.",
+     "35 mm (50 mm FF eq.) at 1.24 m, face 28.7° off axis, the lens at REBECCA (6)'s eye height (0.22 m, a point of view), 42.6° below the eyes.",
+     "Eyes placed at 67% across, 33% from the top (rule of thirds, long look).",
+     "Check 100/100, composition 100/100."
+    ],
+    "povOf": "CHAR_rebecca"
+   },
    "framing": {
     "A": {
-     "type": "ots",
-     "fg": "CHAR_rebecca",
-     "bg": "CHAR_arthur",
-     "side": 1,
-     "fitSize": "MCU",
-     "heightOffset": 0.3,
-     "lateral": 0.28,
-     "back": 1.3
+     "type": "compose",
+     "intent": "childhood",
+     "povOf": "CHAR_rebecca"
     },
     "B": null
    },
@@ -7691,7 +7723,10 @@
      "at": -1.45,
      "gain": 0.35
     }
-   ]
+   ],
+   "dp": {
+    "intent": "detail"
+   }
   },
   {
    "id": "sh080",
@@ -7754,7 +7789,10 @@
      "at": -1.5,
      "gain": 0.4
     }
-   ]
+   ],
+   "dp": {
+    "intent": "detail"
+   }
   },
   {
    "id": "sh090",
@@ -7817,7 +7855,10 @@
      "at": -1.5,
      "gain": 0.4
     }
-   ]
+   ],
+   "dp": {
+    "intent": "detail"
+   }
   },
   {
    "id": "sh100",
@@ -7842,14 +7883,14 @@
    "keys": {
     "A": {
      "position": [
-      3.66,
-      0.62,
-      -2.868
+      3.295,
+      0.318,
+      -3.469
      ],
      "target": [
-      2.313,
-      1.044,
-      -2.75
+      2.379,
+      0.981,
+      -2.71
      ],
      "roll": 0
     },
@@ -7862,12 +7903,20 @@
    "line": null,
    "beatA": null,
    "beatB": null,
+   "dp": {
+    "intent": "intimacy",
+    "why": [
+     "Intimacy, emotional access: Eye level and the eyeline close to the lens make the look intimate; a portrait lens from conversational distance flatters (faces shot from inside personal space read as less trustworthy).",
+     "75 mm (107 mm FF eq.) at 1.42 m, face 16.2° off axis, lens 26.4° below the eyes.",
+     "Eyes placed at 62% across, 38% from the top (phi grid (golden section), long look).",
+     "Check 100/100, composition 100/100."
+    ]
+   },
    "framing": {
     "A": {
-     "type": "single",
-     "azimuth": -15,
-     "cameraHeight": 0.62,
-     "leadRoom": 0.1
+     "type": "compose",
+     "intent": "intimacy",
+     "focal": 75
     },
     "B": null
    }
@@ -7946,7 +7995,10 @@
      "at": -1,
      "gain": 0.3
     }
-   ]
+   ],
+   "dp": {
+    "intent": "observation"
+   }
   },
   {
    "id": "sh120",
@@ -7957,11 +8009,11 @@
    "intent": "Restiamo con lei mentre Arthur si alza ed esce di quadro. Rebecca disegna, sola. Poi alza lo sguardo.",
    "camera": {
     "filmback": "ALEXA35_OG",
-    "focal_mm": 65,
+    "focal_mm": 35,
     "aspect": 2.39,
     "squeeze": 1,
     "fstop": 2,
-    "focus_m": 2.93
+    "focus_m": 1.58
    },
    "rig": {
     "type": "handheld",
@@ -7974,14 +8026,14 @@
    "keys": {
     "A": {
      "position": [
-      1.992,
-      0.12,
-      -6.035
+      1.845,
+      0.278,
+      -4.553
      ],
      "target": [
-      2.6,
-      0.175,
-      -3.172
+      2.763,
+      0.194,
+      -3.372
      ],
      "roll": 0
     },
@@ -7994,14 +8046,21 @@
    "line": null,
    "beatA": "b2k",
    "beatB": "b3",
+   "dp": {
+    "intent": "childhood",
+    "why": [
+     "A child's world: The lens at the child's eye height: adults loom, the grass is a forest, the world is seen from inside it.",
+     "35 mm (50 mm FF eq.) at 1.58 m, face 28.7° off axis, lens 0° above the eyes.",
+     "Eyes placed at 67% across, 33% from the top (rule of thirds, long look).",
+     "Check 100/100, composition 98/100."
+    ]
+   },
    "framing": {
     "A": {
-     "type": "single",
+     "type": "compose",
+     "intent": "childhood",
      "beat": "b3",
-     "azimuth": 12,
-     "cameraHeight": 0.12,
-     "leadRoom": 0.08,
-     "headroom": 0.05
+     "focal": 35
     },
     "B": null
    },
@@ -8121,7 +8180,14 @@
    "move": [
     0.6,
     4.6
-   ]
+   ],
+   "dp": {
+    "intent": "wonder",
+    "ffEq": [
+     14,
+     60
+    ]
+   }
   },
   {
    "id": "sh140",
@@ -8184,7 +8250,10 @@
      "at": 0.4,
      "gain": 0.45
     }
-   ]
+   ],
+   "dp": {
+    "intent": "detail"
+   }
   },
   {
    "id": "sh150",
@@ -8198,7 +8267,7 @@
     "focal_mm": 40,
     "aspect": 2.39,
     "squeeze": 1,
-    "fstop": 2.8,
+    "fstop": 4,
     "focus_m": 3.78
    },
    "rig": {
@@ -8276,7 +8345,11 @@
      "at": 4.6,
      "gain": 0.45
     }
-   ]
+   ],
+   "dp": {
+    "intent": "establish",
+    "grid": "center"
+   }
   },
   {
    "id": "sh160",
@@ -8339,6 +8412,9 @@
      "fill": 0.45
     },
     "B": null
+   },
+   "dp": {
+    "intent": "detail"
    }
   },
   {
@@ -8401,12 +8477,14 @@
      "fg": "CHAR_arthur",
      "bg": "CHAR_claire",
      "side": 1,
-     "fitSize": "MCU",
      "heightOffset": -0.06,
      "lateral": 1.25,
      "back": 1.5
     },
     "B": null
+   },
+   "dp": {
+    "intent": "conflict"
    }
   },
   {
@@ -8418,28 +8496,28 @@
    "intent": "Arthur. La sua battuta parte su di lei e arriva su di lui; poi ascolta la scusa.",
    "camera": {
     "filmback": "ALEXA35_OG",
-    "focal_mm": 50,
+    "focal_mm": 75,
     "aspect": 2.39,
     "squeeze": 1,
     "fstop": 2.8,
-    "focus_m": 2.13
+    "focus_m": 3.17
    },
    "rig": {
     "type": "static"
    },
-   "duration_s": 4.6,
+   "duration_s": 4.8,
    "curve": "easeInOut",
    "keys": {
     "A": {
      "position": [
-      -1.619,
+      -2.459,
       0.721,
-      0.644
+      1.37
      ],
      "target": [
       0.392,
       0.73,
-      -0.199
+      -0.198
      ],
      "roll": 0
     },
@@ -8476,9 +8554,13 @@
      "fg": "CHAR_claire",
      "bg": "CHAR_arthur",
      "side": -1,
-     "fitSize": "MCU"
+     "lateral": 1.1,
+     "back": 2
     },
     "B": null
+   },
+   "dp": {
+    "intent": "conflict"
    }
   },
   {
@@ -8541,7 +8623,6 @@
      "fg": "CHAR_arthur",
      "bg": "CHAR_claire",
      "side": 1,
-     "fitSize": "MCU",
      "heightOffset": -0.06,
      "lateral": 1.25,
      "back": 1.5
@@ -8566,7 +8647,10 @@
      "at": 1.83,
      "gain": 0.55
     }
-   ]
+   ],
+   "dp": {
+    "intent": "conflict"
+   }
   },
   {
    "id": "sh200",
@@ -8620,6 +8704,9 @@
      "fill": 0.55
     },
     "B": null
+   },
+   "dp": {
+    "intent": "detail"
    }
   },
   {
@@ -8645,14 +8732,14 @@
    "keys": {
     "A": {
      "position": [
-      1.266,
-      0.9,
-      0.861
+      1.351,
+      0.762,
+      0.636
      ],
      "target": [
-      -0.453,
-      0.757,
-      0.023
+      -0.367,
+      0.755,
+      0.024
      ],
      "roll": 0
     },
@@ -8676,11 +8763,21 @@
    ],
    "beatA": null,
    "beatB": null,
+   "dp": {
+    "intent": "intimacy",
+    "why": [
+     "Intimacy, emotional access: Eye level and the eyeline close to the lens make the look intimate; a portrait lens from conversational distance flatters (faces shot from inside personal space read as less trustworthy).",
+     "75 mm (107 mm FF eq.) at 1.92 m, face 16.2° off axis, lens 0° above the eyes.",
+     "Eyes placed at 38% across, 48% from the top (phi grid (golden section), long look).",
+     "Check 100/100, composition 100/100."
+    ]
+   },
    "framing": {
     "A": {
-     "type": "single",
-     "azimuth": -26,
-     "cameraHeight": 0.9,
+     "type": "compose",
+     "intent": "intimacy",
+     "side": 1,
+     "focal": 75,
      "size": "CU"
     },
     "B": null
@@ -8709,14 +8806,14 @@
    "keys": {
     "A": {
      "position": [
-      -1.302,
-      0.95,
-      1.009
+      -1.417,
+      0.812,
+      0.78
      ],
      "target": [
-      0.424,
-      0.807,
-      -0.069
+      0.329,
+      0.805,
+      -0.058
      ],
      "roll": 0
     },
@@ -8740,11 +8837,22 @@
    ],
    "beatA": null,
    "beatB": null,
+   "dp": {
+    "intent": "intimacy",
+    "why": [
+     "Intimacy, emotional access: Eye level and the eyeline close to the lens make the look intimate; a portrait lens from conversational distance flatters (faces shot from inside personal space read as less trustworthy).",
+     "75 mm (107 mm FF eq.) at 2.04 m, face 16.2° off axis, lens 0° above the eyes.",
+     "Eyes placed at 62% across, 48% from the top (phi grid (golden section), long look).",
+     "Check 100/100, composition 98/100."
+    ]
+   },
    "framing": {
     "A": {
-     "type": "single",
-     "azimuth": 26,
-     "cameraHeight": 0.95
+     "type": "compose",
+     "intent": "intimacy",
+     "side": 1,
+     "focal": 75,
+     "size": "CU"
     },
     "B": null
    }
@@ -8772,26 +8880,26 @@
    "keys": {
     "A": {
      "position": [
-      1.238,
-      0.9,
-      0.922
+      1.351,
+      0.762,
+      0.636
      ],
      "target": [
-      -0.451,
-      0.757,
+      -0.367,
+      0.755,
       0.024
      ],
      "roll": 0
     },
     "B": {
      "position": [
-      0.926,
-      0.9,
-      0.637
+      0.973,
+      0.762,
+      0.511
      ],
      "target": [
-      -0.415,
-      0.781,
+      -0.372,
+      0.736,
       0.04
      ],
      "roll": 0
@@ -8816,17 +8924,28 @@
    ],
    "beatA": null,
    "beatB": null,
+   "dp": {
+    "intent": "intimacy",
+    "why": [
+     "Intimacy, emotional access: Eye level and the eyeline close to the lens make the look intimate; a portrait lens from conversational distance flatters (faces shot from inside personal space read as less trustworthy).",
+     "75 mm (107 mm FF eq.) at 1.92 m, face 16.2° off axis, lens 0° above the eyes.",
+     "Eyes placed at 38% across, 48% from the top (phi grid (golden section), long look).",
+     "Check 100/100, composition 100/100."
+    ]
+   },
    "framing": {
     "A": {
-     "type": "single",
-     "azimuth": -28,
-     "cameraHeight": 0.9,
+     "type": "compose",
+     "intent": "intimacy",
+     "side": 1,
+     "focal": 75,
      "size": "CU"
     },
     "B": {
-     "type": "single",
-     "azimuth": -24,
-     "cameraHeight": 0.9,
+     "type": "compose",
+     "intent": "intimacy",
+     "side": 1,
+     "focal": 75,
      "size": "BCU"
     }
    },
@@ -8847,7 +8966,7 @@
     "focal_mm": 65,
     "aspect": 2.39,
     "squeeze": 1,
-    "fstop": 2.8
+    "fstop": 8
    },
    "rig": {
     "type": "static"
@@ -8862,9 +8981,9 @@
       -0.35
      ],
      "target": [
-      2.55,
-      0.03,
-      -3
+      2.258,
+      0.109,
+      -3.539
      ],
      "roll": 0
     },
@@ -8889,9 +9008,22 @@
       2.55,
       0.03,
       -3
-     ]
+     ],
+     "frame": {
+      "subject": "CHAR_rebecca",
+      "u": 0.75,
+      "v": 0.36
+     }
     },
     "B": null
+   },
+   "dp": {
+    "intent": "isolation",
+    "ffEq": [
+     60,
+     200
+    ],
+    "notes": "Seen from the blanket, far away: small and alone on the quarter line."
    }
   },
   {
@@ -8917,14 +9049,14 @@
    "keys": {
     "A": {
      "position": [
-      -1.336,
-      0.95,
-      0.947
+      -1.417,
+      0.812,
+      0.78
      ],
      "target": [
-      0.427,
-      0.807,
-      -0.071
+      0.329,
+      0.805,
+      -0.058
      ],
      "roll": 0
     },
@@ -8956,11 +9088,22 @@
    ],
    "beatA": null,
    "beatB": null,
+   "dp": {
+    "intent": "intimacy",
+    "why": [
+     "Intimacy, emotional access: Eye level and the eyeline close to the lens make the look intimate; a portrait lens from conversational distance flatters (faces shot from inside personal space read as less trustworthy).",
+     "75 mm (107 mm FF eq.) at 2.04 m, face 16.2° off axis, lens 0° above the eyes.",
+     "Eyes placed at 62% across, 48% from the top (phi grid (golden section), long look).",
+     "Check 100/100, composition 98/100."
+    ]
+   },
    "framing": {
     "A": {
-     "type": "single",
-     "azimuth": 24,
-     "cameraHeight": 0.95
+     "type": "compose",
+     "intent": "intimacy",
+     "side": 1,
+     "focal": 75,
+     "size": "CU"
     },
     "B": null
    }
@@ -8988,16 +9131,16 @@
    "keys": {
     "A": {
      "position": [
-      1.106,
-      0.9,
-      0.717
+      1.128,
+      0.762,
+      0.669
      ],
      "target": [
-      -0.415,
-      0.781,
-      0.04
+      -0.433,
+      0.729,
+      0.227
      ],
-     "roll": 0
+     "roll": -4
     },
     "B": null
    },
@@ -9011,12 +9154,39 @@
    ],
    "beatA": null,
    "beatB": null,
+   "dp": {
+    "intent": "tension",
+    "ffEq": [
+     100,
+     140
+    ],
+    "vAngle": [
+     -3,
+     3
+    ],
+    "notes": "Short-sided at the peak: each looks into the near edge, no shared space left. The eye jumps across the cut to 1AA on purpose.",
+    "why": [
+     "Tension, unease: Short-siding (looking into the near edge) and a slightly wide lens close in deny the character room: trapped, unbalanced.",
+     "85 mm (121 mm FF eq.) at 1.67 m, face 19.9° off axis, lens 0° above the eyes.",
+     "Eyes placed at 75% across, 35% from the top (rule of quarters, short look).",
+     "Check 98/100, composition 86/100."
+    ]
+   },
    "framing": {
     "A": {
-     "type": "single",
-     "azimuth": -24,
-     "cameraHeight": 0.9,
-     "size": "BCU"
+     "type": "compose",
+     "intent": "tension",
+     "side": 1,
+     "focal": 85,
+     "size": "BCU",
+     "ffEq": [
+      100,
+      140
+     ],
+     "vAngle": [
+      -3,
+      3
+     ]
     },
     "B": null
    }
@@ -9044,16 +9214,16 @@
    "keys": {
     "A": {
      "position": [
-      -1.191,
-      0.95,
-      0.789
+      -1.19,
+      0.812,
+      0.795
      ],
      "target": [
-      0.384,
-      0.832,
-      -0.048
+      0.422,
+      0.776,
+      0.15
      ],
-     "roll": 0
+     "roll": 4
     },
     "B": null
    },
@@ -9067,11 +9237,39 @@
    ],
    "beatA": null,
    "beatB": null,
+   "dp": {
+    "intent": "tension",
+    "ffEq": [
+     100,
+     140
+    ],
+    "vAngle": [
+     -3,
+     3
+    ],
+    "notes": "Mirror of 1Z, short-sided.",
+    "why": [
+     "Tension, unease: Short-siding (looking into the near edge) and a slightly wide lens close in deny the character room: trapped, unbalanced.",
+     "85 mm (121 mm FF eq.) at 1.79 m, face 19.9° off axis, lens 0° above the eyes.",
+     "Eyes placed at 25% across, 35% from the top (rule of quarters, short look).",
+     "Check 98/100, composition 86/100."
+    ]
+   },
    "framing": {
     "A": {
-     "type": "single",
-     "azimuth": 22,
-     "cameraHeight": 0.95
+     "type": "compose",
+     "intent": "tension",
+     "side": 1,
+     "focal": 85,
+     "size": "BCU",
+     "ffEq": [
+      100,
+      140
+     ],
+     "vAngle": [
+      -3,
+      3
+     ]
     },
     "B": null
    },
@@ -9146,7 +9344,10 @@
      "at": 1,
      "gain": 0.55
     }
-   ]
+   ],
+   "dp": {
+    "intent": "detail"
+   }
   },
   {
    "id": "sh290",
@@ -9157,11 +9358,11 @@
    "intent": "Lei lo guarda. Non lo prende. Teniamo. Poi lo prende.",
    "camera": {
     "filmback": "ALEXA35_OG",
-    "focal_mm": 65,
+    "focal_mm": 50,
     "aspect": 2.39,
     "squeeze": 1,
     "fstop": 2,
-    "focus_m": 2.58
+    "focus_m": 1.98
    },
    "rig": {
     "type": "static"
@@ -9171,14 +9372,14 @@
    "keys": {
     "A": {
      "position": [
-      0.899,
-      0.5,
-      2.259
+      0.935,
+      0.466,
+      -1.248
      ],
      "target": [
-      -0.386,
-      0.68,
-      0.033
+      -0.288,
+      0.685,
+      0.226
      ],
      "roll": 0
     },
@@ -9194,13 +9395,21 @@
    ],
    "beatA": "b6",
    "beatB": "b6t",
+   "dp": {
+    "intent": "vulnerability",
+    "why": [
+     "Vulnerability: Looking down on a subject makes them read weaker and smaller (camera-angle studies: high angles lower perceived power).",
+     "50 mm (71 mm FF eq.) at 1.98 m, face 43.2° off axis, lens 8° below the eyes.",
+     "Eyes placed at 67% across, 38% from the top (rule of thirds, long look).",
+     "Check 100/100, composition 98/100."
+    ]
+   },
    "framing": {
     "A": {
-     "type": "single",
+     "type": "compose",
+     "intent": "vulnerability",
      "beat": "b6t",
-     "azimuth": -60,
-     "cameraHeight": 0.5,
-     "size": "MCU"
+     "focal": 50
     },
     "B": null
    },
@@ -9272,7 +9481,10 @@
      "at": -0.1,
      "gain": 0.5
     }
-   ]
+   ],
+   "dp": {
+    "intent": "detail"
+   }
   },
   {
    "id": "sh310",
@@ -9286,7 +9498,7 @@
     "focal_mm": 32,
     "aspect": 2.39,
     "squeeze": 1,
-    "fstop": 2.8,
+    "fstop": 5.6,
     "focus_m": 2.65
    },
    "rig": {
@@ -9359,10 +9571,16 @@
    "move": [
     1.4,
     10.4
-   ]
+   ],
+   "dp": {
+    "intent": "isolation"
+   }
   }
  ],
  "notes": "Nord = -Z (montagna dalla cima spezzata). Est = +X. Origine = centro del telo. Rushmore a NO, lontano. Geometrie da sostituire con il blockout da reference quando arriva l'immagine della location.",
+ "edit": {
+  "tempo": "drama"
+ },
  "sound": {
   "ambience": [
    {

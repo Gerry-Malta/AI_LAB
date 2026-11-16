@@ -438,3 +438,29 @@ test('editor: jump cuts, crossing the line, eyelines, a metronome rhythm and sho
   const c2 = core.editReview(ax).cuts[0];
   assert.ok(c2.axial && !c2.notes.some((n) => n.rule === 'space'), JSON.stringify(c2));
 });
+
+test('DP: a point of view takes the eye height of its character; a raw key can place a figure on the grid', () => {
+  const scene = core.normalizeScene({ objects: [
+    { id: 'P', kind: 'standin', name: 'PAPA', position: [0, 0, 0], rotation: [0, 0, 0], pose: 'stand', height: 1.82, age: 40 },
+    { id: 'K', kind: 'standin', name: 'KID', position: [0, 0, 1.6], rotation: [0, 180, 0], pose: 'sit_ground', height: 1.15, age: 6 },
+  ], beats: [{ id: 'b1', blocking: {} }] });
+  const shot = core.newShot({ id: 's', beat: 'b1', subject: 'P', size: 'MCU', camera: { filmback: 'ALEXA35_OG', focal_mm: 35, aspect: 2.39 } });
+  const r = core.compose(scene, shot, { intent: 'childhood', povOf: 'K' });
+  const kidEyes = core.keypoints(core.charAt(scene, 'K', 'b1')).eyes;
+  assert.ok(Math.abs(r.position[1] - kidEyes[1]) < 0.02, `lens at the child's eye height: ${r.position[1]} vs ${kidEyes[1]}`);
+  assert.ok(r.analysis.subject.vAngle < -10, 'looking up at the parent');
+  const lens = { filmback: 'ALEXA35_OG', focal_mm: 50, aspect: 2.39 };
+  const k = core.solveKeyDef(scene, shot, { type: 'raw', position: [0.6, 1.5, 4], target: [0, 1.4, 0], frame: { subject: 'P', u: 0.25, v: 0.3 } }, lens, 'b1');
+  const sh2 = Object.assign({}, shot, { camera: lens });
+  const an = core.composition(scene, sh2, { position: k.position, target: k.target, roll: 0 }, {});
+  assert.ok(Math.abs(an.subject.eyes[0] - 0.25) < 0.01 && Math.abs(an.subject.eyes[1] - 0.3) < 0.01, JSON.stringify(an.subject.eyes));
+});
+
+test('editor: an L-cut line does not make its shot too short', () => {
+  const scene = core.normalizeScene({ objects: [{ id: 'A', kind: 'standin', name: 'ANNA', position: [0, 0, 0], rotation: [0, 0, 0], pose: 'stand', height: 1.7 }],
+    shots: [{ id: 's1', name: 's1', subject: 'A', size: 'MCU', duration_s: 2.4, dialogue: [{ who: 'ANNA', line: 'Una battuta abbastanza lunga da passare il taglio.', at: 1.0, lap: true }] }] });
+  const t = core.shotTiming(scene, scene.shots[0]);
+  assert.ok(t.need <= 2.4, `need ${t.need}`);
+  scene.shots[0].dialogue[0].lap = false;
+  assert.ok(core.shotTiming(scene, scene.shots[0]).need > 2.4, 'without the L-cut the line must land inside the shot');
+});

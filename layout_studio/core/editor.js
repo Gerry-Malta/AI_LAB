@@ -38,14 +38,17 @@ export function shotTiming(scene, shot, opts = {}) {
   const D = shot.duration_s || 0;
   const lines = dialogueTimeline(shot);
   const spokenIn = lines.filter((l) => !l.prelap || l.end > 0);
-  const lastLine = spokenIn.length ? Math.max(...spokenIn.map((l) => (l.lap ? Math.min(l.end, D) : l.end))) : 0;
+  // a line that runs past the cut on purpose (L-cut) only needs its first second on the speaker; the others must land
+  const lastLine = spokenIn.length ? Math.max(...spokenIn.map((l) => (l.lap ? Math.min(l.end, l.start + 1.0) : l.end))) : 0;
+  const landed = spokenIn.filter((l) => !l.lap);
+  const lineNeed = landed.length ? Math.max(...landed.map((l) => l.end)) + 0.35 : 0;
   const moves = shot.rig && shot.rig.type !== 'static' && shot.keys && shot.keys.B;
   const moveEnd = moves ? (Array.isArray(shot.move) ? +(shot.move[1] ?? D) : D) : 0;
   const acts = shot.beatB && shot.beatB !== (shot.beatA || shot.beat);
   const a = shot.action, actionEnd = acts ? (Array.isArray(a) ? +(a[1] ?? D) : a && typeof a === 'object' ? Math.max(...Object.values(a).map((w) => +(w[1] ?? D))) : D) : 0;
   const firstLook = opts.firstLook ? 1.0 : 0; // the first time a place or a face is seen it needs a little longer
   const read = (READ_TIME[shot.size] || 1.5) + firstLook;
-  const need = Math.max(read, lastLine ? lastLine + 0.35 : 0, moveEnd && moveEnd < D ? moveEnd + 0.3 : moveEnd ? D : 0, actionEnd ? Math.min(D, actionEnd + 0.2) : 0);
+  const need = Math.max(read, lineNeed, lastLine, moveEnd && moveEnd < D ? moveEnd + 0.3 : moveEnd ? D : 0, actionEnd ? Math.min(D, actionEnd + 0.2) : 0);
   const events = [...lines.map((l) => l.end), ...(shot.sfx || []).map((e) => (e.at || 0) + (e.dur_s || 0) * 0.3), moveEnd || 0, actionEnd || 0].filter((x) => x > 0);
   const lastEvent = events.length ? Math.min(D, Math.max(...events)) : 0;
   return { id: shot.id, name: shot.name || shot.id, size: shot.size, duration: D, read: round(read, 2), lastLine: round(lastLine, 2), moveEnd: round(moveEnd, 2), actionEnd: round(actionEnd, 2), need: round(need, 2), hold: round(D - Math.max(lastEvent, read), 2), lines: lines.length, j: lines.filter((l) => l.prelap).length, l: lines.filter((l) => l.lap).length };

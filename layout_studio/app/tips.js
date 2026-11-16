@@ -57,6 +57,7 @@ export const FIELD_TIPS = {
   wantForeground: 'Wants foreground|Ask the check for something in the near layer of the frame, for depth.',
   allowOcclusion: 'Allow occlusion|Partial cover of the subject is intended: over-the-shoulder or a dirty frame.',
   line: '180° line|The two characters that set the axis. Shots on the same axis are checked for crossing the line.',
+  'dp.intent': 'DP intent|What the frame must make the audience feel: intimacy, conflict, isolation, power, tension… Each intent sets the ranges of size, lens, camera angle, face angle, grid and look room the composer searches, and the DP report judges the shot against it.',
   // beats (2 · Blocking)
   label: 'Beat|What happens in this beat, in a few words.',
   t0: 'Beat start|Scene time in seconds where the beat begins.',

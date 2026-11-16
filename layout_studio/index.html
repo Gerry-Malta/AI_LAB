@@ -113,6 +113,7 @@
   .score.ok { background: var(--ok); } .score.warn { background: var(--warn); } .score.bad { background: var(--bad); }
   #lt-overlay { position: absolute; pointer-events: none; overflow: hidden; }
   #lt-overlay.hidden { display: none; }
+  #lt-grid { position: absolute; inset: 0; width: 100%; height: 100%; }
   #lt-label { position: absolute; right: 8px; top: 6px; font-size: clamp(11px, 0.62em, 15px); color: rgba(255,255,255,0.85); background: rgba(0,0,0,0.55); padding: 2px 8px; border-radius: 3px; }
   #lt-sub { position: absolute; left: 50%; bottom: 0.55em; transform: translateX(-50%); max-width: 78%; text-align: center; font: 600 1em/1.25 "Helvetica Neue", Arial, sans-serif; color: #fff; background: rgba(0,0,0,0.78); padding: 0.15em 0.55em 0.2em; border-radius: 3px; }
   #lt-sub.hidden { display: none; }
@@ -211,6 +212,8 @@
           <button class="small" id="btn-review-export" data-tip="Export MP4|Render the edit to a video file on this computer's GPU.">Export MP4…</button>
           <button class="small" id="btn-review-sheet" data-tip="Camera sheet|Per shot: lens, rig, move, positions, distances. For the DP and the grips.">Sheet</button>
           <button class="small" id="btn-review-blender" data-tip="Blender script|Rebuilds the set, the stand-ins and every animated camera in Blender (then USD / FBX to Unreal).">Blender</button>
+          <button class="small" id="btn-review-dp" data-tip="DP report|Every shot read against its intent: eyes on the grid, look room, headroom, angle, face, lens and distance, mergers; and whether the reverse singles match.">DP report</button>
+          <button class="small" id="btn-review-edit" data-tip="Edit report|Every cut (eye-trace, 30° and 180° rules, eyelines, sound across the cut) and every shot's timing against what it carries; the rhythm of the scene.">Edit report</button>
         </div>
         <div id="review-summary" class="step-hint"></div>
         <div id="review-list" class="list"></div>
@@ -225,8 +228,9 @@
         <button class="small" id="vt-snap" title="Toggle snapping (0.1 m / 5°)">snap</button>
         <button class="small" id="vt-look" title="Look through the shot camera (L)">look through</button>
         <button class="small" id="vt-marks" title="Actor marks|Floor marks for every beat: ring = where the actor stands, arrow = facing, dashed line = the move between beats (M)">marks</button>
+        <button class="small" id="vt-comp" title="Composition grid|The grid drawn over the lens view: rule of thirds, phi grid (golden section), quarters, centre, or none. Click to switch.">thirds</button>
       </div>
-      <div id="lt-overlay" class="hidden"><div id="lt-label"></div><div id="lt-sub" class="hidden"></div></div>
+      <div id="lt-overlay" class="hidden"><svg id="lt-grid"></svg><div id="lt-label"></div><div id="lt-sub" class="hidden"></div></div>
       <div id="pip" class="hidden">
         <svg id="pip-guides"></svg>
         <div id="pip-label"></div>

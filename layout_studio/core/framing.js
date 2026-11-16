@@ -21,6 +21,10 @@ export const SHOT_SIZES = {
   INSERT: { name: 'Insert / detail',       fill: 0.65, bottomMargin: 0.175 },
 };
 export const SHOT_SIZE_IDS = Object.keys(SHOT_SIZES);
+/** Where the eyes sit from the top of frame (fraction of height) for each size: the headroom conventions of the size. */
+export const EYE_V = { FS: [0.08, 0.24], MLS: [0.14, 0.3], MS: [0.2, 0.36], MCU: [0.27, 0.4], CU: [0.34, 0.5], BCU: [0.38, 0.55], ECU: [0.4, 0.6] };
+/** Space above the head (fraction of frame height; negative: the head is cut) that reads right for each size. */
+export const HEADROOM = { FS: [0.03, 0.14], MLS: [0.03, 0.13], MS: [0.03, 0.12], MCU: [0.02, 0.1], CU: [0.012, 0.08], BCU: [-0.25, 0.03], ECU: [-1, 0] };
 
 const minY = (kp) => Math.min(...Object.values(kp).map((p) => p[1]));
 /** Head height as a fraction of the frame height for each size (centre of the bins the shot check uses). */

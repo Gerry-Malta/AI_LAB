@@ -372,6 +372,22 @@ export function keypoints(ch) {
   for (const [k, p] of Object.entries(kp)) out[k] = add(ch.position, rotateY(p, ch.facing || 0));
   return out;
 }
+/** Points on the head's surface in the world (the axes and diagonals of the head ellipsoid): the silhouette of a tilted
+ *  or lying head, whose top in frame is not the crown keypoint. */
+export function headSamples(ch) {
+  const sk = skeleton(ch.pose || 'stand', ch.height || 1.75, ch.age);
+  const head = sk.parts.find((p) => p.tag === 'head');
+  if (!head) return [];
+  const h = head.size.map((v) => v / 2), m = head.m, out = [];
+  const dirs = [];
+  for (const x of [-1, 0, 1]) for (const y of [-1, 0, 1]) for (const z of [-1, 0, 1]) if (x || y || z) { const l = Math.hypot(x, y, z); dirs.push([x / l, y / l, z / l]); }
+  for (const d of dirs) {
+    const l = [d[0] * h[0], d[1] * h[1], d[2] * h[2]];
+    const p = [head.center[0] + m[0][0] * l[0] + m[0][1] * l[1] + m[0][2] * l[2], head.center[1] + m[1][0] * l[0] + m[1][1] * l[1] + m[1][2] * l[2], head.center[2] + m[2][0] * l[0] + m[2][1] * l[1] + m[2][2] * l[2]];
+    out.push(add(ch.position, rotateY(p, ch.facing || 0)));
+  }
+  return out;
+}
 /** World position of a character's grip: 'L', 'R' or 'both' (between the hands). Where a held prop goes. */
 export function gripPoint(ch, side = 'R') {
   const { joints } = skeleton(ch.pose || 'stand', ch.height || 1.75, ch.age);

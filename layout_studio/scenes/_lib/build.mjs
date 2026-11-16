@@ -44,7 +44,7 @@ export function createBuilder(meta) {
     shot.camera = lens;
     shot.framing = { A: def.A, B: def.B || null };
     // the DP's reasoning travels with the shot (camera sheet, DP report): intent and why this lens / angle / placement
-    if (A.meta && A.meta.why) shot.dp = Object.assign({}, shot.dp || {}, { intent: A.meta.intent, why: A.meta.why });
+    if (A.meta && A.meta.why) shot.dp = Object.assign({}, shot.dp || {}, { intent: A.meta.intent, why: A.meta.why }, A.meta.povOf ? { povOf: A.meta.povOf } : {});
     if (!shot.dp) delete shot.dp;
     if (def.A && def.A.type === 'ots' && def.allowOcclusion == null) shot.allowOcclusion = true;
     // editorial timing: when the camera moves and when the actors act inside the shot (seconds), and the shot's effects

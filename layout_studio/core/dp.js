@@ -4,8 +4,8 @@
 // answer. The rules and their sources are summarised in .claude/skills/director-of-photography/references.
 import { add, sub, scale, norm, dot, dist, cameraBasis, projectPoint, rotateY, clamp, round, roundV, toRad, toDeg } from './vec.js';
 import { fovFor, equivalentFocal, LENS_KITS, dof } from './lens.js';
-import { keypoints, skeleton } from './standin.js';
-import { solveFraming, SHOT_SIZES } from './framing.js';
+import { keypoints, skeleton, headSamples } from './standin.js';
+import { solveFraming, SHOT_SIZES, EYE_V, HEADROOM } from './framing.js';
 import { evaluateFrame, faceReading, applyBlocking, resolveSubject, objectParts } from './metrics.js';
 import { beatBlocking, blockingAt } from './blocking.js';
 import { solveShot } from './shot.js';
@@ -20,10 +20,7 @@ export const GRIDS = {
 };
 export const GRID_IDS = Object.keys(GRIDS);
 
-/** Where the eyes sit from the top of frame (fraction of height) for a size: the headroom conventions of each size. */
-export const EYE_V = { FS: [0.08, 0.24], MLS: [0.14, 0.3], MS: [0.2, 0.36], MCU: [0.27, 0.4], CU: [0.34, 0.5], BCU: [0.38, 0.55], ECU: [0.4, 0.6] };
-/** Space above the head (fraction of frame height; negative: the head is cut) that reads right for a size. */
-export const HEADROOM = { FS: [0.03, 0.14], MLS: [0.03, 0.13], MS: [0.03, 0.12], MCU: [0.02, 0.1], CU: [0.012, 0.08], BCU: [-0.25, 0.03], ECU: [-1, 0] };
+
 const CLOSE = ['MS', 'MCU', 'CU', 'BCU', 'ECU'];
 const FACE_SIZES = ['MCU', 'CU', 'BCU', 'ECU'];
 
@@ -105,7 +102,10 @@ function figureInFrame(V, ch) {
   const box = [Math.min(...pr.map((p) => p.u)), Math.min(...pr.map((p) => p.v)), Math.max(...pr.map((p) => p.u)), Math.max(...pr.map((p) => p.v))];
   const cb = clip01(box), full = area(box);
   if (area(cb) <= 0) return null;
-  const eyes = V.uv(kp.eyes), top = V.uv(kp.headTop), chin = V.uv(kp.chin);
+  const eyes = V.uv(kp.eyes), chin = V.uv(kp.chin);
+  // the top of the head in frame is the top of its silhouette (a lowered or lying head shows its crown or its back)
+  const hs = headSamples(ch).map(V.uv).filter(Boolean);
+  const top = hs.length ? hs.reduce((a, b) => (b.v < a.v ? b : a)) : V.uv(kp.headTop);
   // gaze on screen from the horizontal heading of the head (someone looking down-left still needs room on the left);
   // 'camera' when the head points at the lens or straight away from it
   const fwd = headForward(ch), fwdH = norm([fwd[0], 0, fwd[2]]);
@@ -161,6 +161,7 @@ export function composition(scene, shot, pose, blocking, opts = {}) {
   const V = viewer(pose, lens);
   const dpo = shot.dp || {};
   const prof = profileFor(opts.intent || dpo.intent || 'neutral', Object.assign({}, dpo, opts.overrides || {}));
+  if (dpo.povOf) prof.vAngle = [-89, 89]; // a point of view: the angle is the character's, not a choice
   const ev = opts.ev || evaluateFrame(scene, Object.assign({}, shot, { camera: lens }), pose, blocking);
   const objects = applyBlocking(scene, blocking).filter((o) => o.visible !== false);
   const subjectRec = resolveSubject(scene, shot, blocking);
@@ -260,14 +261,17 @@ export function composition(scene, shot, pose, blocking, opts = {}) {
       const base = V.uv(o.position), topP = V.uv(add(o.position, [0, tall, 0]));
       if (!base || !topP || base.depth < e.depth + 1) continue;
       const halfW = wide / 2 / (2 * base.depth * V.tanH), cu = (base.u + topP.u) / 2;
-      if (cu + halfW > headU[0] && cu - halfW < headU[1] && Math.min(base.v, topP.v) < e.v && Math.max(base.v, topP.v) > e.v) mergers.push(o.name || o.id);
+      if (cu + halfW > headU[0] && cu - halfW < headU[1] && Math.min(base.v, topP.v) < e.v && Math.max(base.v, topP.v) > e.v) mergers.push({ name: o.name || o.id, depth: base.depth });
     }
-    if (mergers.length) note('info', 'merger', `${mergers.slice(0, 2).join(', ')} grows out of the head in the background.`, 'shift the camera sideways a little or change the angle so the head has clean background', 6);
+    // a trunk far outside the depth of field is a soft shape: still a merger, a smaller one
+    const dofM = dof({ focal_mm: lens.focal_mm, fstop: lens.fstop || 2.8, focus_m: lens.focus_m || dist(V.eye, subj.kp.eyes) }, lens.filmback);
+    const sharp = mergers.filter((m) => !(dofM.far_m !== Infinity && m.depth > dofM.far_m * 1.5));
+    if (mergers.length) note('info', 'merger', `${mergers.slice(0, 2).map((m) => m.name).join(', ')} grows out of the head in the background${sharp.length ? '' : ' (out of focus)'}.`, 'shift the camera sideways a little or change the angle so the head has clean background', sharp.length ? 6 : 2);
     // an eye-level lens puts the horizon through the eyes (normal); through the neck it reads as a cut
     const sh = V.uv(subj.kp.shoulders);
     if (res.horizon.v != null && subj.chin && sh && res.horizon.v > subj.chin.v && res.horizon.v < sh.v) note('info', 'merger', 'The horizon line cuts through the neck.', 'raise or lower the camera so the horizon clears the neck (eyes or shoulders)', 4);
     res.subject.cuts = [...new Set(cuts)];
-    res.subject.mergers = mergers;
+    res.subject.mergers = mergers.map((m) => m.name);
     // depth of field: is the background soft?
     const d = dof({ focal_mm: lens.focal_mm, fstop: lens.fstop || 2.8, focus_m: lens.focus_m || faceDist }, lens.filmback);
     const bgDepths = things.concat(figures.filter((f) => f.id !== subj.id)).map((t) => t.depth ?? (t.eyes && t.eyes.depth)).filter((x) => x != null && x > faceDist + 0.5);
@@ -357,7 +361,8 @@ const sideOf = (a, b, p) => Math.sign((b[0] - a[0]) * (p[2] - a[2]) - (b[2] - a[
  * intent's focal range, the face angles and the heights it allows, solves the distance for the shot size, aims the eyes
  * onto the grid (back third for a long look, front for short-siding, centre) and keeps the candidate that scores best on
  * the shot check plus the composition. opts: { intent, subject, size, beat, side: +1/-1 with line: [idA, idB] to stay on
- * one side of the 180° line, focal (fixed lens), grid, look, vAngle, face, ffEq, kit }.
+ * one side of the 180° line, focal (fixed lens), grid, look, vAngle, face, ffEq, kit, povOf: a character whose eye
+ * height the lens takes (a point of view) }.
  * Returns { position, target, roll, focal_mm, distance, analysis, check, alternatives, why }.
  */
 export function compose(scene, shot, opts = {}) {
@@ -370,9 +375,13 @@ export function compose(scene, shot, opts = {}) {
   const blocking = beatBlocking(scene, beat);
   const base = lensOf(shot, opts.lens);
   const focals = opts.focal ? [opts.focal] : kitWithin(prof.ffEq, base, opts.kit);
+  // point of view: the lens at another character's eye height (a child looking up at a parent); the angle is given
+  const pov = opts.povOf ? charAtBeat(scene, opts.povOf, beat) : null;
+  const povY = pov ? keypoints(pov).eyes[1] : null;
+  if (pov) prof.vAngle = [-89, 89];
   const inner = (r, k = 0.12) => [r[0] + (r[1] - r[0]) * k, r[1] - (r[1] - r[0]) * k];
   const faceAngles = samples(inner([Math.max(0, prof.face[0]), Math.min(prof.face[1], 75)]), prof.face[1] - prof.face[0] > 20 ? 4 : 2);
-  let vAngles = samples(inner(prof.vAngle), prof.vAngle[1] - prof.vAngle[0] > 8 ? 3 : 1);
+  let vAngles = pov ? [0] : samples(inner(prof.vAngle), prof.vAngle[1] - prof.vAngle[0] > 8 ? 3 : 1);
   const line = opts.line || shot.line;
   const lineIds = Array.isArray(line) && line.length === 2 ? line : null;
   // side: with a line it is the side of the 180° axis the lens stays on; without one, the side of the face
@@ -384,7 +393,7 @@ export function compose(scene, shot, opts = {}) {
   // a lowered head (reading, a phone, a drawing) shows its crown to an eye-level lens: go lower to find the face
   const pitchDown = Math.max(0, toDeg(Math.asin(clamp(-hf[1], -1, 1))));
   const lying = /^lie_/.test(typeof subj.pose === 'string' ? subj.pose : (subj.pose && (subj.pose.base || (subj.pose.a && subj.pose.a.base))) || '');
-  if (pitchDown > 15 && FACE_SIZES.concat(['MS']).includes(size)) vAngles = [...new Set(vAngles.map((a) => Math.max(-30, round(a - 0.6 * pitchDown, 1))).concat(vAngles))];
+  if (!pov && pitchDown > 15 && FACE_SIZES.concat(['MS']).includes(size)) vAngles = [...new Set(vAngles.map((a) => Math.max(-30, round(a - 0.6 * pitchDown, 1))).concat(vAngles))];
   const evalShot = Object.assign({}, shot, { subject: subjectId, size, beat, beatA: null, beatB: null, dp: Object.assign({}, shot.dp || {}, { intent: prof.id }) });
   const cands = [];
   for (const focal of focals) {
@@ -394,7 +403,7 @@ export function compose(scene, shot, opts = {}) {
       // distance from the size, then the height that gives the vertical angle to the eyes
       const r0 = solveFraming({ subject: subj, size, lens, azimuth: az, elevation: 0, leadRoom: 0 });
       const hd = Math.hypot(r0.position[0] - kpS.eyes[0], r0.position[2] - kpS.eyes[2]);
-      const camY = Math.max(0.12, kpS.eyes[1] + Math.tan(toRad(va)) * hd); // no lower than a low-mode rig on the ground
+      const camY = pov ? Math.max(0.12, povY) : Math.max(0.12, kpS.eyes[1] + Math.tan(toRad(va)) * hd); // no lower than a low-mode rig on the ground
       const r = solveFraming({ subject: subj, size, lens, azimuth: az, cameraHeight: camY, leadRoom: 0 });
       const position = r.position;
       if (lineIds) {
@@ -419,7 +428,8 @@ export function compose(scene, shot, opts = {}) {
         if (prof.headroom === 'tight') v = Math.max(ev_[0] - 0.03, v - 0.03);
         // never at the price of the size: the head keeps its headroom and the landmark the size cuts at stays below the
         // bottom edge (raising the eyes in frame reveals more body and would read a size wider)
-        const top = V0.uv(kpS.headTop), ey = V0.uv(kpS.eyes), hr = HEADROOM[size], spec = SHOT_SIZES[size] || {};
+        const hsV = headSamples(subj).map(V0.uv).filter(Boolean), ey = V0.uv(kpS.eyes), hr = HEADROOM[size], spec = SHOT_SIZES[size] || {};
+        const top = hsV.length ? hsV.reduce((a, b) => (b.v < a.v ? b : a)) : V0.uv(kpS.headTop);
         // (lying figures are sized on the head; a BCU / ECU may lose the top of the head, the modern big close-up)
         let cutAt = !lying && !['BCU', 'ECU'].includes(size) && spec.bottom && kpS[spec.bottom] ? V0.uv(kpS[spec.bottom]) : null;
         if (cutAt && ey && cutAt.v < ey.v + 0.05) cutAt = null;
@@ -438,7 +448,7 @@ export function compose(scene, shot, opts = {}) {
       }
       const pose = { position, target, roll: prof.roll[1] > 0 ? (prof.roll[0] + prof.roll[1]) / 2 * (sgn > 0 ? 1 : -1) : 0 };
       const ev = evaluateFrame(scene, Object.assign({}, evalShot, { camera: lens }), pose, blocking);
-      const an = composition(scene, evalShot, pose, blocking, { lens, ev, intent: prof.id, size });
+      const an = composition(scene, evalShot, pose, blocking, { lens, ev, intent: prof.id, size, overrides: pov ? { vAngle: [-89, 89] } : {} });
       // prefer the middle of the ranges a little (repeatable, not always the extreme)
       const mid = (r) => (r[0] + r[1]) / 2, span = (r) => Math.max(1, r[1] - r[0]);
       const centrality = 3 * (Math.abs(fa - mid([prof.face[0], Math.min(prof.face[1], 75)])) / span(prof.face) + Math.abs(va - mid(prof.vAngle)) / span(prof.vAngle) + Math.abs(an.lens.ffEq - mid(prof.ffEq)) / span(prof.ffEq));
@@ -451,7 +461,7 @@ export function compose(scene, shot, opts = {}) {
   const best = cands[0];
   const why = [
     `${prof.label}: ${prof.why}`,
-    `${best.focal_mm} mm (${best.analysis.lens.ffEq} mm FF eq.) at ${best.distance} m, face ${Math.abs(best.azimuth)}° off axis, lens ${Math.abs(best.vAngle)}° ${best.vAngle >= 0 ? 'above' : 'below'} the eyes.`,
+    `${best.focal_mm} mm (${best.analysis.lens.ffEq} mm FF eq.) at ${best.distance} m, face ${Math.abs(best.azimuth)}° off axis, ${pov ? `the lens at ${pov.name}'s eye height (${round(povY, 2)} m, a point of view), ${Math.abs(best.analysis.subject.vAngle)}° ${best.analysis.subject.vAngle >= 0 ? 'above' : 'below'} the eyes` : `lens ${Math.abs(best.vAngle)}° ${best.vAngle >= 0 ? 'above' : 'below'} the eyes`}.`,
     best.eyesAt ? `Eyes placed at ${pct(best.eyesAt[0])} across, ${pct(best.eyesAt[1])} from the top (${GRIDS[prof.grid].name.toLowerCase()}, ${prof.look} look).` : `Figure placed on the ${GRIDS[prof.grid].name.toLowerCase()}.`,
     `Check ${best.check.score}/100, composition ${best.analysis.score}/100.`,
   ];
@@ -468,7 +478,9 @@ export function dpShotReport(scene, shot, opts = {}) {
   const out = { id: shot.id, name: shot.name || shot.id, size: shot.size, intent: (shot.dp && shot.dp.intent) || opts.intent || 'neutral', focal_mm: (shot.camera || {}).focal_mm, frames: [] };
   for (const [k, t] of ends) {
     const pose = solved.pose(t), bl = blockingAt(scene, shot, t);
-    const an = composition(scene, shot, pose, bl, { intent: out.intent });
+    const def = shot.framing && shot.framing[k], size = (def && def.size) || shot.size;
+    const ev = evaluateFrame(scene, shot, pose, bl, { expectedSize: size });
+    const an = composition(scene, shot, pose, bl, { intent: out.intent, size, ev });
     out.frames.push({ key: k, score: an.score, check: an.checkScore, subject: an.subject || null, horizon: an.horizon, balance: an.balance, notes: an.notes });
   }
   out.score = Math.round(out.frames.reduce((a, f) => a + f.score, 0) / out.frames.length);
