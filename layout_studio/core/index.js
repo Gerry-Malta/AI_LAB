@@ -12,3 +12,5 @@ export * from './blocking.js';
 export * from './shot.js';
 export * from './dialogue.js';
 export * from './edit.js';
+export * from './dp.js';
+export * from './editor.js';

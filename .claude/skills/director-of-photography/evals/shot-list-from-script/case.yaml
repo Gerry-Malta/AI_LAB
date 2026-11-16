@@ -1,0 +1,8 @@
+schema_version: "1.1"
+name: shot-list-from-script
+expected_outcome: |
+  A shot list where every shot has size, focal length, camera height relative to the eyes and frame placement with a
+  story reason; the corridor is established before close coverage; the doctor's line and Elena's reaction are covered
+  with matched singles on one side of the line; her reaction close-up is held as the emotional peak and shot on a
+  portrait lens from conversational distance (no wide lens close to her face); camera angles carry meaning (e.g.
+  isolation or vulnerability while she waits, eye level for the news).

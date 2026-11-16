@@ -1,8 +1,8 @@
 // Composition metrics: deterministic checks of a framed shot (no AI). Works on the scene JSON + a solved camera pose.
 import { sub, add, scale, norm, dot, len, dist, distXZ, cameraBasis, projectPoint, boxCorners, localToWorld, worldToLocal, worldToLocalDir, rayAABB, facingDir, lerp, toRad, toDeg, clamp, round, mat3T, mat3MulVec, rotateY } from './vec.js';
 import { fovFor, equivalentFocal } from './lens.js';
-import { keypoints, standinParts, charTransform, poseKey, skeleton } from './standin.js';
-import { SHOT_SIZES } from './framing.js';
+import { keypoints, standinParts, charTransform, poseKey, skeleton, headSamples } from './standin.js';
+import { SHOT_SIZES, EYE_V } from './framing.js';
 
 /** Oriented box parts (world transform + local centre/size) for any object kind. Shared with the viewer. */
 export function objectParts(obj) {
@@ -20,7 +20,8 @@ export function objectParts(obj) {
     case 'standin': {
       const ch = { position: obj.position, facing: (obj.rotation || [0, 0, 0])[1], pose: obj.pose || 'stand', height: obj.height || 1.75, age: obj.age };
       const T = charTransform(ch);
-      return standinParts(ch.pose, ch.height, ch.age).map((p) => ({ t: T, center: p.center, size: p.size, m: p.m, shape: p.kind === 'capsule' ? 'capsule' : p.kind === 'box' ? 'box' : 'sphere', radius: p.radius, length: p.length, tag: p.tag }));
+      // finger phalanges are too small to hide a face: the occlusion check skips them (the palm still counts)
+      return standinParts(ch.pose, ch.height, ch.age).filter((p) => !p.fine).map((p) => ({ t: T, center: p.center, size: p.size, m: p.m, shape: p.kind === 'capsule' ? 'capsule' : p.kind === 'box' ? 'box' : 'sphere', radius: p.radius, length: p.length, tag: p.tag }));
     }
     case 'sphere': return [{ t, center: [0, s[1] / 2, 0], size: [s[0], s[1], s[2] ?? s[0]], tag: 'body', shape: 'sphere' }];
     case 'cone': return [{ t, center: [0, s[1] / 2, 0], size: [s[0], s[1], s[2] ?? s[0]], tag: 'body', shape: 'cone' }];
@@ -177,7 +178,8 @@ export function evaluateFrame(scene, shot, pose, blocking, opts = {}) {
   const horizonP = P(add(eye, [fwdH[0] * 1e5, 0, fwdH[2] * 1e5]));
   const horizonY = horizonP.behind ? null : (horizonP.y + 1) / 2; // 0 bottom .. 1 top
   res.horizon = { y: horizonY == null ? null : round(horizonY, 2), inFrame: horizonY != null && horizonY >= 0 && horizonY <= 1 };
-  if (res.horizon.inFrame && Math.abs(horizonY - 0.5) < 0.05) flag('info', 'Horizon runs through the centre of frame: consider placing it on a third.');
+  // the horizon is a line of the composition in wide frames; in close ones it hides behind the background
+  if (res.horizon.inFrame && Math.abs(horizonY - 0.5) < 0.05 && ['EWS', 'WS', 'FS'].includes(shot.size)) flag('info', 'Horizon runs through the centre of frame: consider placing it on a third.');
   res.cameraHeight = round(eye[1], 2);
   res.roll = round(pose.roll || 0, 1);
   if (Math.abs(res.roll) > 2) flag('info', `Dutch angle ${res.roll}°.`);
@@ -205,6 +207,8 @@ export function evaluateFrame(scene, shot, pose, blocking, opts = {}) {
       if (lying) measured = byHead;
       else if (!cut) measured = visibleFrac > 0.78 ? 'FS' : visibleFrac > 0.28 ? 'WS' : 'EWS';
       else measured = { feet: 'FS', knees: 'MLS', thigh: 'MLS', hips: 'MS', chest: 'MCU', shoulders: 'CU', chin: 'BCU', mouth: 'ECU', brow: 'ECU', headTop: 'ECU' }[cut] || 'MS';
+      // the top of the head's silhouette (a lowered or lying head shows its crown or its back, above the crown keypoint)
+      for (const p of headSamples(subject)) { const q = P(p); if (!q.behind && q.y > head.y) head.y = q.y; }
       const headroom = (1 - head.y) / 2; // fraction of frame height above head top
       const requested = opts.expectedSize || shot.size;
       const sizeOk = !requested || requested === 'INSERT' || requested === measured || Math.abs(SIZE_ORDER.indexOf(requested) - SIZE_ORDER.indexOf(measured)) <= 1;
@@ -229,7 +233,8 @@ export function evaluateFrame(scene, shot, pose, blocking, opts = {}) {
       const pts = [[1 / 3, 2 / 3], [2 / 3, 2 / 3], [1 / 3, 1 / 3], [2 / 3, 1 / 3]];
       const dmin = Math.min(...pts.map(([a, b]) => Math.hypot(px - a, py - b)));
       res.thirds = { eyesX: round(px, 2), eyesY: round(py, 2), distToPowerPoint: round(dmin, 2), centred: Math.abs(px - 0.5) < 0.08 };
-      if (['CU', 'MCU', 'MS'].includes(requested) && py < 0.55) flag('info', 'Eyes sit low in frame; the upper third usually reads better.');
+      const ev_ = EYE_V[requested]; // eye height from the top that suits the size (a CU sits lower than an MS)
+      if (ev_ && ['CU', 'MCU', 'MS'].includes(requested) && 1 - py > ev_[1] + 0.02) flag('info', 'Eyes sit low in frame; the upper third usually reads better.');
       // edges
       const tang = [];
       if (maxX > 0.96 && maxX <= 1) tang.push('right'); if (minX < -0.96 && minX >= -1) tang.push('left');

@@ -1,0 +1,9 @@
+schema_version: "1.1"
+name: review-mechanical-cut
+expected_outcome: |
+  edit_notes.md lists concrete changes with shot names and amounts: vary the uniform 3-second durations, hold Mara's
+  silent close-up S5 (the emotional peak) clearly longer, use an L-cut or J-cut on Luca's lines, and flag the S2→S3
+  jump cut and the line crossing / parallel eyelines of S4 and S6. Each note gives its reason (emotion, story, rhythm,
+  eye-trace, plane, space) and the evidence (report numbers). kitchen_argument.json is unchanged.
+context:
+  scaffold_script: place-files.sh

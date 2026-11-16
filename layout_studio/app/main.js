@@ -15,7 +15,7 @@ const r3 = (v) => Math.round(v * 1000) / 1000;
 const rd = (rad) => Math.round(THREE.MathUtils.radToDeg(rad) * 10) / 10;
 const opt = (list, value, label = (x) => x, val = (x) => x) => list.map((x) => `<option value="${esc(val(x))}" ${String(val(x)) === String(value) ? 'selected' : ''}>${esc(label(x))}</option>`).join('');
 
-const S = { scene: null, fileName: '', selectedId: null, shotId: null, t: 0, playing: false, loop: true, lookThrough: false, editKey: 'A', beatId: null, tab: 'outliner', pipSize: 'M', snap: false, undo: [], dirty: false, solvedCache: new Map(), scoreCache: new Map(), version: 0, filter: '', lastEval: null };
+const S = { scene: null, fileName: '', selectedId: null, shotId: null, t: 0, playing: false, loop: true, lookThrough: false, editKey: 'A', beatId: null, tab: 'outliner', pipSize: 'M', snap: false, undo: [], dirty: false, solvedCache: new Map(), scoreCache: new Map(), version: 0, filter: '', lastEval: null, compGrid: 'thirds' };
 const QUERY = new URLSearchParams(location.search);
 const vp = new Viewport($('#gl'), { fast: QUERY.get('render') === 'fast' });
 vp.gateInset = { top: 34, bottom: 50 }; // look-through frame stays clear of the view toolbar and the timeline
@@ -191,7 +191,30 @@ function actingHTML(pose) {
   const A = core.resolvePose(pose), custom = pose && typeof pose === 'object' && pose.base;
   let h = `<details class="acting" ${custom ? 'open' : ''}><summary class="note" style="cursor:pointer">acting · joint angles ${custom ? '<span class="badge ok">adjusted</span>' : ''}</summary><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;margin-top:4px">`;
   for (const [j, k, label] of ACTING) h += `<label class="mini" style="display:flex;flex-direction:column">${esc(label)}<input type="number" step="1" data-f="act.${j}.${k}" value="${Math.round((A[j] && A[j][k]) || 0)}"></label>`;
+  // hands: a gesture from the library, how closed it is, and the forearm turn that shows the palm or the back
+  const handName = (side) => { const v = handOverride(pose, side); return typeof v === 'string' ? v : (v && v.preset) || ''; };
+  for (const [S, label] of [['L', 'L hand'], ['R', 'R hand']]) {
+    const cur = handName(S);
+    h += `<label class="mini" style="display:flex;flex-direction:column">${label}<select data-f="hand.${S}"><option value="">${esc(cur ? '' : 'pose default')}</option>${Object.entries(core.HAND_NAMES).map(([k, n]) => `<option value="${k}" ${k === cur ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select></label>`;
+    h += `<label class="mini" style="display:flex;flex-direction:column">${label} closed %<input type="number" step="5" min="-20" max="110" data-f="handc.${S}" value="${Math.round(((A['hand' + S] || {}).curl || 0) * 100)}"></label>`;
+    h += `<label class="mini" style="display:flex;flex-direction:column">${S} wrist turn<input type="number" step="5" data-f="act.wrist${S}.twist" value="${Math.round((A['wrist' + S] || {}).twist || 0)}"></label>`;
+  }
   return h + `</div><div class="btnrow"><button class="small" data-act="acting-reset">Reset to ${esc(core.poseKey(pose))}</button></div></details>`;
+}
+/** The hand entry an acting override sets for one side (handL / handR, or hand for both), if any. */
+function handOverride(pose, side) {
+  if (!pose || typeof pose !== 'object') return null;
+  return pose['hand' + side] ?? pose.hand ?? null;
+}
+function setHand(target, side, preset, curl) {
+  const cur = target.pose, base = core.poseKey(cur);
+  const over = cur && typeof cur === 'object' && cur.base ? JSON.parse(JSON.stringify(cur)) : { base };
+  if (over.hand != null && over['hand' + side] == null) { over.handL = over.handL ?? over.hand; over.handR = over.handR ?? over.hand; delete over.hand; }
+  const prev = over['hand' + side];
+  if (preset !== undefined) over['hand' + side] = preset ? preset : undefined;
+  if (curl !== undefined) over['hand' + side] = Object.assign(typeof prev === 'string' ? { preset: prev } : Object.assign({}, prev || {}), { curl });
+  if (over['hand' + side] === undefined) delete over['hand' + side];
+  target.pose = Object.keys(over).length > 1 ? over : base;
 }
 function setActing(target, joint, field, value) {
   const cur = target.pose, base = core.poseKey(cur);
@@ -209,6 +232,7 @@ $('#props').addEventListener('change', (e) => {
   snapshot();
   let f = el.dataset.f; const v = readInput(el);
   if (f.startsWith('act.')) { const [, joint, field] = f.split('.'); const b = activeBeatId() ? ensureBlocking(activeBeatId(), o.id) : o; setActing(b, joint, field, v); }
+  else if (f.startsWith('hand.') || f.startsWith('handc.')) { const side = f.slice(-1); const b = activeBeatId() ? ensureBlocking(activeBeatId(), o.id) : o; if (f.startsWith('hand.')) setHand(b, side, v || null); else setHand(b, side, undefined, v / 100); }
   else if (f.startsWith('bl.')) { const b = ensureBlocking(activeBeatId(), o.id); if (b) setPath(b, f.slice(3), f === 'bl.visible' ? v : v); }
   else if (f === 'color') { o.color = v; }
   else setPath(o, f, v);
@@ -283,6 +307,44 @@ function refreshShotList() {
 $('#shotlist').addEventListener('click', (e) => { const row = e.target.closest('.row'); if (row && row.dataset.id) selectShot(row.dataset.id, { fly: false }); });
 $('#shotlist').addEventListener('dblclick', (e) => { const row = e.target.closest('.row'); if (row && row.dataset.id) selectShot(row.dataset.id, { fly: true }); });
 
+/** DP panel of the shot editor: the intent, a Compose button, and the composition read at the current time. */
+function dpPanelHTML(sh) {
+  const dp = sh.dp || {}, intent = dp.intent || '';
+  let h = `<h4>DP · composition</h4>`;
+  h += `<div class="field"><label>intent</label><select data-f="dp.intent"><option value="">classical (neutral)</option>${core.INTENT_IDS.filter((k) => k !== 'neutral').map((k) => `<option value="${k}" ${k === intent ? 'selected' : ''}>${esc(core.INTENTS[k].label)}</option>`).join('')}</select></div>`;
+  h += `<div class="btnrow"><button class="small primary" data-act="dp-compose" data-tip="Compose for this intent|The DP composer searches the lenses, face angles and heights the intent allows, solves the distance for the size, puts the eyes on the grid and keeps the best frame. Undo with Ctrl+Z.">Compose for this intent</button></div>`;
+  let an = null;
+  try {
+    const subj = core.resolveSubject(S.scene, sh, blockingAt(sh, S.t));
+    if (subj) an = core.composition(S.scene, sh, solvedFor(sh).pose(S.t), blockingAt(sh, S.t));
+  } catch (e) { an = null; }
+  if (an) {
+    const s = an.subject || {};
+    const cls = an.score >= 90 ? 'ok' : an.score >= 75 ? 'warn' : 'bad';
+    h += `<div class="note"><span class="badge ${cls}">${an.score}</span> ${esc(an.profile)}${s.eyes ? ` · eyes ${Math.round(s.eyes[0] * 100)}%, ${Math.round(s.eyes[1] * 100)}%` : ''}${s.angle ? ` · ${esc(s.angle)} ${s.vAngle}°` : ''}${s.face ? ` · ${esc(s.face.reads)} ${s.face.offAxis}°` : ''} · ${an.lens.ffEq} mm FF</div>`;
+    for (const n of an.notes.filter((n) => n.rule !== 'check')) h += `<div class="flag ${n.level === 'warn' ? 'warn' : n.level === 'bad' ? 'bad' : 'info'}">${esc(n.msg)}${n.fix ? ` <span class="mini">→ ${esc(n.fix)}</span>` : ''}</div>`;
+  }
+  if (dp.why && dp.why.length) h += `<div class="note mini">${dp.why.map(esc).join('<br>')}</div>`;
+  return h;
+}
+/** Run the DP composer on the selected shot (key A; a moving shot keeps its B), store the framing and the reasoning. */
+function composeShot(sh) {
+  const intent = (sh.dp && sh.dp.intent) || 'neutral';
+  snapshot();
+  const def = { type: 'compose', intent };
+  if (sh.line && sh.line.length === 2 && sh.keys.A) {
+    const P = (id) => { const b = beatBlocking(sh.beatA || sh.beat)[id]; const o = getObj(id); return (b && b.position) || (o && o.position); };
+    const a = P(sh.line[0]), b = P(sh.line[1]);
+    if (a && b) { const side = Math.sign((b[0] - a[0]) * (sh.keys.A.position[2] - a[2]) - (b[2] - a[2]) * (sh.keys.A.position[0] - a[0])); if (side) def.side = side; } // stay on this side of the line
+  }
+  const keepB = sh.keys.B && !(sh.framing && sh.framing.B) ? { type: 'raw', position: sh.keys.B.position, target: sh.keys.B.target, roll: sh.keys.B.roll || 0 } : (sh.framing && sh.framing.B) || null;
+  sh.framing = { A: def, B: keepB };
+  core.resolveShotKeys(S.scene, sh);
+  const r = core.compose(S.scene, sh, def);
+  sh.dp = Object.assign({}, sh.dp || {}, { intent: r.intent, why: r.why });
+  invalidate(); refreshShotList(); refreshShotEditor(); refreshRight(); markDirty();
+  toast(`Composed: ${r.focal_mm} mm, composition ${r.analysis.score}/100`);
+}
 function refreshShotEditor() {
   const box = $('#shot-editor');
   const sh = currentShot();
@@ -329,6 +391,7 @@ function refreshShotEditor() {
     html += `<div class="btnrow"><button class="small" data-act="set-${k}">Set ${k} from view</button>${key ? `<button class="small" data-act="go-${k}">Go to ${k}</button>` : ''}${k === 'B' ? (key ? `<button class="small" data-act="clear-B">Clear B</button>` : `<button class="small" data-act="copy-AB">B = A</button>`) : ''}${key ? `<button class="small" data-act="aim-${k}">Aim ${k} at subject</button>` : ''}</div>`;
   }
   if (sh.framing && sh.framing.A) html += `<div class="btnrow"><button class="small" data-act="resolve">↻ Re-solve framing (${esc(sh.framing.A.type || 'single')}${sh.framing.B ? ` → ${esc(sh.framing.B.type || 'single')}` : ''})</button></div><div class="note">Recomputes both keys from the stored framing definition with the current lens, size and blocking.</div>`;
+  html += dpPanelHTML(sh);
   html += `<h4>checks</h4>`;
   html += `<div class="field"><label>wants FG</label><input type="checkbox" data-f="wantForeground" ${sh.wantForeground ? 'checked' : ''}></div>`;
   html += `<div class="field"><label>allow occlusion</label><input type="checkbox" data-f="allowOcclusion" ${sh.allowOcclusion ? 'checked' : ''}></div>`;
@@ -375,6 +438,7 @@ $('#shot-editor').addEventListener('click', (e) => {
   if (act === 'via-view') { sh.rig.via = view.position; }
   if (act === 'via-clear') { delete sh.rig.via; }
   if (act === 'resolve') { try { core.resolveShotKeys(S.scene, sh); toast('Framing re-solved'); } catch (err) { toast('Re-solve failed: ' + err.message); } }
+  if (act === 'dp-compose') { try { composeShot(sh); } catch (err) { toast('Compose: ' + err.message); } return; }
   afterShotEdit(); refreshShotEditor();
 });
 const clampN = (v, a, b) => Math.min(b, Math.max(a, +v || 0));
@@ -465,7 +529,7 @@ function drawGuides() {
   const svg = $('#pip-guides'); const sh = currentShot(); if (!sh || S.lookThrough) { svg.innerHTML = ''; return; }
   const W = 1000, Hh = Math.round(1000 / (sh.camera.aspect || 2.39));
   svg.setAttribute('viewBox', `0 0 ${W} ${Hh}`); svg.setAttribute('preserveAspectRatio', 'none');
-  let g = `<g stroke="rgba(255,255,255,0.28)" stroke-width="1.5" fill="none"><line x1="${W / 3}" y1="0" x2="${W / 3}" y2="${Hh}"/><line x1="${2 * W / 3}" y1="0" x2="${2 * W / 3}" y2="${Hh}"/><line x1="0" y1="${Hh / 3}" x2="${W}" y2="${Hh / 3}"/><line x1="0" y1="${2 * Hh / 3}" x2="${W}" y2="${2 * Hh / 3}"/><rect x="${W * 0.05}" y="${Hh * 0.05}" width="${W * 0.9}" height="${Hh * 0.9}" stroke-dasharray="6 6"/></g>`;
+  let g = `<g stroke="rgba(255,255,255,0.28)" stroke-width="1.5" fill="none">${gridLinesSVG(W, Hh)}<rect x="${W * 0.05}" y="${Hh * 0.05}" width="${W * 0.9}" height="${Hh * 0.9}" stroke-dasharray="6 6"/></g>`;
   const le = S.lastEval;
   if (le && le.sh === sh && le.ev) {
     const subj = core.resolveSubject(S.scene, sh, blockingAt(sh, S.t));
@@ -757,7 +821,8 @@ async function exportSequence({ shotIds = null, width = 1920, height = 0, fps = 
 }
 /** Batch renders from tools/render_mp4.mjs: pause the live viewport (it would compete for the GPU) and keep the still size. */
 function holdViewport(on) { S.exporting = !!on; if (!on) vp.endStills(); }
-window.LS.api = { sequence: sequenceInfo, renderFrame, exportMP4: exportSequence, hold: holdViewport, load: (json, name) => loadScene(json, name) };
+window.LS.api = { sequence: sequenceInfo, renderFrame, exportMP4: exportSequence, hold: holdViewport, load: (json, name) => loadScene(json, name),
+  frameCanvas: (shotId, t, w, h, opts = {}) => { const sh = shots().find((s) => s.id === shotId || s.name === shotId); if (!sh) throw new Error('unknown shot ' + shotId); return renderFrameCanvas(sh, t, w, h, opts); } };
 
 const EX = { ctrl: null, probe: 0 };
 const clock = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
@@ -828,13 +893,26 @@ function updateOverlay(sh) {
   if (!S.lookThrough || !sh) { if (overlayKey) { ov.classList.add('hidden'); overlayKey = ''; } return; }
   const g = vp.gateRect(sh.camera.aspect || 2.39); if (!g) return;
   const d = core.subtitleAt(soundsLive().dialogue, liveTime(sh));
-  const key = `${g.left},${g.top},${g.width},${g.height}|${sh.id}|${d ? `${d.who}|${d.line}|${d.index}` : ''}`;
+  const key = `${g.left},${g.top},${g.width},${g.height}|${sh.id}|${S.compGrid}|${d ? `${d.who}|${d.line}|${d.index}` : ''}`;
   if (key === overlayKey) return;
   overlayKey = key;
   ov.classList.remove('hidden');
   Object.assign(ov.style, { left: `${g.left}px`, top: `${g.top}px`, width: `${g.width}px`, height: `${g.height}px`, fontSize: `${Math.max(12, Math.round(g.height * 0.042))}px` });
   $('#lt-label').textContent = `${sh.name || sh.id} · ${sh.size || ''} · ${sh.camera.focal_mm}mm · ${(sh.rig && sh.rig.type) || 'static'}`;
   const sub = $('#lt-sub'); sub.textContent = d ? `${d.who ? d.who + ':  ' : ''}${d.line}` : ''; sub.classList.toggle('hidden', !d);
+  const svg = $('#lt-grid'); const W = 1000, Hh = Math.round(1000 / (sh.camera.aspect || 2.39));
+  svg.setAttribute('viewBox', `0 0 ${W} ${Hh}`); svg.setAttribute('preserveAspectRatio', 'none');
+  svg.innerHTML = S.playing ? '' : `<g stroke="rgba(255,236,150,0.55)" stroke-width="1.6" fill="none">${gridLinesSVG(W, Hh)}</g>`;
+}
+/** Lines of the chosen composition grid (thirds, phi, quarters, centre) as SVG, in a W × H box. */
+function gridLinesSVG(W, Hh) {
+  const lines = S.compGrid === 'off' ? [] : ((core.GRIDS[S.compGrid] || core.GRIDS.thirds).lines.concat(S.compGrid === 'quarters' ? [0.5] : []));
+  return lines.map((f) => `<line x1="${f * W}" y1="0" x2="${f * W}" y2="${Hh}"/><line x1="0" y1="${f * Hh}" x2="${W}" y2="${f * Hh}"/>`).join('');
+}
+const GRID_CYCLE = ['thirds', 'phi', 'quarters', 'center', 'off'];
+function setCompGrid(id) {
+  S.compGrid = id; $('#vt-comp').textContent = id === 'off' ? 'no grid' : id === 'center' ? 'centre' : id;
+  $('#vt-comp').classList.toggle('active', id !== 'off'); overlayKey = ''; drawGuides(); updateOverlay(currentShot());
 }
 
 // ------------------------------------------------------------------ step 2: actors list + floor marks ------------------
@@ -863,6 +941,8 @@ function updateMarks() {
 }
 S.marks = true; $('#vt-marks').classList.add('active');
 $('#vt-marks').addEventListener('click', () => { S.marks = !S.marks; $('#vt-marks').classList.toggle('active', S.marks); updateMarks(); });
+$('#vt-comp').addEventListener('click', () => setCompGrid(GRID_CYCLE[(GRID_CYCLE.indexOf(S.compGrid) + 1) % GRID_CYCLE.length]));
+$('#vt-comp').classList.add('active');
 
 // ------------------------------------------------------------------ step 4: sound -----------------------------------------
 function refreshSound() {
@@ -912,13 +992,18 @@ function refreshReview() {
     const lines = (sh.dialogue || []).length, voicedN = (sh.dialogue || []).filter((d) => d.audio).length;
     return `<div class="row ${sh.id === S.shotId ? 'selected' : ''}" data-id="${esc(sh.id)}" data-tip="${esc(sh.name)} · ${esc(sh.size || '')}|${esc(sh.intent || 'No action text.')}"><span class="score ${cls}">${score ?? '–'}</span><span class="name"><b>${esc(sh.name)}</b> <span class="tag">${esc(sh.size || '')} · ${esc(sh.camera.focal_mm)}mm · ${esc((sh.rig && sh.rig.type) || 'static')}</span></span><span class="tag">${lines ? `♪${voicedN}/${lines} · ` : ''}${sh.duration_s}s</span></div>`;
   }).join('') || '<div class="empty">No shots yet.</div>';
-  $('#review-summary').innerHTML = list.length ? `<b>${list.length} shots · ${clock(total)}</b> · average score ${n ? Math.round(sum / n) : '–'}${low ? ` · <span style="color:var(--warn)">${low} to review</span>` : ' · all clean'}. Click a shot to look through it.` : '';
+  let dpS = '–', edS = '–';
+  try { dpS = core.dpReport(S.scene).score; } catch (e) { /* no subjects */ }
+  try { edS = core.editReview(S.scene).score; } catch (e) { /* empty edit */ }
+  $('#review-summary').innerHTML = list.length ? `<b>${list.length} shots · ${clock(total)}</b> · shot check ${n ? Math.round(sum / n) : '–'} · DP ${dpS} · edit ${edS}${low ? ` · <span style="color:var(--warn)">${low} to review</span>` : ' · all clean'}. Click a shot to look through it.` : '';
 }
 $('#review-list').addEventListener('click', (e) => { const row = e.target.closest('.row'); if (!row) return; selectShot(row.dataset.id, { fly: false }); if (!S.lookThrough) setLookThrough(true); refreshReview(); });
 $('#btn-screen').addEventListener('click', () => { if (S.seqPlay) $('#tl-playall').click(); $('#tl-playall').click(); });
 $('#btn-review-export').addEventListener('click', openExport);
 $('#btn-review-sheet').addEventListener('click', () => $('#btn-sheet').click());
 $('#btn-review-blender').addEventListener('click', () => $('#btn-blender').click());
+$('#btn-review-dp').addEventListener('click', () => { if (!S.scene) return; const rep = core.dpReport(S.scene); download(`${baseName()}_dp_report.md`, core.dpReportMarkdown(S.scene, rep), 'text/markdown'); });
+$('#btn-review-edit').addEventListener('click', () => { if (!S.scene) return; const rep = core.editReview(S.scene); download(`${baseName()}_edit_report.md`, core.editReviewMarkdown(S.scene, rep), 'text/markdown'); });
 
 // ------------------------------------------------------------------ boot ------------------------------------------------
 const initial = QUERY.get('scene') || 'scenes/demo/street_corner.json';

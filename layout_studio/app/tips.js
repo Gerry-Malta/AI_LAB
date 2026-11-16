@@ -21,6 +21,10 @@ export const FIELD_TIPS = {
   visible: 'Visible|Hide the object in the viewport, the lens view and the renders.',
   notes: 'Notes|Free notes for the crew; they travel with the scene file and the camera sheet.',
   act: 'Acting|Joint angles added on top of the pose for this beat: head, neck, spine, shoulders, elbows, hips, knees. Reset returns to the library pose.',
+  hand: 'Hand gesture|What the hand does in this beat: relaxed, open, flat on a surface, fist, pointing, holding (a phone, a cup), pinching (a crayon). Close shots of hands read the gesture.',
+  handc: 'Hand closed %|How closed the fingers are: 0 straight, 100 a fist. The little finger closes a bit more than the index, as in a real hand.',
+  'act.wristL.twist': 'Wrist turn|Turns the forearm: positive shows the palm (forward, up), negative the back of the hand (palm down on a table or the ground).',
+  'act.wristR.twist': 'Wrist turn|Turns the forearm: positive shows the palm (forward, up), negative the back of the hand (palm down on a table or the ground).',
   // shots (3 · Camera)
   beat: 'Beat|The story beat this shot covers: its blocking poses the stand-ins.',
   beatA: 'Blocking at start → end|Two different beats make the actors move between their marks during the shot (get up, travel, settle).',
@@ -53,6 +57,7 @@ export const FIELD_TIPS = {
   wantForeground: 'Wants foreground|Ask the check for something in the near layer of the frame, for depth.',
   allowOcclusion: 'Allow occlusion|Partial cover of the subject is intended: over-the-shoulder or a dirty frame.',
   line: '180° line|The two characters that set the axis. Shots on the same axis are checked for crossing the line.',
+  'dp.intent': 'DP intent|What the frame must make the audience feel: intimacy, conflict, isolation, power, tension… Each intent sets the ranges of size, lens, camera angle, face angle, grid and look room the composer searches, and the DP report judges the shot against it.',
   // beats (2 · Blocking)
   label: 'Beat|What happens in this beat, in a few words.',
   t0: 'Beat start|Scene time in seconds where the beat begins.',

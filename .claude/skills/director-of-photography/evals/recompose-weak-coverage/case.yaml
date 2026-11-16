@@ -1,0 +1,9 @@
+schema_version: "1.1"
+name: recompose-weak-coverage
+expected_outcome: |
+  kitchen_argument_dp.json exists with the same seven shots and sizes. The reverse singles of Mara and Luca use the
+  same focal length and stay on one side of the Mara-Luca line, so their eyelines meet; the jump cut between S2 and S3
+  is resolved; the close-up of Mara (S5) is no longer a wide lens inside personal space. The response explains each
+  change with a story reason and shows DP report numbers before and after.
+context:
+  scaffold_script: place-files.sh

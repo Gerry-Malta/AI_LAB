@@ -1,0 +1,7 @@
+schema_version: "1.1"
+name: edit-notes-from-edl
+expected_outcome: |
+  The answer identifies the 4→5 jump cut (same subject, about 10°, same size), the eyeline problem of Marco's singles
+  if Anna also looks screen-right (they must look in opposite directions), the uniform 2-second rhythm after a 6-second
+  opener, radio-play cutting (every line in its own shot, cut on the first and last syllable) and proposes split edits
+  and holding the silence after "That's the same thing." with concrete durations.

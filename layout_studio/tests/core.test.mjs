@@ -326,3 +326,141 @@ test('edit sounds: J and L cuts, effects, ambience over a span, a selection gets
   const one = core.editSounds(scene, { shotIds: ['1B'] });
   assert.equal(one.duration, 3); assert.equal(one.dialogue[0].start, -0.5); assert.deepEqual([one.ambience[0].start, one.ambience[0].end, one.ambience[0].offset], [0, 3, 0]);
 });
+
+test('hands: presets curl the fingers, the grip sits in the hand, fingers are skipped by occlusion, both hands mirror', () => {
+  const tip = (h) => { const sk = core.skeleton({ base: 'stand', hand: h }, 1.8, 35); return core.dist(sk.joints.handL, sk.joints.wristL); };
+  assert.ok(tip('open') > tip('relaxed') && tip('relaxed') > tip('fist'), `open ${tip('open')} > relaxed ${tip('relaxed')} > fist ${tip('fist')}`);
+  const sk = core.skeleton('stand', 1.8, 35);
+  const fine = sk.parts.filter((p) => p.fine);
+  assert.equal(fine.length, 28, 'four fingers of three phalanges and a thumb of two, per hand');
+  assert.ok(sk.parts.some((p) => p.tag === 'palmL') && sk.parts.some((p) => p.tag === 'thenarR'));
+  const L = sk.joints.gripL, R = sk.joints.gripR;
+  assert.ok(Math.abs(L[0] + R[0]) < 1e-6 && Math.abs(L[1] - R[1]) < 1e-6 && Math.abs(L[2] - R[2]) < 1e-6, 'left and right grips mirror');
+  assert.ok(core.dist(L, sk.joints.wristL) < 0.2, 'grip is in the hand');
+  const parts = core.objectParts({ id: 'S', kind: 'standin', position: [0, 0, 0], rotation: [0, 0, 0], pose: 'stand', height: 1.8 });
+  assert.equal(parts.length, sk.parts.length - fine.length, 'occlusion skips finger phalanges');
+  // a pointing hand: the index straight, the others closed
+  const pt = core.resolvePose({ base: 'stand', handR: 'point' }).handR;
+  assert.ok(pt.index < 0.1 && pt.middle > 0.9 && pt.little > 0.9);
+  // a prop held in both hands sits between the grips, in world space
+  const ch = { position: [2, 0, 1], facing: 90, pose: { base: 'sit_ground', shoulder: { flex: 34 }, elbow: { flex: 120 }, hand: 'grip' }, height: 1.7, age: 36 };
+  const g = core.gripPoint(ch, 'both'), gl = core.gripPoint(ch, 'L'), gr = core.gripPoint(ch, 'R');
+  assert.ok(core.dist(g, core.lerp(gl, gr, 0.5)) < 1e-9 && g[1] > 0.3);
+});
+
+test('DP: composition reads the grid, the look room and short-siding', () => {
+  const scene = { objects: [{ id: 'S', kind: 'standin', name: 'S', position: [0, 0, 0], rotation: [0, 90, 0], pose: 'stand', height: 1.8, age: 35 }] };
+  const shot = { size: 'MCU', subject: 'S', camera: { focal_mm: 50, aspect: 2.39 } };
+  const eyes = core.keypoints(core.resolveSubject(scene, shot, {})).eyes;
+  // she faces +X; a camera in front at 40° puts her looking screen-right: eyes on the left third = long look
+  const pos = [Math.sin(core.toRad(40 + 90)) * 2.6 + 0, eyes[1], Math.cos(core.toRad(40 + 90)) * 2.6];
+  const lens = { filmback: 'ALEXA35_OG', focal_mm: 50, aspect: 2.39 };
+  const pose = (u) => ({ position: pos, target: core.aimAt(pos, eyes, u, 0.34, lens), roll: 0 });
+  const left = core.composition(scene, shot, pose(1 / 3), {}, { intent: 'neutral' });
+  const gaze = left.subject.gaze;
+  const back = gaze === 'right' ? 1 / 3 : 2 / 3, front = 1 - back;
+  const good = core.composition(scene, shot, pose(back), {}, { intent: 'neutral' });
+  assert.ok(Math.abs(good.subject.eyes[0] - back) < 0.01 && Math.abs(good.subject.eyes[1] - 0.34) < 0.01, 'aimAt places the eyes exactly');
+  assert.equal(good.subject.lookRoom.look, 'long');
+  assert.ok(!good.notes.some((n) => n.rule === 'grid' || n.rule === 'lookroom'), JSON.stringify(good.notes));
+  const shortSided = core.composition(scene, shot, pose(front), {}, { intent: 'neutral' });
+  assert.ok(shortSided.notes.some((n) => n.rule === 'lookroom'), 'short-siding is flagged for a long-look intent');
+  const tension = core.composition(scene, shot, pose(front), {}, { intent: 'tension' });
+  assert.ok(!tension.notes.some((n) => n.rule === 'lookroom'), 'but it is what tension asks for');
+  assert.ok(good.score > shortSided.score);
+});
+
+test('DP: compose follows the intent (angle, lens, placement) and passes the shot check', () => {
+  const scene = core.normalizeScene({ objects: [
+    { id: 'A', kind: 'standin', name: 'A', position: [0, 0, 0], rotation: [0, 0, 0], pose: 'stand', height: 1.8, age: 40 },
+    { id: 'B', kind: 'standin', name: 'B', position: [0, 0, 2.2], rotation: [0, 180, 0], pose: 'stand', height: 1.65, age: 35 },
+  ], beats: [{ id: 'b1', blocking: {} }] });
+  const shot = core.newShot({ id: 's', beat: 'b1', subject: 'A', size: 'MCU', camera: { filmback: 'ALEXA35_OG', focal_mm: 35, aspect: 2.39 } });
+  const power = core.compose(scene, shot, { intent: 'power' }), vuln = core.compose(scene, shot, { intent: 'vulnerability' }), intim = core.compose(scene, Object.assign({}, shot, { size: 'CU' }), { intent: 'intimacy' });
+  assert.ok(power.analysis.subject.vAngle < -5, `power looks up: ${power.analysis.subject.vAngle}`);
+  assert.ok(vuln.analysis.subject.vAngle > 8, `vulnerability looks down: ${vuln.analysis.subject.vAngle}`);
+  assert.ok(intim.analysis.lens.ffEq >= 65 && intim.analysis.subject.distance >= 1.2, 'intimacy: a portrait lens from conversational distance');
+  for (const r of [power, vuln, intim]) { assert.ok(r.check.score >= 90, JSON.stringify(r.check.flags)); assert.ok(r.analysis.score >= 85, JSON.stringify(r.analysis.notes)); assert.ok(r.why.length >= 3); }
+  // the 180° line: with side the camera stays on one side of A–B
+  const side = (p) => Math.sign((2.2 - 0) * (p[0] - 0) * -1 + 0 * (p[2] - 0)) || Math.sign(p[0]);
+  const l1 = core.compose(scene, Object.assign({}, shot, { line: ['A', 'B'] }), { intent: 'conflict', side: 1 }), l2 = core.compose(scene, Object.assign({}, shot, { line: ['A', 'B'] }), { intent: 'conflict', side: -1 });
+  assert.notEqual(side(l1.position), side(l2.position), 'the two sides of the line');
+  // the compose key type solves through the builder path and sets the lens
+  const lens = Object.assign({}, shot.camera);
+  const k = core.solveKeyDef(scene, shot, { type: 'compose', intent: 'intimacy', size: 'CU' }, lens, 'b1');
+  assert.ok(k.meta.why && lens.focal_mm !== 35);
+});
+
+test('DP report: reverse singles must match lens, eye height and look', () => {
+  const scene = core.normalizeScene({ objects: [
+    { id: 'A', kind: 'standin', name: 'A', position: [0, 0, 0], rotation: [0, 0, 0], pose: 'stand', height: 1.8 },
+    { id: 'B', kind: 'standin', name: 'B', position: [0, 0, 2.2], rotation: [0, 180, 0], pose: 'stand', height: 1.8 },
+  ], beats: [{ id: 'b1', blocking: {} }] });
+  const mk = (id, subject, focal) => { const sh = core.newShot({ id, name: id, beat: 'b1', subject, size: 'MCU', line: ['A', 'B'], camera: { filmback: 'ALEXA35_OG', focal_mm: focal, aspect: 2.39 } });
+    const k = core.compose(scene, sh, { intent: 'conflict', focal, side: 1 }); sh.keys = { A: { position: k.position, target: k.target, roll: 0 }, B: null }; return sh; };
+  scene.shots = [mk('s1', 'A', 50), mk('s2', 'B', 50)];
+  let rep = core.dpReport(scene);
+  assert.ok(rep.coverage.length === 1 && rep.coverage[0].matched, JSON.stringify(rep.coverage));
+  scene.shots[1] = mk('s2', 'B', 85);
+  rep = core.dpReport(scene);
+  assert.ok(!rep.coverage[0].matched && /lenses differ/.test(rep.coverage[0].issues.join()), JSON.stringify(rep.coverage));
+  assert.ok(/# DP report/.test(core.dpReportMarkdown(scene, rep)));
+});
+
+test('editor: jump cuts, crossing the line, eyelines, a metronome rhythm and shots too short for their lines', () => {
+  const objects = [
+    { id: 'A', kind: 'standin', name: 'ANNA', position: [0, 0, 0], rotation: [0, 0, 0], pose: 'stand', height: 1.75 },
+    { id: 'B', kind: 'standin', name: 'BRUNO', position: [0, 0, 2.4], rotation: [0, 180, 0], pose: 'stand', height: 1.8 },
+  ];
+  const eyesA = core.keypoints({ position: [0, 0, 0], facing: 0, pose: 'stand', height: 1.75 }).eyes, eyesB = core.keypoints({ position: [0, 0, 2.4], facing: 180, pose: 'stand', height: 1.8 }).eyes;
+  const sh = (id, subject, pos, look, extra = {}) => Object.assign({ id, name: id, beat: 'b1', subject, size: 'MCU', line: ['A', 'B'], duration_s: 3, camera: { filmback: 'ALEXA35_OG', focal_mm: 50, aspect: 2.39 }, rig: { type: 'static' }, keys: { A: { position: pos, target: look, roll: 0 }, B: null } }, extra);
+  const scene = core.normalizeScene({ objects, beats: [{ id: 'b1', blocking: {} }], shots: [
+    sh('s1', 'A', [0.9, 1.62, 2.0], eyesA, { dialogue: [{ who: 'ANNA', line: 'Non ti ho mai detto quanto mi manca quella casa sul lago, davvero mai.' }] }),
+    sh('s2', 'A', [0.62, 1.62, 2.1], eyesA), // 8° round from s1, same size: a jump cut
+    sh('s3', 'B', [0.9, 1.66, 0.4], eyesB), // the reverse, same side: eyelines meet
+    sh('s4', 'A', [-0.9, 1.62, 2.0], eyesA), // the other side of the line
+    sh('s5', 'B', [0.9, 1.66, 0.4], eyesB),
+    sh('s6', 'A', [0.9, 1.62, 2.0], eyesA, { size: 'MS' }),
+  ] });
+  const rep = core.editReview(scene);
+  const cut = (a, b) => rep.cuts.find((c) => c.from === a && c.to === b);
+  assert.ok(cut('s1', 's2').notes.some((n) => n.rule === 'space' && /Jump cut/.test(n.msg)), JSON.stringify(cut('s1', 's2')));
+  assert.equal(cut('s2', 's3').eyelines, 'meet');
+  assert.ok(cut('s3', 's4').notes.some((n) => /crosses the line/.test(n.msg)), JSON.stringify(cut('s3', 's4').notes));
+  assert.ok(cut('s3', 's4').notes.some((n) => /Eyelines do not meet/.test(n.msg)));
+  assert.ok(cut('s1', 's2').craft < cut('s2', 's3').craft);
+  assert.ok(rep.notes.some((n) => n.rule === 'rhythm' && /metronome/.test(n.msg)), 'six shots of three seconds');
+  assert.ok(rep.notes.some((n) => n.rule === 'timing' && n.shot === 's1'), 'the long line does not fit in three seconds');
+  assert.ok(rep.pacing.cv < 0.05 && rep.pacing.monotone.length === 1);
+  assert.ok(/# Edit report/.test(core.editReviewMarkdown(scene, rep)));
+  // an axial punch-in (same axis, two sizes tighter) is not a jump cut
+  const ax = core.normalizeScene({ objects, beats: [{ id: 'b1', blocking: {} }], shots: [sh('a1', 'A', [0.9, 1.62, 2.0], eyesA, { size: 'MS' }), sh('a2', 'A', [0.55, 1.62, 1.25], eyesA, { size: 'CU' })] });
+  const c2 = core.editReview(ax).cuts[0];
+  assert.ok(c2.axial && !c2.notes.some((n) => n.rule === 'space'), JSON.stringify(c2));
+});
+
+test('DP: a point of view takes the eye height of its character; a raw key can place a figure on the grid', () => {
+  const scene = core.normalizeScene({ objects: [
+    { id: 'P', kind: 'standin', name: 'PAPA', position: [0, 0, 0], rotation: [0, 0, 0], pose: 'stand', height: 1.82, age: 40 },
+    { id: 'K', kind: 'standin', name: 'KID', position: [0, 0, 1.6], rotation: [0, 180, 0], pose: 'sit_ground', height: 1.15, age: 6 },
+  ], beats: [{ id: 'b1', blocking: {} }] });
+  const shot = core.newShot({ id: 's', beat: 'b1', subject: 'P', size: 'MCU', camera: { filmback: 'ALEXA35_OG', focal_mm: 35, aspect: 2.39 } });
+  const r = core.compose(scene, shot, { intent: 'childhood', povOf: 'K' });
+  const kidEyes = core.keypoints(core.charAt(scene, 'K', 'b1')).eyes;
+  assert.ok(Math.abs(r.position[1] - kidEyes[1]) < 0.02, `lens at the child's eye height: ${r.position[1]} vs ${kidEyes[1]}`);
+  assert.ok(r.analysis.subject.vAngle < -10, 'looking up at the parent');
+  const lens = { filmback: 'ALEXA35_OG', focal_mm: 50, aspect: 2.39 };
+  const k = core.solveKeyDef(scene, shot, { type: 'raw', position: [0.6, 1.5, 4], target: [0, 1.4, 0], frame: { subject: 'P', u: 0.25, v: 0.3 } }, lens, 'b1');
+  const sh2 = Object.assign({}, shot, { camera: lens });
+  const an = core.composition(scene, sh2, { position: k.position, target: k.target, roll: 0 }, {});
+  assert.ok(Math.abs(an.subject.eyes[0] - 0.25) < 0.01 && Math.abs(an.subject.eyes[1] - 0.3) < 0.01, JSON.stringify(an.subject.eyes));
+});
+
+test('editor: an L-cut line does not make its shot too short', () => {
+  const scene = core.normalizeScene({ objects: [{ id: 'A', kind: 'standin', name: 'ANNA', position: [0, 0, 0], rotation: [0, 0, 0], pose: 'stand', height: 1.7 }],
+    shots: [{ id: 's1', name: 's1', subject: 'A', size: 'MCU', duration_s: 2.4, dialogue: [{ who: 'ANNA', line: 'Una battuta abbastanza lunga da passare il taglio.', at: 1.0, lap: true }] }] });
+  const t = core.shotTiming(scene, scene.shots[0]);
+  assert.ok(t.need <= 2.4, `need ${t.need}`);
+  scene.shots[0].dialogue[0].lap = false;
+  assert.ok(core.shotTiming(scene, scene.shots[0]).need > 2.4, 'without the L-cut the line must land inside the shot');
+});

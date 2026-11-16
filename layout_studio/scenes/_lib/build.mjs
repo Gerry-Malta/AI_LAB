@@ -37,12 +37,15 @@ export function createBuilder(meta) {
   /** Add a shot. A/B are framing definitions (see solveKey). */
   B.shot = (def) => {
     const lens = Object.assign({ filmback: 'ALEXA35_OG', focal_mm: 35, aspect: 2.39, squeeze: 1, fstop: 2.8 }, def.lens || {});
-    const shot = core.newShot({ id: def.id, name: def.name || def.id, beat: def.beat || null, size: def.size || 'MS', subject: def.subject || null, intent: def.intent || '', notes: def.notes || '', duration_s: def.duration_s || 5, curve: def.curve || 'easeInOut', rig: Object.assign({ type: 'static' }, def.rig || {}), wantForeground: !!def.wantForeground, allowOcclusion: !!def.allowOcclusion, line: def.line || null, beatA: def.beatA || null, beatB: def.beatB || null, dialogue: def.dialogue || [], camera: lens });
+    const shot = core.newShot({ id: def.id, name: def.name || def.id, beat: def.beat || null, size: def.size || 'MS', subject: def.subject || null, intent: def.intent || '', notes: def.notes || '', duration_s: def.duration_s || 5, curve: def.curve || 'easeInOut', rig: Object.assign({ type: 'static' }, def.rig || {}), wantForeground: !!def.wantForeground, allowOcclusion: !!def.allowOcclusion, line: def.line || null, beatA: def.beatA || null, beatB: def.beatB || null, dialogue: def.dialogue || [], camera: lens, dp: def.dp || null });
     const { A, B: Bk } = core.solveShotKeys(scene, shot, { A: def.A, B: def.B || null }, lens);
     shot.keys = { A: { position: A.position, target: A.target, roll: A.roll }, B: Bk ? { position: Bk.position, target: Bk.target, roll: Bk.roll } : null };
     if (!lens.focus_m && A.meta && A.meta.distance) lens.focus_m = +A.meta.distance.toFixed(2);
     shot.camera = lens;
     shot.framing = { A: def.A, B: def.B || null };
+    // the DP's reasoning travels with the shot (camera sheet, DP report): intent and why this lens / angle / placement
+    if (A.meta && A.meta.why) shot.dp = Object.assign({}, shot.dp || {}, { intent: A.meta.intent, why: A.meta.why }, A.meta.povOf ? { povOf: A.meta.povOf } : {});
+    if (!shot.dp) delete shot.dp;
     if (def.A && def.A.type === 'ots' && def.allowOcclusion == null) shot.allowOcclusion = true;
     // editorial timing: when the camera moves and when the actors act inside the shot (seconds), and the shot's effects
     if (def.allowBackOfHead) shot.allowBackOfHead = true; // the face is not the point of this close shot (or comes later)

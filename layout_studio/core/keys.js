@@ -1,8 +1,12 @@
 // Key (camera pose) definitions solved against the scene: the bridge between a described framing
 // ("CU of Arthur from 30°, eye level") and concrete camera coordinates. Used by the builder scripts and by the viewer's Re-solve.
 import { solveFraming, solveTwoShot, solveOTS, frameObject, aimFromPosition } from './framing.js';
+import { compose, aimAt } from './dp.js';
+import { keypoints } from './standin.js';
+import { fovFor } from './lens.js';
+import { projectPoint, cameraBasis } from './vec.js';
 
-export const KEY_TYPES = ['single', 'two', 'ots', 'object', 'raw'];
+export const KEY_TYPES = ['single', 'two', 'ots', 'object', 'compose', 'raw'];
 
 /** Character record (position/facing/pose/height) at a beat, falling back to the rest transform. */
 export function charAt(scene, id, beatId) {
@@ -18,7 +22,18 @@ export function solveKeyDef(scene, shot, def, lens, beatId) {
   if (!def) return null;
   const beat = def.beat || beatId || shot.beat;
   switch (def.type || 'single') {
-    case 'raw': return { position: def.position, target: def.target, roll: def.roll || 0, meta: {} };
+    case 'raw': {
+      // frame: { subject, u, v, point } keeps this camera position and aims so the subject lands on (u, v) — the DP
+      // placing a figure on the grid from a fixed set-up (v omitted: keep the current height in frame)
+      let target = def.target;
+      if (def.frame) {
+        const f = def.frame, subj = charAt(scene, f.subject || shot.subject, beat), P = keypoints(subj)[f.point || 'eyes'];
+        let v = f.v;
+        if (v == null) { const { vfov } = fovFor(lens); const q = projectPoint(P, def.position, cameraBasis(def.position, def.target || P, 0), vfov, lens.aspect || 2.39); v = q.behind ? 0.5 : (1 - q.y) / 2; }
+        target = aimAt(def.position, P, f.u ?? 0.5, v, lens);
+      }
+      return { position: def.position, target, roll: def.roll || 0, meta: {} };
+    }
     case 'single': {
       const subj = charAt(scene, def.subject || shot.subject, beat);
       const r = solveFraming(Object.assign({}, def, { subject: subj, size: def.size || shot.size, lens }));
@@ -32,6 +47,12 @@ export function solveKeyDef(scene, shot, def, lens, beatId) {
       const r = solveOTS(Object.assign({}, def, { fg: charAt(scene, def.fg, beat), bg: charAt(scene, def.bg, beat), lens }));
       if (def.fitSize) lens.focal_mm = r.focal_mm;
       return { position: r.position, target: r.target, roll: def.roll || 0, meta: r };
+    }
+    case 'compose': {
+      // the DP composer: lens, angle and height searched inside the intent's ranges, eyes aimed onto the grid
+      const r = compose(scene, Object.assign({}, shot, { camera: lens }), Object.assign({}, def, { beat, subject: def.subject || shot.subject, size: def.size || shot.size }));
+      lens.focal_mm = def.focal || r.focal_mm; // the lens the camera was composed for
+      return { position: r.position, target: r.target, roll: r.roll || 0, meta: { distance: r.distance, why: r.why, intent: r.intent, score: r.analysis.score, povOf: def.povOf || null } };
     }
     case 'object': {
       let o = (scene.objects || []).find((x) => x.id === def.object);
