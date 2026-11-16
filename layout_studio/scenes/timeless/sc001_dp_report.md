@@ -41,8 +41,8 @@ Average composition score **96/100** over 31 shots. Lenses: 18, 24, 32, 35, 40, 
 | 1W | CU | intimacy | 75 mm | 99 | 38%, 48% | eye level (0°) | three-quarter 23° | ✓ |
 | 1X | MLS | isolation | 65 mm | 87 | 75%, 36% | slightly high (8.4°) | back 111° | Negative space 69%; isolation reads with the figure small in a big empty frame. → go wider or further |
 | 1Y | CU | intimacy | 75 mm | 98 | 62%, 48% | eye level (0°) | three-quarter 23° | ✓ |
-| 1Z | BCU | tension | 85 mm | 94 | 75%, 39% | eye level (0°) | three-quarter 25° | ✓ |
-| 1AA | BCU | tension | 85 mm | 94 | 25%, 39% | eye level (0°) | three-quarter 25° | ✓ |
+| 1Z | BCU | tension | 85 mm | 91 | 75%, 35% | eye level (0°) | three-quarter 25° | ✓ |
+| 1AA | BCU | tension | 85 mm | 90 | 25%, 35% | eye level (0°) | three-quarter 25° | ✓ |
 | 1AB | INSERT | detail | 100 mm | 100 | 50%, 50% | — | — | ✓ |
 | 1AC | MCU | vulnerability | 50 mm | 88 | 63%, 46% | slightly low (-7°) | three-quarter profile 56° | Eyes 46% from the top; a MCU reads best with them at 27%–40% (the upper third). → tilt down 1° |
 | 1AD | INSERT | detail | 75 mm | 100 | 50%, 49% | — | — | ✓ |

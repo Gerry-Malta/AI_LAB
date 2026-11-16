@@ -57,6 +57,9 @@ angle is degrees off the face axis (0 = into the lens, 90 = profile).
 - **childhood** — the lens at the child's eye height turns adults into giants and grass into a forest: the world
   from inside it.
 
+The roll range is what an intent allows: the composer tilts the horizon only when the minimum is above zero
+(`roll: [6, 10]` asks for a decided dutch). A two-degree tilt reads as a mistake, not a choice.
+
 ## Tuning a profile per shot
 Any field can be overridden on the key definition or in `dp`: `grid`, `look`, `vAngle`, `face`, `ffEq`,
 `headroom`, `roll`, `dof`, `minFaceDist`. Example — a tension single that must stay at eye level on a 50 mm:
