@@ -2,5 +2,7 @@
 *.mp4
 # stale local screenshots of the TIMELESS shots
 docs/shots_timeless/
+# the smoke test's screenshots (tests/smoke.mjs writes here by default; reproducible)
+docs/shots/
 # whole-film breakdown stays local; individual scenes are published
 scenes/timeless/index.json
