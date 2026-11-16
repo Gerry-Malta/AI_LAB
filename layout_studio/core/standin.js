@@ -14,7 +14,7 @@ const ADULT = {
   headW: 0.086, headD: 0.112, chestW: 0.175, chestD: 0.108, chestH: 0.19, waistW: 0.13, waistD: 0.092, waistH: 0.1,
   pelvisW: 0.18, pelvisD: 0.112, pelvisH: 0.11,
   rNeck: 0.03, rUpperArm: 0.03, rForeArm: 0.024, rThigh: 0.048, rShin: 0.034, rShoulder: 0.033, rElbow: 0.024, rKnee: 0.032,
-  handW: 0.05, handT: 0.022,
+  handW: 0.05, handT: 0.019, rWrist: 0.0135,
 };
 const CHILD = {
   top: 1, brow: 0.935, eyes: 0.9, mouth: 0.857, chin: 0.825, headPivot: 0.862, neck: 0.8, shoulderY: 0.776, shoulderX: 0.1,
@@ -23,7 +23,7 @@ const CHILD = {
   headW: 0.122, headD: 0.15, chestW: 0.19, chestD: 0.13, chestH: 0.19, waistW: 0.155, waistD: 0.115, waistH: 0.1,
   pelvisW: 0.18, pelvisD: 0.12, pelvisH: 0.1,
   rNeck: 0.034, rUpperArm: 0.031, rForeArm: 0.026, rThigh: 0.051, rShin: 0.037, rShoulder: 0.033, rElbow: 0.025, rKnee: 0.034,
-  handW: 0.055, handT: 0.025,
+  handW: 0.055, handT: 0.022, rWrist: 0.016,
 };
 export const DEFAULT_AGE = 30;
 /** Age used for proportions: explicit, or estimated from the height for children (below 1.55 m). */
@@ -45,9 +45,45 @@ export function proportions(height = 1.75, age) {
 // Joint angles in degrees.
 //  root, spine, chest, neck, head: pitch (+ bends forward), yaw (+ turns to the character's left), roll (+ leans left).
 //  shoulder, hip: flex (+ swings the limb forward), abd (+ out to the side), twist (+ external rotation).
-//  elbow, knee: flex (+ bends). ankle, wrist: flex (+ toes or back of the hand up).
-//  A key without side (shoulder) applies to both; shoulderL / shoulderR override one side.
-//  In a blocking, a pose can be a library name or { base: 'sit_ground', head: { pitch: 25 }, ... } to adjust the acting.
+//  elbow, knee: flex (+ bends). ankle: flex (+ toes up).
+//  wrist: flex (+ back of the hand up), dev (+ toward the thumb), twist (+ turns the palm forward/up, - palm back/down).
+//  hand: a preset name from HAND_PRESETS or { preset, curl, index, middle, ring, little, spread, thumb, thumbOut, opp }
+//        (curls 0 straight → 1 closed; spread 0..1; thumb curl; thumbOut swings the thumb away from the index; opp brings
+//        it across the palm toward the little finger).
+//  A key without side (shoulder, hand) applies to both; shoulderL / handR override one side.
+//  In a blocking, a pose can be a library name or { base: 'sit_ground', head: { pitch: 25 }, handR: 'grip', ... }.
+
+// Hands. A relaxed hand is not flat: the fingers curl a little, more toward the little finger (the finger cascade),
+// and the thumb rests in front of the index.
+export const HAND_PRESETS = {
+  relaxed: { curl: 0.3, spread: 0.2, thumb: 0.25, thumbOut: 0.3, opp: 0.2 },
+  open: { curl: 0.02, spread: 0.85, thumb: 0.02, thumbOut: 0.85, opp: 0.05 },
+  flat: { curl: 0.04, spread: 0.15, thumb: 0.08, thumbOut: 0.25, opp: 0 },
+  fist: { curl: 1, spread: 0, thumb: 0.75, thumbOut: 0.05, opp: 0.75 },
+  point: { curl: 1, index: 0.02, spread: 0.05, thumb: 0.7, thumbOut: 0.1, opp: 0.7 },
+  grip: { curl: 0.6, spread: 0.06, thumb: 0.4, thumbOut: 0.25, opp: 0.85 },
+  pinch: { curl: 0.85, index: 0.5, middle: 0.6, spread: 0.08, thumb: 0.45, thumbOut: 0.2, opp: 0.95 },
+};
+export const HAND_NAMES = {
+  relaxed: 'Relaxed', open: 'Open, fingers spread', flat: 'Flat (on a surface)', fist: 'Fist', point: 'Pointing',
+  grip: 'Holding (a phone, a cup, a handle)', pinch: 'Pinching (a crayon, a pen)',
+};
+const FINGER_KEYS = ['index', 'middle', 'ring', 'little'];
+const CASCADE = { index: 0.9, middle: 1, ring: 1.08, little: 1.2 };
+/** Numeric hand settings from presets and overrides (later wins; a preset restarts from its own values). */
+export function handSpec(...specs) {
+  let o = Object.assign({}, HAND_PRESETS.relaxed);
+  for (const s of specs) {
+    if (s == null) continue;
+    if (typeof s === 'string') { o = Object.assign({}, HAND_PRESETS[s] || HAND_PRESETS.relaxed); continue; }
+    if (s.preset) o = Object.assign({}, HAND_PRESETS[s.preset] || HAND_PRESETS.relaxed);
+    if (s.curl != null && !s.preset) for (const f of FINGER_KEYS) if (s[f] == null) delete o[f]; // a new overall curl re-derives the fingers
+    for (const [k, v] of Object.entries(s)) if (k !== 'preset' && typeof v === 'number' && isFinite(v)) o[k] = v;
+  }
+  const out = { curl: o.curl, spread: o.spread, thumb: o.thumb, thumbOut: o.thumbOut, opp: o.opp };
+  for (const f of FINGER_KEYS) out[f] = o[f] != null ? o[f] : clamp(o.curl * CASCADE[f], -0.2, 1.1);
+  return out;
+}
 export const POSE_LIBRARY = {
   stand: { shoulder: { abd: 9, flex: 3 }, elbow: { flex: 10 }, wrist: { flex: 4 }, hip: { abd: 3 }, knee: { flex: 3 }, ankle: { flex: 3 } },
   walk: {
@@ -63,7 +99,8 @@ export const POSE_LIBRARY = {
     shoulder: { flex: 30, abd: 12 }, elbow: { flex: 64 }, hip: { flex: 100, abd: 30, twist: 75 }, knee: { flex: 140 }, ankle: { flex: 6 },
   },
   sit_chair: {
-    spine: { pitch: 4 }, head: { pitch: 4 }, shoulder: { flex: 30, abd: 8 }, elbow: { flex: 70 }, hip: { flex: 88, abd: 6 }, knee: { flex: 86 }, ankle: { flex: -2 },
+    spine: { pitch: 4 }, head: { pitch: 4 }, shoulder: { flex: 30, abd: 8 }, elbow: { flex: 70 }, wrist: { twist: -55, flex: 4 }, hand: { preset: 'relaxed', curl: 0.22 },
+    hip: { flex: 88, abd: 6 }, knee: { flex: 86 }, ankle: { flex: -2 },
   },
   crouch: {
     root: { pitch: 22 }, spine: { pitch: 14 }, chest: { pitch: 6 }, neck: { pitch: -8 }, head: { pitch: 2 },
@@ -72,9 +109,9 @@ export const POSE_LIBRARY = {
   kneel: { spine: { pitch: 4 }, head: { pitch: 2 }, shoulder: { flex: 12, abd: 9 }, elbow: { flex: 24 }, hip: { flex: 2, abd: 4 }, knee: { flex: 90 }, ankle: { flex: -75 } },
   lie_prone: {
     root: { pitch: 90 }, spine: { pitch: -30 }, chest: { pitch: -2 }, neck: { pitch: -18 }, head: { pitch: 16 },
-    shoulder: { flex: 100, abd: 16 }, elbow: { flex: 45 }, wrist: { flex: 6 }, hip: { flex: -2, abd: 6 }, kneeL: { flex: 72 }, kneeR: { flex: 38 }, ankle: { flex: -38 },
+    shoulder: { flex: 100, abd: 16 }, elbow: { flex: 45 }, wrist: { flex: -8, twist: -80 }, hand: 'flat', hip: { flex: -2, abd: 6 }, kneeL: { flex: 72 }, kneeR: { flex: 38 }, ankle: { flex: -38 },
   },
-  lie_supine: { root: { pitch: -90, roll: 180 }, head: { pitch: -8 }, shoulder: { abd: 16 }, elbow: { flex: 12 }, hip: { abd: 5 }, knee: { flex: 2 }, ankle: { flex: -24 } },
+  lie_supine: { root: { pitch: -90, roll: 180 }, head: { pitch: -8 }, shoulder: { abd: 16 }, elbow: { flex: 12 }, wrist: { twist: -70 }, hand: { preset: 'relaxed', curl: 0.2 }, hip: { abd: 5 }, knee: { flex: 2 }, ankle: { flex: -24 } },
 };
 export const POSES = Object.keys(POSE_LIBRARY);
 export const POSE_NAMES = {
@@ -83,13 +120,20 @@ export const POSE_NAMES = {
 };
 const AXIAL = ['root', 'spine', 'chest', 'neck', 'head'];
 const LIMBS = ['shoulder', 'elbow', 'wrist', 'hip', 'knee', 'ankle'];
-export const JOINTS = [...AXIAL, ...LIMBS.flatMap((j) => [j + 'L', j + 'R'])];
+export const JOINTS = [...AXIAL, ...LIMBS.flatMap((j) => [j + 'L', j + 'R']), 'handL', 'handR'];
 
 function expand(def) {
   const out = {};
   for (const j of AXIAL) out[j] = Object.assign({}, def[j] || {});
   for (const j of LIMBS) { out[j + 'L'] = Object.assign({}, def[j] || {}, def[j + 'L'] || {}); out[j + 'R'] = Object.assign({}, def[j] || {}, def[j + 'R'] || {}); }
+  out.handL = handSpec(def.hand, def.handL); out.handR = handSpec(def.hand, def.handR);
   return out;
+}
+// merge an acting override into a library joint entry (hands can be preset names)
+function mergeJoint(base, over) {
+  if (typeof over === 'string') return over;
+  if (typeof base === 'string') return Object.assign({ preset: base }, over);
+  return Object.assign({}, base || {}, over);
 }
 export function blendPoses(A, B, w) {
   const out = {};
@@ -107,7 +151,7 @@ export function resolvePose(pose) {
   if (pose.a !== undefined || pose.b !== undefined) return blendPoses(resolvePose(pose.a), resolvePose(pose.b), clamp(pose.w ?? 0.5, 0, 1));
   if (pose.base) {
     const merged = Object.assign({}, POSE_LIBRARY[pose.base] || POSE_LIBRARY.stand);
-    for (const [k, v] of Object.entries(pose)) if (k !== 'base') merged[k] = Object.assign({}, merged[k] || {}, v);
+    for (const [k, v] of Object.entries(pose)) if (k !== 'base') merged[k] = mergeJoint(merged[k], v);
     return expand(merged);
   }
   return expand(pose);
@@ -138,6 +182,86 @@ export function partMinY(p) {
   if (p.kind === 'box') return p.center[1] - (Math.abs(m[1][0]) * h[0] + Math.abs(m[1][1]) * h[1] + Math.abs(m[1][2]) * h[2]);
   return p.center[1] - Math.hypot(m[1][0] * h[0], m[1][1] * h[1], m[1][2] * h[2]);
 }
+
+// ------------------------------------------------------------------ hands ----------------------------------------------
+// Built in a canonical left-hand frame at the wrist joint: +X back of the hand, -Y toward the fingertips, +Z thumb side.
+// The right hand is its mirror (x → -x). Finger and thumb segments are capsules flagged `fine`: the viewer draws them
+// instanced and the occlusion check skips them (too small to hide a face). Proportions follow hand anthropometry:
+// palm about half the hand length, finger phalanges about 0.47 : 0.31 : 0.22, index/ring/little at 0.93/0.96/0.77 of
+// the middle finger, the knuckle line sloping toward the little finger.
+const FINGERS = [ // name, across the palm (× width), knuckle set back (× hand length), length (× middle), radius (× width), splay (deg at full spread)
+  ['index', 0.36, 0.012, 0.93, 0.112, -11],
+  ['middle', 0.12, 0, 1, 0.114, 0],
+  ['ring', -0.12, 0.022, 0.955, 0.107, 7],
+  ['little', -0.345, 0.062, 0.77, 0.093, 16],
+];
+const S_ = (v, sgn) => (sgn > 0 ? v : [-v[0], v[1], v[2]]);
+const SM = (m, sgn) => (sgn > 0 ? m : [[m[0][0], -m[0][1], -m[0][2]], [-m[1][0], m[1][1], m[1][2]], [-m[2][0], m[2][1], m[2][2]]]);
+/** Rotation whose Y axis is `dir` (for a capsule laid along an arbitrary direction). */
+function frameAlong(dir) {
+  const y = norm3(dir), ref = Math.abs(y[0]) < 0.9 ? [1, 0, 0] : [0, 0, 1];
+  const z = norm3(cross3(ref, y)), x = cross3(y, z);
+  return [[x[0], y[0], z[0]], [x[1], y[1], z[1]], [x[2], y[2], z[2]]];
+}
+const cross3 = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+const norm3 = (a) => { const l = Math.hypot(a[0], a[1], a[2]) || 1; return [a[0] / l, a[1] / l, a[2] / l]; };
+const THUMB0 = [[0, 0, -1], [0, 1, 0], [1, 0, 0]]; // thumb along the index, nail facing the thumb side
+/**
+ * Parts of one hand in the wrist frame (mirrored for the right hand), plus the fingertip and grip points.
+ * h: resolved hand settings (handSpec). Returns { parts, tip, grip }.
+ */
+export function handParts(P, h, sgn = 1) {
+  h = h || handSpec();
+  const HL = P.hand, W = P.handW, T = P.handT, Lp = 0.5 * HL, Lmid = 0.5 * HL;
+  const parts = [];
+  const put = (q) => { parts.push(q); return q; };
+  const capsule = (tag, a, b, m, r, mat = 'body', fine = true) => {
+    const L = dist(a, b);
+    return put({ tag, kind: 'capsule', a: S_(a, sgn), b: S_(b, sgn), center: S_(lerp(a, b, 0.5), sgn), m: SM(m, sgn), radius: r, length: L, size: [2 * r, L + 2 * r, 2 * r], mat, fine });
+  };
+  // palm: a slab with a rounded heel and a knuckle ridge
+  put({ tag: 'palm', kind: 'box', round: true, center: S_([0.03 * T, -Lp * 0.52, -0.03 * W], sgn), m: I3, size: [T * 0.95, Lp * 0.86, W * 0.9], mat: 'body' });
+  const heelA = [-0.04 * T, -0.17 * Lp, 0.3 * W], heelB = [-0.04 * T, -0.15 * Lp, -0.33 * W];
+  capsule('palmHeel', heelA, heelB, frameAlong(sub3(heelB, heelA)), T * 0.5, 'body', false);
+  const knA = [0.1 * T, -Lp + 0.014 * HL, 0.33 * W], knB = [0.1 * T, -Lp + 0.058 * HL, -0.32 * W];
+  capsule('knuckles', knA, knB, frameAlong(sub3(knB, knA)), T * 0.42, 'accent', false);
+  // fingers: three phalanges each, curled toward the palm
+  const spread = h.spread ?? 0.2;
+  let tip = [0, -HL, 0], grip = [-0.6 * T, -Lp - 0.2 * Lmid, 0];
+  for (const [name, zf, back, lenF, rf, splay] of FINGERS) {
+    const c = h[name] ?? h.curl ?? 0.3;
+    const ang = c >= 0 ? [86 * c, 100 * c, 64 * c] : [30 * c, 0, 8 * c];
+    const L = Lmid * lenF, r = W * rf, rTip = r * 0.84;
+    const segs = [0.47, 0.31, 0.22].map((f) => f * (L - rTip));
+    let R = Rx(splay * (0.15 + spread));
+    let p = [0.06 * T, -Lp + back * HL, zf * W];
+    const mcp = p;
+    for (let k = 0; k < 3; k++) {
+      R = mul(R, Rz(-ang[k]));
+      const q = at(p, R, [0, -segs[k], 0]);
+      capsule(name + (k + 1), p, q, R, r * [1, 0.93, 0.84][k]);
+      p = q;
+    }
+    if (name === 'middle') { tip = at(p, R, [0, -rTip, 0]); grip = lerp(add(mcp, [-0.75 * T, 0, 0]), tip, 0.5); }
+  }
+  // thumb: base at the wrist on the thumb side, swung out (thumbOut) and across the palm (opp), then curled
+  const a = 8 + 52 * (h.thumbOut ?? 0.3), b = 15 + 75 * (h.opp ?? 0.2), t = h.thumb ?? 0.25;
+  let R = mul(Ry(-b), Rx(-a), THUMB0);
+  const cmc = [-0.22 * T, -0.11 * HL, 0.3 * W], rT = W * 0.125;
+  const Lm = 0.235 * HL;
+  const mcpT = at(cmc, R, [0, -Lm, 0]);
+  put({ tag: 'thenar', kind: 'ellipsoid', center: S_(at(cmc, R, [0.1 * T, -0.52 * Lm, 0.08 * W]), sgn), m: SM(R, sgn), size: [T * 1.0, Lm * 1.25, T * 1.15], mat: 'body' });
+  let p = mcpT;
+  const tl = [0.165 * HL, 0.135 * HL - rT * 0.86];
+  for (let k = 0; k < 2; k++) {
+    R = mul(R, Rz(-(k === 0 ? 8 + 45 * t : 5 + 70 * t)));
+    const q = at(p, R, [0, -tl[k], 0]);
+    capsule('thumb' + (k + 1), p, q, R, rT * [1, 0.88][k]);
+    p = q;
+  }
+  return { parts, tip: S_(tip, sgn), grip: S_(grip, sgn) };
+}
+const sub3 = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
 
 const cache = new Map();
 /**
@@ -188,12 +312,21 @@ export function skeleton(pose = 'stand', height = 1.75, age) {
     const elbow = at(shoulder, shR, [0, -P.upperArm, 0]);
     const elR = mul(shR, Rx(-(A['elbow' + S].flex || 0)));
     const wrist = at(elbow, elR, [0, -P.foreArm, 0]);
-    const wrR = mul(elR, Rx(-(A['wrist' + S].flex || 0)));
+    // forearm turn (pronation / supination) about the forearm, then flexion and deviation at the wrist
+    const W = A['wrist' + S];
+    const wrR = mul(elR, Ry(sgn * (W.twist || 0)), Rz(sgn * (W.flex || 0)), Rx(-(W.dev || 0)));
     sph('shoulder' + S, shoulder, P.rShoulder, 'body');
     cap('upperArm' + S, shoulder, elbow, shR, P.rUpperArm);
     sph('elbow' + S, elbow, P.rElbow);
-    cap('foreArm' + S, elbow, wrist, elR, P.rForeArm);
-    box('hand' + S, at(wrist, wrR, [0, -P.hand * 0.5, 0]), wrR, [P.handT, P.hand, P.handW]);
+    // the forearm's round end stops at the wrist joint, so the hand reads (a wooden-mannequin wrist ball joins them)
+    cap('foreArm' + S, elbow, at(elbow, elR, [0, -Math.max(P.foreArm * 0.55, P.foreArm - P.rForeArm), 0]), elR, P.rForeArm);
+    sph('wrist' + S, at(wrist, wrR, [0, -P.handT * 0.15, 0]), P.rWrist);
+    const hand = handParts(P, A['hand' + S], sgn);
+    for (const q of hand.parts) {
+      const c = at(wrist, wrR, q.center), m = mul(wrR, q.m);
+      if (q.kind === 'capsule') push(Object.assign({}, q, { tag: q.tag + S, a: at(wrist, wrR, q.a), b: at(wrist, wrR, q.b), center: c, m }));
+      else push(Object.assign({}, q, { tag: q.tag + S, center: c, m }));
+    }
     // leg: hip → knee → ankle → foot
     const hip = at(pelvis, rootR, [sgn * P.hipX, 0, 0]);
     const hR = mul(rootR, limb(A['hip' + S], sgn));
@@ -204,9 +337,9 @@ export function skeleton(pose = 'stand', height = 1.75, age) {
     cap('thigh' + S, hip, knee, hR, P.rThigh);
     sph('knee' + S, knee, P.rKnee);
     cap('shin' + S, knee, ankle, kR, P.rShin);
-    box('foot' + S, at(ankle, aR, [0, -P.ankle * 0.45, (P.footFwd - P.footBack) / 2]), aR, [P.footW, P.ankle * 1.1, P.footFwd + P.footBack], 'joint');
+    box('foot' + S, at(ankle, aR, [0, -P.ankle * 0.45, (P.footFwd - P.footBack) / 2]), aR, [P.footW, P.ankle * 1.1, P.footFwd + P.footBack], 'joint').round = true;
     Object.assign(joints, {
-      ['shoulder' + S]: shoulder, ['elbow' + S]: elbow, ['wrist' + S]: wrist, ['hand' + S]: at(wrist, wrR, [0, -P.hand, 0]),
+      ['shoulder' + S]: shoulder, ['elbow' + S]: elbow, ['wrist' + S]: wrist, ['hand' + S]: at(wrist, wrR, hand.tip), ['grip' + S]: at(wrist, wrR, hand.grip),
       ['hip' + S]: hip, ['knee' + S]: knee, ['ankle' + S]: ankle, ['sole' + S]: at(ankle, aR, [0, -P.ankle, (P.footFwd - P.footBack) / 2]),
     });
   }
@@ -238,6 +371,12 @@ export function keypoints(ch) {
   const out = {};
   for (const [k, p] of Object.entries(kp)) out[k] = add(ch.position, rotateY(p, ch.facing || 0));
   return out;
+}
+/** World position of a character's grip: 'L', 'R' or 'both' (between the hands). Where a held prop goes. */
+export function gripPoint(ch, side = 'R') {
+  const { joints } = skeleton(ch.pose || 'stand', ch.height || 1.75, ch.age);
+  const loc = side === 'both' ? lerp(joints.gripL, joints.gripR, 0.5) : joints[side === 'L' ? 'gripL' : 'gripR'];
+  return add(ch.position, rotateY(loc, ch.facing || 0));
 }
 /** Mannequin parts in the character's local frame (see skeleton). */
 export const standinParts = (pose = 'stand', H = 1.75, age) => skeleton(pose, H, age).parts;

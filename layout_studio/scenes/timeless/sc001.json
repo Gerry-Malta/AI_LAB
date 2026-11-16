@@ -6240,9 +6240,14 @@
       "elbow": {
        "flex": 44
       },
+      "wrist": {
+       "twist": -40
+      },
       "head": {
        "pitch": 22
-      }
+      },
+      "handL": "grip",
+      "handR": "pinch"
      }
     },
     "CHAR_claire": {
@@ -6268,8 +6273,10 @@
        "flex": 124
       },
       "wrist": {
-       "flex": 18
-      }
+       "flex": 18,
+       "twist": 30
+      },
+      "hand": "grip"
      }
     },
     "CHAR_rebecca": {
@@ -6283,14 +6290,15 @@
       "base": "lie_prone",
       "head": {
        "pitch": 30
-      }
+      },
+      "handR": "pinch"
      }
     },
     "PROP_phone": {
      "position": [
-      -0.48,
-      0.6,
-      0.37
+      -0.476,
+      0.598,
+      0.374
      ],
      "facing": 15
     }
@@ -6344,8 +6352,10 @@
        "flex": 124
       },
       "wrist": {
-       "flex": 18
-      }
+       "flex": 18,
+       "twist": 30
+      },
+      "hand": "grip"
      }
     },
     "CHAR_rebecca": {
@@ -6359,14 +6369,15 @@
       "base": "lie_prone",
       "head": {
        "pitch": 30
-      }
+      },
+      "handR": "pinch"
      }
     },
     "PROP_phone": {
      "position": [
-      -0.48,
-      0.6,
-      0.37
+      -0.476,
+      0.598,
+      0.374
      ],
      "facing": 15
     }
@@ -6396,7 +6407,8 @@
       },
       "elbow": {
        "flex": 34
-      }
+      },
+      "hand": "pinch"
      }
     },
     "CHAR_claire": {
@@ -6422,8 +6434,10 @@
        "flex": 124
       },
       "wrist": {
-       "flex": 18
-      }
+       "flex": 18,
+       "twist": 30
+      },
+      "hand": "grip"
      }
     },
     "CHAR_rebecca": {
@@ -6437,14 +6451,15 @@
       "base": "lie_prone",
       "head": {
        "pitch": 30
-      }
+      },
+      "handR": "pinch"
      }
     },
     "PROP_phone": {
      "position": [
-      -0.48,
-      0.6,
-      0.37
+      -0.476,
+      0.598,
+      0.374
      ],
      "facing": 15
     }
@@ -6502,8 +6517,10 @@
        "flex": 124
       },
       "wrist": {
-       "flex": 18
-      }
+       "flex": 18,
+       "twist": 30
+      },
+      "hand": "grip"
      }
     },
     "CHAR_rebecca": {
@@ -6517,14 +6534,15 @@
       "base": "lie_prone",
       "head": {
        "pitch": 30
-      }
+      },
+      "handR": "pinch"
      }
     },
     "PROP_phone": {
      "position": [
-      -0.48,
-      0.6,
-      0.37
+      -0.476,
+      0.598,
+      0.374
      ],
      "facing": 15
     }
@@ -6568,8 +6586,10 @@
        "flex": 124
       },
       "wrist": {
-       "flex": 18
-      }
+       "flex": 18,
+       "twist": 30
+      },
+      "hand": "grip"
      }
     },
     "CHAR_rebecca": {
@@ -6591,9 +6611,9 @@
     },
     "PROP_phone": {
      "position": [
-      -0.48,
-      0.6,
-      0.37
+      -0.476,
+      0.598,
+      0.374
      ],
      "facing": 15
     }
@@ -6637,8 +6657,10 @@
        "flex": 124
       },
       "wrist": {
-       "flex": 18
-      }
+       "flex": 18,
+       "twist": 30
+      },
+      "hand": "grip"
      }
     },
     "CHAR_rebecca": {
@@ -6652,14 +6674,15 @@
       "base": "lie_prone",
       "head": {
        "pitch": 30
-      }
+      },
+      "handR": "pinch"
      }
     },
     "PROP_phone": {
      "position": [
-      -0.48,
-      0.6,
-      0.37
+      -0.476,
+      0.598,
+      0.374
      ],
      "facing": 15
     }
@@ -6690,6 +6713,10 @@
       "elbowL": {
        "flex": 12
       },
+      "wristL": {
+       "twist": -20
+      },
+      "handL": "grip",
       "head": {
        "pitch": 4
       }
@@ -6718,8 +6745,10 @@
        "flex": 124
       },
       "wrist": {
-       "flex": 18
-      }
+       "flex": 18,
+       "twist": 30
+      },
+      "hand": "grip"
      }
     },
     "CHAR_rebecca": {
@@ -6733,22 +6762,23 @@
       "base": "lie_prone",
       "head": {
        "pitch": 30
-      }
+      },
+      "handR": "pinch"
      }
     },
     "PROP_phone": {
      "position": [
-      -0.28,
-      0.6,
+      -0.266,
+      0.598,
       0.1
      ],
      "facing": 90
     },
     "PROP_chips": {
      "position": [
-      -0.04,
-      0.36,
-      0.37
+      -0.044,
+      0.306,
+      0.335
      ],
      "facing": 276
     }
@@ -6800,8 +6830,10 @@
        "flex": 124
       },
       "wrist": {
-       "flex": 18
-      }
+       "flex": 18,
+       "twist": 30
+      },
+      "hand": "grip"
      }
     },
     "CHAR_rebecca": {
@@ -6815,13 +6847,14 @@
       "base": "lie_prone",
       "head": {
        "pitch": 30
-      }
+      },
+      "handR": "pinch"
      }
     },
     "PROP_phone": {
      "position": [
-      -0.28,
-      0.6,
+      -0.266,
+      0.598,
       0.1
      ],
      "facing": 90
@@ -6879,7 +6912,8 @@
       "base": "lie_prone",
       "head": {
        "pitch": 30
-      }
+      },
+      "handR": "pinch"
      }
     }
    }
@@ -6911,6 +6945,11 @@
       },
       "elbow": {
        "flex": 100
+      },
+      "handR": "pinch",
+      "handL": {
+       "preset": "relaxed",
+       "curl": 0.45
       }
      }
     },
@@ -6945,11 +6984,17 @@
       "base": "lie_prone",
       "head": {
        "pitch": 30
-      }
+      },
+      "handR": "pinch"
      }
     },
     "PROP_grass_blade": {
-     "visible": true
+     "visible": true,
+     "position": [
+      0.059,
+      0.532,
+      0.04
+     ]
     }
    }
   },
@@ -6980,6 +7025,11 @@
       },
       "elbow": {
        "flex": 100
+      },
+      "handR": "pinch",
+      "handL": {
+       "preset": "relaxed",
+       "curl": 0.45
       }
      }
     },
@@ -7006,8 +7056,10 @@
        "flex": 124
       },
       "wrist": {
-       "flex": 18
-      }
+       "flex": 18,
+       "twist": 30
+      },
+      "hand": "grip"
      }
     },
     "CHAR_rebecca": {
@@ -7021,19 +7073,25 @@
       "base": "lie_prone",
       "head": {
        "pitch": 30
-      }
+      },
+      "handR": "pinch"
      }
     },
     "PROP_phone": {
      "position": [
-      -0.28,
-      0.6,
+      -0.266,
+      0.598,
       0.1
      ],
      "facing": 90
     },
     "PROP_grass_blade": {
-     "visible": true
+     "visible": true,
+     "position": [
+      0.059,
+      0.532,
+      0.04
+     ]
     }
    }
   }
@@ -7328,13 +7386,13 @@
    "keys": {
     "A": {
      "position": [
-      4.459,
+      4.46,
       0.28,
-      -4.682
+      -4.683
      ],
      "target": [
       2.489,
-      -0.032,
+      -0.014,
       -3.302
      ],
      "roll": 0
@@ -7412,13 +7470,13 @@
     },
     "B": {
      "position": [
-      1.541,
+      1.545,
       0.8,
-      7.309
+      7.246
      ],
      "target": [
       2.25,
-      -0.148,
+      -0.14,
       -2.7
      ],
      "roll": 0
@@ -7493,7 +7551,7 @@
     "A": {
      "position": [
       3.581,
-      0.485,
+      0.503,
       -4.013
      ],
      "target": [
@@ -8243,13 +8301,13 @@
    "keys": {
     "A": {
      "position": [
-      0.159,
-      1.22,
+      0.173,
+      1.218,
       -0.66
      ],
      "target": [
-      -0.28,
-      0.605,
+      -0.266,
+      0.603,
       0.1
      ],
      "roll": 0
@@ -9176,14 +9234,14 @@
    "keys": {
     "A": {
      "position": [
-      0.59,
-      1.879,
-      -0.425
+      0.489,
+      1.831,
+      -0.705
      ],
      "target": [
-      0.16,
-      0.65,
-      0.32
+      0.059,
+      0.602,
+      0.04
      ],
      "roll": 0
     },

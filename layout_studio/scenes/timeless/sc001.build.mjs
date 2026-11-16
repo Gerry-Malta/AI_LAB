@@ -82,25 +82,30 @@ B.standin('CHAR_rebecca', 'REBECCA (6)', 1.15, '#7a4b2b', [2.6, 0, -2.8], 180, '
 B.box('PROP_grass_blade', "Filo d'erba (nelle dita di Arthur)", 'HERO', [0.16, 0.58, 0.32], [0.012, 0.14, 0.004], { color: '#7fae4a', visible: false, source: 'script' });
 
 // ---------------------------------------------------------------- acting (on top of the library poses) ---------
-const ARTHUR_SANDWICHES = { base: 'sit_ground', spine: { pitch: 30 }, shoulder: { flex: 62, abd: 10 }, elbow: { flex: 44 }, head: { pitch: 22 } };
+const ARTHUR_SANDWICHES = { base: 'sit_ground', spine: { pitch: 30 }, shoulder: { flex: 62, abd: 10 }, elbow: { flex: 44 }, wrist: { twist: -40 }, head: { pitch: 22 }, handL: 'grip', handR: 'pinch' };
 const ARTHUR_LOOKS = { base: 'sit_ground', spine: { pitch: 10, yaw: 12 }, head: { pitch: 0, yaw: 10 } }; // turned toward Rebecca, chin up
-const ARTHUR_PICKS_UP = { base: 'crouch', head: { pitch: 10 }, shoulder: { flex: 72, abd: 10 }, elbow: { flex: 34 } }; // sheets lifted toward the face
+const ARTHUR_PICKS_UP = { base: 'crouch', head: { pitch: 10 }, shoulder: { flex: 72, abd: 10 }, elbow: { flex: 34 }, hand: 'pinch' }; // sheets lifted toward the face
 const ARTHUR_KISS = { base: 'kneel', root: { pitch: 60 }, spine: { pitch: 25 }, neck: { pitch: 15 }, head: { pitch: 10 } }; // bowed over her head
-const ARTHUR_OFFERS = { base: 'sit_ground', spine: { pitch: 12 }, shoulderL: { flex: 75, abd: 8 }, elbowL: { flex: 12 }, head: { pitch: 4 } }; // the bag held out
+const ARTHUR_OFFERS = { base: 'sit_ground', spine: { pitch: 12 }, shoulderL: { flex: 75, abd: 8 }, elbowL: { flex: 12 }, wristL: { twist: -20 }, handL: 'grip', head: { pitch: 4 } }; // the bag held out
 const ARTHUR_WATCHES_PHONE = { base: 'sit_ground', spine: { pitch: 18 }, head: { pitch: 20 } }; // eyes on the phone in her hands
 const ARTHUR_TALKS = { base: 'sit_ground', spine: { pitch: 24 }, head: { pitch: -4 } };
-const ARTHUR_GRASS = { base: 'sit_ground', spine: { pitch: 26 }, head: { pitch: 30 }, shoulder: { flex: 50, abd: -10 }, elbow: { flex: 100 } };
-const CLAIRE_PHONE = { base: 'sit_ground', neck: { pitch: 6 }, head: { pitch: 18 }, shoulder: { flex: 34, abd: 16 }, elbow: { flex: 124 }, wrist: { flex: 18 } }; // phone at chest height
+const ARTHUR_GRASS = { base: 'sit_ground', spine: { pitch: 26 }, head: { pitch: 30 }, shoulder: { flex: 50, abd: -10 }, elbow: { flex: 100 }, handR: 'pinch', handL: { preset: 'relaxed', curl: 0.45 } };
+const CLAIRE_PHONE = { base: 'sit_ground', neck: { pitch: 6 }, head: { pitch: 18 }, shoulder: { flex: 34, abd: 16 }, elbow: { flex: 124 }, wrist: { flex: 18, twist: 30 }, hand: 'grip' }; // phone at chest height, in both hands
 const CLAIRE_FACES = { base: 'sit_ground', spine: { pitch: 22 }, head: { pitch: -2 } };
 const CLAIRE_LOOKS_DOWN = { base: 'sit_ground', spine: { pitch: 24 }, neck: { pitch: 8 }, head: { pitch: 26 } }; // at the phone buzzing on the blanket
-const REBECCA_DRAWS = { base: 'lie_prone', head: { pitch: 30 } };
+const REBECCA_DRAWS = { base: 'lie_prone', head: { pitch: 30 }, handR: 'pinch' }; // a crayon in the right hand
 const REBECCA_LOOKS_UP = { base: 'lie_prone', neck: { pitch: -32 }, head: { pitch: -6 } };
 
 // props that change hands: the phone (in Claire's hands, face down on the blanket, back in her hands), the chips bag
-const PHONE_IN_HAND = { position: [-0.28, 0.6, 0.1], facing: 90 };
-const PHONE_WHILE_PICNIC = { position: [-0.48, 0.6, 0.37], facing: 15 }; // in her hands while she types, facing the camera side
-const BAG_HELD_OUT = { position: [-0.04, 0.36, 0.37], facing: 276 };
-const BLADE = { visible: true };
+// held props sit in the grip of the hands that hold them (core.gripPoint), at the mark and facing of that beat
+const held = (charId, pos, facing, pose, side, drop = 0) => {
+  const o = B.object(charId), g = B.core.gripPoint({ position: pos, facing, pose, height: o.height, age: o.age }, side);
+  return [+g[0].toFixed(3), +(g[1] - drop).toFixed(3), +g[2].toFixed(3)];
+};
+const PHONE_IN_HAND = { position: held('CHAR_claire', [-0.55, 0, 0.1], 90, CLAIRE_PHONE, 'both', 0.012), facing: 90 };
+const PHONE_WHILE_PICNIC = { position: held('CHAR_claire', [-0.55, 0, 0.1], 15, CLAIRE_PHONE, 'both', 0.012), facing: 15 }; // in her hands while she types
+const BAG_HELD_OUT = { position: held('CHAR_arthur', [0.55, 0, 0], 276, ARTHUR_OFFERS, 'L', 0.17), facing: 276 };
+const BLADE = { visible: true, position: held('CHAR_arthur', [0.55, 0, 0], 290, ARTHUR_GRASS, 'R', 0.07) };
 
 // ---------------------------------------------------------------- beats --------------------------------------
 const A_ = 'CHAR_arthur', C_ = 'CHAR_claire', R_ = 'CHAR_rebecca';

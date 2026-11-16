@@ -33,6 +33,7 @@ export function toCameraSheet(scene, evaluations = {}) {
     const A = shot.keys && shot.keys.A, B = (shot.keys && shot.keys.B) || A;
     const cam = Object.assign({ filmback: 'ALEXA35_OG', focal_mm: 35, aspect: 2.39 }, shot.camera || {});
     const notes = [];
+    if (shot.dp && shot.dp.intent) notes.push(`DP intent: ${shot.dp.intent}${shot.dp.why && shot.dp.why[1] ? ` · ${shot.dp.why[1]}` : ''}`);
     if (shot.notes) notes.push(shot.notes);
     for (const w of solved.warnings) notes.push(`⚠ ${w}`);
     const ev = evaluations[shot.id];

@@ -1,0 +1,585 @@
+{
+  "format": "layout-studio/scene",
+  "version": 1,
+  "project": "EVAL",
+  "units": "m",
+  "up": "Y",
+  "scene": {
+    "number": 1,
+    "heading": "INT. KITCHEN - NIGHT",
+    "name": "The house"
+  },
+  "world": {
+    "ground": {
+      "size": 200,
+      "color": "#6b6258"
+    },
+    "sky": "#1d2333",
+    "sun": {
+      "azimuth": 200,
+      "elevation": 35
+    },
+    "fog": 0.001
+  },
+  "objects": [
+    {
+      "id": "SET_floor",
+      "name": "Floor",
+      "role": "SET",
+      "kind": "box",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "size": [
+        8,
+        0.02,
+        7
+      ],
+      "color": "#8a7a66",
+      "source": "inferred",
+      "notes": ""
+    },
+    {
+      "id": "SET_wall_back",
+      "name": "Back wall",
+      "role": "SET",
+      "kind": "box",
+      "position": [
+        0,
+        0,
+        -3.2
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "size": [
+        8,
+        2.7,
+        0.15
+      ],
+      "color": "#c8bfa8",
+      "source": "inferred",
+      "notes": ""
+    },
+    {
+      "id": "SET_table",
+      "name": "Kitchen table",
+      "role": "SET",
+      "kind": "box",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "size": [
+        1.6,
+        0.76,
+        0.9
+      ],
+      "color": "#7a5636",
+      "source": "inferred",
+      "notes": ""
+    },
+    {
+      "id": "SET_fridge",
+      "name": "Fridge",
+      "role": "SET",
+      "kind": "box",
+      "position": [
+        1.4,
+        0,
+        -2.6
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "size": [
+        0.7,
+        1.85,
+        0.65
+      ],
+      "color": "#dadada",
+      "source": "inferred",
+      "notes": ""
+    },
+    {
+      "id": "SET_lamp",
+      "name": "Floor lamp",
+      "role": "SET",
+      "kind": "cylinder",
+      "position": [
+        -1.5,
+        0,
+        -2.4
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "size": [
+        0.06,
+        1.9,
+        0.06
+      ],
+      "color": "#222",
+      "source": "inferred",
+      "notes": ""
+    },
+    {
+      "id": "PROP_papers",
+      "name": "Sale contract",
+      "role": "HERO",
+      "kind": "box",
+      "position": [
+        0.1,
+        0.76,
+        0.05
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "size": [
+        0.3,
+        0.004,
+        0.21
+      ],
+      "color": "#f2efe6",
+      "source": "inferred",
+      "notes": ""
+    },
+    {
+      "id": "CHAR_mara",
+      "name": "MARA",
+      "role": "CHAR",
+      "kind": "standin",
+      "position": [
+        -1.1,
+        0,
+        0.2
+      ],
+      "rotation": [
+        0,
+        90,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "size": [
+        1,
+        1,
+        1
+      ],
+      "color": "#b0483a",
+      "source": "inferred",
+      "notes": "",
+      "height": 1.68,
+      "age": 41,
+      "pose": "stand"
+    },
+    {
+      "id": "CHAR_luca",
+      "name": "LUCA",
+      "role": "CHAR",
+      "kind": "standin",
+      "position": [
+        1.1,
+        0,
+        0.2
+      ],
+      "rotation": [
+        0,
+        -90,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "size": [
+        1,
+        1,
+        1
+      ],
+      "color": "#3a5fb0",
+      "source": "inferred",
+      "notes": "",
+      "height": 1.8,
+      "age": 44,
+      "pose": "stand"
+    }
+  ],
+  "beats": [
+    {
+      "id": "b1",
+      "label": "The contract on the table",
+      "t0": 0,
+      "t1": 30,
+      "blocking": {}
+    }
+  ],
+  "shots": [
+    {
+      "id": "S1",
+      "name": "S1",
+      "beat": "b1",
+      "size": "WS",
+      "subject": "CHAR_mara",
+      "intent": "Mara and Luca either side of the table, the contract between them.",
+      "camera": {
+        "filmback": "ALEXA35_OG",
+        "focal_mm": 35,
+        "aspect": 2.39,
+        "squeeze": 1,
+        "fstop": 2.8
+      },
+      "rig": {
+        "type": "static"
+      },
+      "duration_s": 4,
+      "curve": "easeInOut",
+      "keys": {
+        "A": {
+          "position": [
+            0,
+            2.6,
+            4.6
+          ],
+          "target": [
+            0,
+            1,
+            0.2
+          ],
+          "roll": 0
+        },
+        "B": null
+      },
+      "dialogue": [],
+      "notes": "",
+      "line": [
+        "CHAR_mara",
+        "CHAR_luca"
+      ]
+    },
+    {
+      "id": "S2",
+      "name": "S2",
+      "beat": "b1",
+      "size": "MCU",
+      "subject": "CHAR_mara",
+      "intent": "Mara sees the signature.",
+      "camera": {
+        "filmback": "ALEXA35_OG",
+        "focal_mm": 50,
+        "aspect": 2.39,
+        "squeeze": 1,
+        "fstop": 2.8
+      },
+      "rig": {
+        "type": "static"
+      },
+      "duration_s": 3,
+      "curve": "easeInOut",
+      "keys": {
+        "A": {
+          "position": [
+            0.6,
+            1.1231560114626704,
+            2
+          ],
+          "target": [
+            -1.0276928,
+            1.4731560114626703,
+            0.2
+          ],
+          "roll": 0
+        },
+        "B": null
+      },
+      "dialogue": [
+        {
+          "who": "MARA",
+          "line": "You already signed it?"
+        }
+      ],
+      "notes": "",
+      "line": [
+        "CHAR_mara",
+        "CHAR_luca"
+      ]
+    },
+    {
+      "id": "S3",
+      "name": "S3",
+      "beat": "b1",
+      "size": "MCU",
+      "subject": "CHAR_mara",
+      "intent": "Mara waits.",
+      "camera": {
+        "filmback": "ALEXA35_OG",
+        "focal_mm": 50,
+        "aspect": 2.39,
+        "squeeze": 1,
+        "fstop": 2.8
+      },
+      "rig": {
+        "type": "static"
+      },
+      "duration_s": 3,
+      "curve": "easeInOut",
+      "keys": {
+        "A": {
+          "position": [
+            0.38,
+            1.1231560114626704,
+            2.08
+          ],
+          "target": [
+            -1.0276928,
+            1.4731560114626703,
+            0.2
+          ],
+          "roll": 0
+        },
+        "B": null
+      },
+      "dialogue": [],
+      "notes": "",
+      "line": [
+        "CHAR_mara",
+        "CHAR_luca"
+      ]
+    },
+    {
+      "id": "S4",
+      "name": "S4",
+      "beat": "b1",
+      "size": "MCU",
+      "subject": "CHAR_luca",
+      "intent": "Luca, defensive.",
+      "camera": {
+        "filmback": "ALEXA35_OG",
+        "focal_mm": 85,
+        "aspect": 2.39,
+        "squeeze": 1,
+        "fstop": 2.8
+      },
+      "rig": {
+        "type": "static"
+      },
+      "duration_s": 3,
+      "curve": "easeInOut",
+      "keys": {
+        "A": {
+          "position": [
+            -0.9,
+            1.6855242979957183,
+            -2.4
+          ],
+          "target": [
+            1.022528,
+            1.6355242979957183,
+            0.2
+          ],
+          "roll": 0
+        },
+        "B": null
+      },
+      "dialogue": [
+        {
+          "who": "LUCA",
+          "line": "Yesterday. I didn't want a fight."
+        }
+      ],
+      "notes": "",
+      "line": [
+        "CHAR_mara",
+        "CHAR_luca"
+      ]
+    },
+    {
+      "id": "S5",
+      "name": "S5",
+      "beat": "b1",
+      "size": "CU",
+      "subject": "CHAR_mara",
+      "intent": "Silence. Her face changes: this is the end of the marriage.",
+      "camera": {
+        "filmback": "ALEXA35_OG",
+        "focal_mm": 32,
+        "aspect": 2.39,
+        "squeeze": 1,
+        "fstop": 2.8
+      },
+      "rig": {
+        "type": "static"
+      },
+      "duration_s": 3,
+      "curve": "easeInOut",
+      "keys": {
+        "A": {
+          "position": [
+            -0.62,
+            1.5731560114626704,
+            0.75
+          ],
+          "target": [
+            -1.0276928,
+            1.5731560114626704,
+            0.2
+          ],
+          "roll": 0
+        },
+        "B": null
+      },
+      "dialogue": [],
+      "notes": "",
+      "line": [
+        "CHAR_mara",
+        "CHAR_luca"
+      ]
+    },
+    {
+      "id": "S6",
+      "name": "S6",
+      "beat": "b1",
+      "size": "MCU",
+      "subject": "CHAR_luca",
+      "intent": "Luca asks her to answer.",
+      "camera": {
+        "filmback": "ALEXA35_OG",
+        "focal_mm": 85,
+        "aspect": 2.39,
+        "squeeze": 1,
+        "fstop": 2.8
+      },
+      "rig": {
+        "type": "static"
+      },
+      "duration_s": 3,
+      "curve": "easeInOut",
+      "keys": {
+        "A": {
+          "position": [
+            -0.9,
+            1.6855242979957183,
+            -2.4
+          ],
+          "target": [
+            1.172528,
+            1.6355242979957183,
+            0.2
+          ],
+          "roll": 0
+        },
+        "B": null
+      },
+      "dialogue": [
+        {
+          "who": "LUCA",
+          "line": "Say something."
+        }
+      ],
+      "notes": "",
+      "line": [
+        "CHAR_mara",
+        "CHAR_luca"
+      ]
+    },
+    {
+      "id": "S7",
+      "name": "S7",
+      "beat": "b1",
+      "size": "WS",
+      "subject": "CHAR_mara",
+      "intent": "Mara leaves the table without a word.",
+      "camera": {
+        "filmback": "ALEXA35_OG",
+        "focal_mm": 35,
+        "aspect": 2.39,
+        "squeeze": 1,
+        "fstop": 2.8
+      },
+      "rig": {
+        "type": "static"
+      },
+      "duration_s": 3,
+      "curve": "easeInOut",
+      "keys": {
+        "A": {
+          "position": [
+            0,
+            2.6,
+            4.6
+          ],
+          "target": [
+            0,
+            1,
+            0.2
+          ],
+          "roll": 0
+        },
+        "B": null
+      },
+      "dialogue": [],
+      "notes": "",
+      "line": [
+        "CHAR_mara",
+        "CHAR_luca"
+      ]
+    }
+  ],
+  "notes": ""
+}

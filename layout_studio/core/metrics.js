@@ -20,7 +20,8 @@ export function objectParts(obj) {
     case 'standin': {
       const ch = { position: obj.position, facing: (obj.rotation || [0, 0, 0])[1], pose: obj.pose || 'stand', height: obj.height || 1.75, age: obj.age };
       const T = charTransform(ch);
-      return standinParts(ch.pose, ch.height, ch.age).map((p) => ({ t: T, center: p.center, size: p.size, m: p.m, shape: p.kind === 'capsule' ? 'capsule' : p.kind === 'box' ? 'box' : 'sphere', radius: p.radius, length: p.length, tag: p.tag }));
+      // finger phalanges are too small to hide a face: the occlusion check skips them (the palm still counts)
+      return standinParts(ch.pose, ch.height, ch.age).filter((p) => !p.fine).map((p) => ({ t: T, center: p.center, size: p.size, m: p.m, shape: p.kind === 'capsule' ? 'capsule' : p.kind === 'box' ? 'box' : 'sphere', radius: p.radius, length: p.length, tag: p.tag }));
     }
     case 'sphere': return [{ t, center: [0, s[1] / 2, 0], size: [s[0], s[1], s[2] ?? s[0]], tag: 'body', shape: 'sphere' }];
     case 'cone': return [{ t, center: [0, s[1] / 2, 0], size: [s[0], s[1], s[2] ?? s[0]], tag: 'body', shape: 'cone' }];

@@ -191,7 +191,30 @@ function actingHTML(pose) {
   const A = core.resolvePose(pose), custom = pose && typeof pose === 'object' && pose.base;
   let h = `<details class="acting" ${custom ? 'open' : ''}><summary class="note" style="cursor:pointer">acting · joint angles ${custom ? '<span class="badge ok">adjusted</span>' : ''}</summary><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;margin-top:4px">`;
   for (const [j, k, label] of ACTING) h += `<label class="mini" style="display:flex;flex-direction:column">${esc(label)}<input type="number" step="1" data-f="act.${j}.${k}" value="${Math.round((A[j] && A[j][k]) || 0)}"></label>`;
+  // hands: a gesture from the library, how closed it is, and the forearm turn that shows the palm or the back
+  const handName = (side) => { const v = handOverride(pose, side); return typeof v === 'string' ? v : (v && v.preset) || ''; };
+  for (const [S, label] of [['L', 'L hand'], ['R', 'R hand']]) {
+    const cur = handName(S);
+    h += `<label class="mini" style="display:flex;flex-direction:column">${label}<select data-f="hand.${S}"><option value="">${esc(cur ? '' : 'pose default')}</option>${Object.entries(core.HAND_NAMES).map(([k, n]) => `<option value="${k}" ${k === cur ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select></label>`;
+    h += `<label class="mini" style="display:flex;flex-direction:column">${label} closed %<input type="number" step="5" min="-20" max="110" data-f="handc.${S}" value="${Math.round(((A['hand' + S] || {}).curl || 0) * 100)}"></label>`;
+    h += `<label class="mini" style="display:flex;flex-direction:column">${S} wrist turn<input type="number" step="5" data-f="act.wrist${S}.twist" value="${Math.round((A['wrist' + S] || {}).twist || 0)}"></label>`;
+  }
   return h + `</div><div class="btnrow"><button class="small" data-act="acting-reset">Reset to ${esc(core.poseKey(pose))}</button></div></details>`;
+}
+/** The hand entry an acting override sets for one side (handL / handR, or hand for both), if any. */
+function handOverride(pose, side) {
+  if (!pose || typeof pose !== 'object') return null;
+  return pose['hand' + side] ?? pose.hand ?? null;
+}
+function setHand(target, side, preset, curl) {
+  const cur = target.pose, base = core.poseKey(cur);
+  const over = cur && typeof cur === 'object' && cur.base ? JSON.parse(JSON.stringify(cur)) : { base };
+  if (over.hand != null && over['hand' + side] == null) { over.handL = over.handL ?? over.hand; over.handR = over.handR ?? over.hand; delete over.hand; }
+  const prev = over['hand' + side];
+  if (preset !== undefined) over['hand' + side] = preset ? preset : undefined;
+  if (curl !== undefined) over['hand' + side] = Object.assign(typeof prev === 'string' ? { preset: prev } : Object.assign({}, prev || {}), { curl });
+  if (over['hand' + side] === undefined) delete over['hand' + side];
+  target.pose = Object.keys(over).length > 1 ? over : base;
 }
 function setActing(target, joint, field, value) {
   const cur = target.pose, base = core.poseKey(cur);
@@ -209,6 +232,7 @@ $('#props').addEventListener('change', (e) => {
   snapshot();
   let f = el.dataset.f; const v = readInput(el);
   if (f.startsWith('act.')) { const [, joint, field] = f.split('.'); const b = activeBeatId() ? ensureBlocking(activeBeatId(), o.id) : o; setActing(b, joint, field, v); }
+  else if (f.startsWith('hand.') || f.startsWith('handc.')) { const side = f.slice(-1); const b = activeBeatId() ? ensureBlocking(activeBeatId(), o.id) : o; if (f.startsWith('hand.')) setHand(b, side, v || null); else setHand(b, side, undefined, v / 100); }
   else if (f.startsWith('bl.')) { const b = ensureBlocking(activeBeatId(), o.id); if (b) setPath(b, f.slice(3), f === 'bl.visible' ? v : v); }
   else if (f === 'color') { o.color = v; }
   else setPath(o, f, v);
@@ -757,7 +781,8 @@ async function exportSequence({ shotIds = null, width = 1920, height = 0, fps = 
 }
 /** Batch renders from tools/render_mp4.mjs: pause the live viewport (it would compete for the GPU) and keep the still size. */
 function holdViewport(on) { S.exporting = !!on; if (!on) vp.endStills(); }
-window.LS.api = { sequence: sequenceInfo, renderFrame, exportMP4: exportSequence, hold: holdViewport, load: (json, name) => loadScene(json, name) };
+window.LS.api = { sequence: sequenceInfo, renderFrame, exportMP4: exportSequence, hold: holdViewport, load: (json, name) => loadScene(json, name),
+  frameCanvas: (shotId, t, w, h, opts = {}) => { const sh = shots().find((s) => s.id === shotId || s.name === shotId); if (!sh) throw new Error('unknown shot ' + shotId); return renderFrameCanvas(sh, t, w, h, opts); } };
 
 const EX = { ctrl: null, probe: 0 };
 const clock = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;

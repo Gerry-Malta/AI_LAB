@@ -15,7 +15,18 @@ const unitGeo = {
   sphere: new THREE.SphereGeometry(0.5, 24, 16),
   capsule: new THREE.CapsuleGeometry(0.25, 0.5, 6, 16),
   plane: new THREE.PlaneGeometry(1, 1),
+  finger: new THREE.CapsuleGeometry(0.5, 1.6, 3, 10), // 1 wide, 2.6 tall: the proportions of a phalanx, so scaling keeps round tips
 };
+const FINGER_H = 2.6;
+// rounded box of side 1 (a superellipsoid): palms and shoes read softer than a cube, still a box for the checks
+unitGeo.rbox = (() => {
+  const g = new THREE.SphereGeometry(0.5, 28, 18), a = g.attributes.position, e = 0.32;
+  for (let i = 0; i < a.count; i++) {
+    const v = [a.getX(i), a.getY(i), a.getZ(i)].map((c) => c / 0.5);
+    a.setXYZ(i, ...v.map((c) => 0.5 * Math.sign(c) * Math.pow(Math.abs(c), e)));
+  }
+  g.computeVertexNormals(); return g;
+})();
 
 /** Editor label: a pill of text that keeps the same size on screen at any distance (size 1 ≈ 18 px of text). */
 function makeLabel(text, color = '#ffffff', size = 1) {
@@ -43,6 +54,43 @@ function setPartTransform(mesh, p) {
   _m4.set(m[0][0], m[0][1], m[0][2], 0, m[1][0], m[1][1], m[1][2], 0, m[2][0], m[2][1], m[2][2], 0, 0, 0, 0, 1);
   mesh.quaternion.setFromRotationMatrix(_m4);
   mesh.position.set(p.center[0], p.center[1], p.center[2]);
+}
+/**
+ * The ground as a disc of rings that grow geometrically from the set (0.25 m, 0.5 m, 1 m … out to the edge). A plane
+ * of two triangles kilometres wide loses precision under a lens a few centimetres above the grass (fog and depth are
+ * interpolated across vertices kilometres away, and the near ground vanishes into the sky colour on software renderers).
+ */
+function groundGeometry(size) {
+  const R = size / 2, radii = [0];
+  for (let r = 0.25; r < R; r *= 2) radii.push(r);
+  radii.push(R);
+  const seg = 48, pos = [], idx = [];
+  for (let i = 0; i < radii.length; i++) for (let k = 0; k < seg; k++) { const a = (k / seg) * Math.PI * 2; pos.push(radii[i] * Math.cos(a), 0, radii[i] * Math.sin(a)); }
+  for (let i = 0; i + 1 < radii.length; i++) for (let k = 0; k < seg; k++) {
+    const a = i * seg + k, b = i * seg + ((k + 1) % seg), c = (i + 1) * seg + k, d = (i + 1) * seg + ((k + 1) % seg);
+    idx.push(a, b, c, b, d, c); // wound so the face normal points up (+Y), the side the camera sees
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  geo.setAttribute('normal', new THREE.Float32BufferAttribute(new Array(pos.length / 3).fill(0).flatMap(() => [0, 1, 0]), 3));
+  geo.setIndex(idx); geo.computeBoundingSphere();
+  return geo;
+}
+const _fq = new THREE.Quaternion(), _fp = new THREE.Vector3(), _fs = new THREE.Vector3(), _fm = new THREE.Matrix4();
+/** Finger and thumb phalanges: one instanced mesh per material, one instance per capsule. */
+function setFineTransforms(fine, parts) {
+  for (const { mesh, idx } of fine) {
+    idx.forEach((pi, k) => {
+      const p = parts[pi], m = p.m;
+      _m4.set(m[0][0], m[0][1], m[0][2], 0, m[1][0], m[1][1], m[1][2], 0, m[2][0], m[2][1], m[2][2], 0, 0, 0, 0, 1);
+      _fq.setFromRotationMatrix(_m4);
+      _fp.set(p.center[0], p.center[1], p.center[2]);
+      _fs.set(2 * p.radius, (p.length + 2 * p.radius) / FINGER_H, 2 * p.radius);
+      mesh.setMatrixAt(k, _fm.compose(_fp, _fq, _fs));
+    });
+    mesh.instanceMatrix.needsUpdate = true;
+    mesh.computeBoundingSphere(); mesh.computeBoundingBox();
+  }
 }
 const standinTop = (obj, pose) => core.skeleton(pose || obj.pose || 'stand', obj.height || 1.75, obj.age).keypoints.headTop[1] + 0.3;
 
@@ -95,8 +143,8 @@ export class Viewport {
     if (this.worldGroup) { this.scene.remove(this.worldGroup); }
     this.worldGroup = new THREE.Group(); this.worldGroup.name = 'world';
     const g = world.ground || { size: 200, color: '#5a6b4a' };
-    const ground = new THREE.Mesh(new THREE.PlaneGeometry(g.size || 200, g.size || 200), new THREE.MeshStandardMaterial({ color: g.color || '#5a6b4a', roughness: 1 }));
-    ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; ground.name = 'GROUND'; ground.userData.ground = true;
+    const ground = new THREE.Mesh(groundGeometry(g.size || 200), new THREE.MeshStandardMaterial({ color: g.color || '#5a6b4a', roughness: 1 }));
+    ground.receiveShadow = true; ground.name = 'GROUND'; ground.userData.ground = true;
     this.worldGroup.add(ground);
     const fine = new THREE.GridHelper(40, 40, 0x6b7280, 0x3b4150); fine.position.y = 0.01; fine.layers.set(HELPER_LAYER); fine.material.transparent = true; fine.material.opacity = 0.35;
     const coarse = new THREE.GridHelper(Math.min(400, g.size || 200), Math.min(400, g.size || 200) / 10, 0x8a929d, 0x4a515b); coarse.position.y = 0.012; coarse.layers.set(HELPER_LAYER); coarse.material.transparent = true; coarse.material.opacity = 0.45;
@@ -163,17 +211,20 @@ export class Viewport {
           joint: this.material('#2a2e35', { roughness: 0.55, metalness: 0.05 }),
           accent: this.material('#' + new THREE.Color(color).multiplyScalar(0.72).getHexString(), { roughness: 0.45, metalness: 0.05 }),
         };
-        const meshes = [];
-        for (const p of core.standinParts(obj.pose || 'stand', obj.height || 1.75, obj.age)) {
+        const meshes = [], parts = core.standinParts(obj.pose || 'stand', obj.height || 1.75, obj.age), fineIdx = {};
+        parts.forEach((p, i) => {
+          if (p.fine) { (fineIdx[p.mat] = fineIdx[p.mat] || []).push(i); return; }
           const mat = mats[p.mat] || mats.body;
           let m;
           if (p.kind === 'capsule') m = add(new THREE.Mesh(new THREE.CapsuleGeometry(p.radius, p.length, 4, 14), mat));
-          else { m = add(new THREE.Mesh(p.kind === 'box' ? unitGeo.box : unitGeo.sphere, mat)); m.scale.set(p.size[0], p.size[1], p.size[2]); }
+          else { m = add(new THREE.Mesh(p.kind === 'box' ? (p.round ? unitGeo.rbox : unitGeo.box) : unitGeo.sphere, mat)); m.scale.set(p.size[0], p.size[1], p.size[2]); }
           setPartTransform(m, p);
-          m.userData.partTag = p.tag;
+          m.userData.partTag = p.tag; m.userData.partIndex = i;
           meshes.push(m);
-        }
-        group.userData.partMeshes = meshes;
+        });
+        const fine = Object.entries(fineIdx).map(([k, idx]) => ({ mesh: add(new THREE.InstancedMesh(unitGeo.finger, mats[k] || mats.body, idx.length)), idx }));
+        setFineTransforms(fine, parts);
+        group.userData.partMeshes = meshes; group.userData.fineMeshes = fine;
         break;
       }
       case 'gltf': {
@@ -224,7 +275,7 @@ export class Viewport {
     const key = this.shapeKey(obj);
     if (key !== n.sizeKey) {
       for (const c of [...n.group.children]) n.group.remove(c);
-      n.group.userData.partMeshes = null;
+      n.group.userData.partMeshes = null; n.group.userData.fineMeshes = null;
       this.buildMeshes(obj, n.group);
       n.label = makeLabel(obj.name || obj.id, obj.kind === 'standin' ? '#ffe9a6' : '#ffffff');
       const top = obj.kind === 'standin' ? standinTop(obj) : (obj.size ? obj.size[1] + 0.3 : 1);
@@ -243,7 +294,8 @@ export class Viewport {
     const meshes = n.group.userData.partMeshes;
     if (!meshes) return;
     const sk = core.skeleton(pose || 'stand', obj.height || 1.75, obj.age);
-    for (let i = 0; i < meshes.length && i < sk.parts.length; i++) setPartTransform(meshes[i], sk.parts[i]);
+    for (const m of meshes) { const p = sk.parts[m.userData.partIndex]; if (p) setPartTransform(m, p); }
+    if (n.group.userData.fineMeshes) setFineTransforms(n.group.userData.fineMeshes, sk.parts);
     if (n.label) n.label.position.y = sk.keypoints.headTop[1] + 0.3;
     n.pose = pose;
   }

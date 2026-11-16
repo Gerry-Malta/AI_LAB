@@ -21,6 +21,10 @@ export const FIELD_TIPS = {
   visible: 'Visible|Hide the object in the viewport, the lens view and the renders.',
   notes: 'Notes|Free notes for the crew; they travel with the scene file and the camera sheet.',
   act: 'Acting|Joint angles added on top of the pose for this beat: head, neck, spine, shoulders, elbows, hips, knees. Reset returns to the library pose.',
+  hand: 'Hand gesture|What the hand does in this beat: relaxed, open, flat on a surface, fist, pointing, holding (a phone, a cup), pinching (a crayon). Close shots of hands read the gesture.',
+  handc: 'Hand closed %|How closed the fingers are: 0 straight, 100 a fist. The little finger closes a bit more than the index, as in a real hand.',
+  'act.wristL.twist': 'Wrist turn|Turns the forearm: positive shows the palm (forward, up), negative the back of the hand (palm down on a table or the ground).',
+  'act.wristR.twist': 'Wrist turn|Turns the forearm: positive shows the palm (forward, up), negative the back of the hand (palm down on a table or the ground).',
   // shots (3 · Camera)
   beat: 'Beat|The story beat this shot covers: its blocking poses the stand-ins.',
   beatA: 'Blocking at start → end|Two different beats make the actors move between their marks during the shot (get up, travel, settle).',

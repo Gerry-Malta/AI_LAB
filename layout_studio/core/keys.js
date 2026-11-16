@@ -1,8 +1,9 @@
 // Key (camera pose) definitions solved against the scene: the bridge between a described framing
 // ("CU of Arthur from 30°, eye level") and concrete camera coordinates. Used by the builder scripts and by the viewer's Re-solve.
 import { solveFraming, solveTwoShot, solveOTS, frameObject, aimFromPosition } from './framing.js';
+import { compose } from './dp.js';
 
-export const KEY_TYPES = ['single', 'two', 'ots', 'object', 'raw'];
+export const KEY_TYPES = ['single', 'two', 'ots', 'object', 'compose', 'raw'];
 
 /** Character record (position/facing/pose/height) at a beat, falling back to the rest transform. */
 export function charAt(scene, id, beatId) {
@@ -32,6 +33,12 @@ export function solveKeyDef(scene, shot, def, lens, beatId) {
       const r = solveOTS(Object.assign({}, def, { fg: charAt(scene, def.fg, beat), bg: charAt(scene, def.bg, beat), lens }));
       if (def.fitSize) lens.focal_mm = r.focal_mm;
       return { position: r.position, target: r.target, roll: def.roll || 0, meta: r };
+    }
+    case 'compose': {
+      // the DP composer: lens, angle and height searched inside the intent's ranges, eyes aimed onto the grid
+      const r = compose(scene, Object.assign({}, shot, { camera: lens }), Object.assign({}, def, { beat, subject: def.subject || shot.subject, size: def.size || shot.size }));
+      if (!def.focal) lens.focal_mm = r.focal_mm;
+      return { position: r.position, target: r.target, roll: r.roll || 0, meta: { distance: r.distance, why: r.why, intent: r.intent, score: r.analysis.score } };
     }
     case 'object': {
       let o = (scene.objects || []).find((x) => x.id === def.object);
